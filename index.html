@@ -2355,6 +2355,82 @@
         const windEl = document.getElementById('stat-wind');
         const precipEl = document.getElementById('stat-precip');
 
+        const WEATHER_CACHE_KEY = 'agrisense_weather_cache_v1';
+        const WEATHER_CACHE_TTL = 10 * 60 * 1000; // 10 phút
+        const DEFAULT_LOCATION = {
+          lat: 21.028511,
+          lon: 105.804817,
+          city: 'Hà Nội',
+          region: 'Hà Nội',
+          countryName: 'Việt Nam',
+          countryCode: 'VN'
+        };
+
+        function hasStorage() {
+          try {
+            const testKey = '__weather_storage_test__';
+            window.localStorage.setItem(testKey, '1');
+            window.localStorage.removeItem(testKey);
+            return true;
+          } catch (err) {
+            console.warn('LocalStorage unavailable for weather cache:', err);
+            return false;
+          }
+        }
+
+        const storageAvailable = hasStorage();
+
+        function readWeatherCache() {
+          if (!storageAvailable) return null;
+          try {
+            const raw = window.localStorage.getItem(WEATHER_CACHE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return null;
+            if (!parsed.timestamp || (Date.now() - parsed.timestamp) > WEATHER_CACHE_TTL) {
+              return null;
+            }
+            const payload = parsed.payload ? JSON.parse(JSON.stringify(parsed.payload)) : null;
+            if (payload) {
+              if (!payload.meta || typeof payload.meta !== 'object') {
+                payload.meta = {};
+              }
+              payload.meta.cached = true;
+            }
+            return payload;
+          } catch (err) {
+            console.warn('Weather cache read failed:', err);
+            return null;
+          }
+        }
+
+        function writeWeatherCache(payload) {
+          if (!storageAvailable || !payload) return;
+          try {
+            const clone = JSON.parse(JSON.stringify(payload));
+            if (!clone.meta || typeof clone.meta !== 'object') {
+              clone.meta = {};
+            }
+            clone.meta.cached = false;
+
+            window.localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({
+              timestamp: Date.now(),
+              payload: clone
+            }));
+          } catch (err) {
+            console.warn('Weather cache write failed:', err);
+          }
+        }
+
+        function clearWeatherCache() {
+          if (!storageAvailable) return;
+          try {
+            window.localStorage.removeItem(WEATHER_CACHE_KEY);
+          } catch (err) {
+            console.warn('Weather cache clear failed:', err);
+          }
+        }
+
         function setLoading() {
           weatherEl.dataset.state = 'loading';
           mainEl.textContent = 'Đang cập nhật thời tiết thực tế...';
@@ -2370,11 +2446,33 @@
           // data: { location_name, location_country, temp, humidity, wind_kph (or wind_m_s), precip_mm, condition, icon (optional) }
           const loc = (data.location_name ? `${data.location_name}, ${data.location_country || ''}` : 'Vị trí của bạn');
           mainEl.textContent = `${data.condition || 'Thời tiết'} — ${loc}`;
-          subEl.textContent = `Cập nhật: ${data.last_updated || (new Date()).toLocaleTimeString()}`;
-          tempEl.textContent = (data.temp !== undefined) ? `${data.temp}°C` : '—';
-          humEl.textContent = (data.humidity !== undefined) ? `${data.humidity}%` : '—';
-          windEl.textContent = (data.wind_kph !== undefined) ? `${data.wind_kph} km/h` : (data.wind_m_s !== undefined ? `${data.wind_m_s} m/s` : '—');
-          precipEl.textContent = (data.precip_mm !== undefined) ? `${data.precip_mm} mm` : '—';
+          const meta = (data.meta && typeof data.meta === 'object') ? data.meta : {};
+          const updateParts = [];
+          if (data.last_updated !== undefined && data.last_updated !== null) {
+            if (typeof data.last_updated === 'string') {
+              updateParts.push(data.last_updated);
+            } else {
+              try {
+                updateParts.push(new Date(data.last_updated).toLocaleTimeString());
+              } catch (_) {
+                updateParts.push(String(data.last_updated));
+              }
+            }
+          }
+          if (meta.cached) {
+            updateParts.push('bản đệm');
+          }
+          if (meta.location_source && String(meta.location_source).toLowerCase().includes('default')) {
+            updateParts.push('vị trí mặc định');
+          }
+          if (!updateParts.length) {
+            updateParts.push(new Date().toLocaleTimeString());
+          }
+          subEl.textContent = `Cập nhật: ${updateParts.join(' · ')}`;
+          tempEl.textContent = (data.temp !== undefined && data.temp !== null) ? `${data.temp}°C` : '—';
+          humEl.textContent = (data.humidity !== undefined && data.humidity !== null) ? `${data.humidity}%` : '—';
+          windEl.textContent = (data.wind_kph !== undefined && data.wind_kph !== null) ? `${data.wind_kph} km/h` : (data.wind_m_s !== undefined && data.wind_m_s !== null ? `${data.wind_m_s} m/s` : '—');
+          precipEl.textContent = (data.precip_mm !== undefined && data.precip_mm !== null) ? `${data.precip_mm} mm` : '—';
           // optional icon
           if (data.icon) {
             iconEl.innerHTML = `<img src="${data.icon}" alt="icon" class="w-6 h-6">`;
@@ -2394,6 +2492,7 @@
           precipEl.textContent = '—';
           iconEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i>`;
           iconEl.classList.remove('bg-green-500');
+          clearWeatherCache();
         }
 
         // tiny fetch with timeout
@@ -2442,18 +2541,43 @@
         // client fallback: ip lookup + public weather (keyless providers)
         async function tryClientFallback() {
           try {
-            // 1) IP-based geolocation
-            const ipResp = await fetchWithTimeout('https://ipapi.co/json/', {}, 6000);
-            if (!ipResp.ok) throw new Error('ip lookup failed');
-            const ipData = await ipResp.json();
-            const lat = Number(ipData.latitude ?? ipData.lat);
-            const lon = Number(ipData.longitude ?? ipData.lon);
-            const city = ipData.city || ipData.region || 'Vị trí của bạn';
-            const country = ipData.country_name || ipData.country || 'VN';
+            let ipData = null;
+            let ipSource = 'client-ipapi';
 
-            // 2) Open-Meteo current weather (no API key needed)
-            if (Number.isFinite(lat) && Number.isFinite(lon)) {
-              const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+            try {
+              const ipResp = await fetchWithTimeout('https://ipapi.co/json/', {}, 6000);
+              if (!ipResp.ok) {
+                throw new Error(`ip lookup failed (${ipResp.status})`);
+              }
+              ipData = await ipResp.json();
+            } catch (err) {
+              console.warn('Client IP lookup failed, using default coordinates:', err);
+              ipSource = 'client-default';
+              ipData = {
+                latitude: DEFAULT_LOCATION.lat,
+                longitude: DEFAULT_LOCATION.lon,
+                city: DEFAULT_LOCATION.city,
+                region: DEFAULT_LOCATION.region,
+                country_name: DEFAULT_LOCATION.countryName,
+                country: DEFAULT_LOCATION.countryCode
+              };
+            }
+
+            const latRaw = ipData.latitude ?? ipData.lat ?? DEFAULT_LOCATION.lat;
+            const lonRaw = ipData.longitude ?? ipData.lon ?? DEFAULT_LOCATION.lon;
+            let lat = Number(latRaw);
+            let lon = Number(lonRaw);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+              lat = DEFAULT_LOCATION.lat;
+              lon = DEFAULT_LOCATION.lon;
+              ipSource = 'client-default';
+            }
+
+            const city = ipData.city || ipData.region || DEFAULT_LOCATION.city;
+            const country = ipData.country_name || ipData.country || DEFAULT_LOCATION.countryName;
+
+            const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+            try {
               const mResp = await fetchWithTimeout(meteoUrl, {}, 6000);
               if (mResp.ok) {
                 const mData = await mResp.json();
@@ -2498,13 +2622,20 @@
                     wind_degree: toNumber(weather.wind_direction_10m),
                     precip_mm: toNumber(weather.precipitation),
                     last_updated: weather.time,
-                    source: 'Open-Meteo (client fallback)'
+                    source: 'Open-Meteo (client fallback)',
+                    meta: {
+                      location_source: ipSource,
+                      location_cache_hit: false,
+                      weather_source: 'open-meteo-client',
+                      cached: false
+                    }
                   };
                 }
               }
+            } catch (weatherErr) {
+              console.warn('Client Open-Meteo request failed:', weatherErr);
             }
 
-            // 3) Final fallback - return location only
             return {
               location_name: city,
               location_country: country,
@@ -2514,7 +2645,13 @@
               wind_kph: null,
               precip_mm: null,
               last_updated: new Date().toISOString(),
-              source: 'ip-location-only'
+              source: 'ip-location-only',
+              meta: {
+                location_source: ipSource,
+                location_cache_hit: false,
+                weather_source: 'ip-location-only',
+                cached: false
+              }
             };
           } catch (e) {
             console.warn('Client fallback weather failed:', e);
@@ -2527,12 +2664,20 @@
           try {
             setLoading();
 
+            const cachedWeather = readWeatherCache();
+            if (cachedWeather) {
+              renderWeather(cachedWeather);
+              return;
+            }
+
             // 1) try pywebview backend
             const backendRes = await tryBackendPywebview(4500);
             if (backendRes && backendRes.success !== false) {
               // backend might return wrapper { success:true, data: {...} } or raw data
               const data = backendRes.data || backendRes;
-              renderWeather(normalize(data));
+              const normalized = normalize(data);
+              writeWeatherCache(normalized);
+              renderWeather(normalized);
               return;
             }
 
@@ -2540,14 +2685,18 @@
             const serverRes = await tryServerApi(5000);
             if (serverRes && serverRes.success !== false) {
               const data = serverRes.data || serverRes;
-              renderWeather(normalize(data));
+              const normalized = normalize(data);
+              writeWeatherCache(normalized);
+              renderWeather(normalized);
               return;
             }
 
             // 3) client fallback
             const clientRes = await tryClientFallback();
             if (clientRes) {
-              renderWeather(normalize(clientRes));
+              const normalized = normalize(clientRes);
+              writeWeatherCache(normalized);
+              renderWeather(normalized);
               return;
             }
 
@@ -2562,7 +2711,7 @@
         // normalize various possible shapes into the fields renderWeather expects
         function normalize(obj) {
           if (!obj) return {};
-          return {
+          const clone = {
             location_name: obj.location_name || obj.city || obj.name || null,
             location_country: obj.location_country || obj.country || obj.country_name || null,
             condition: obj.condition || (obj.weather && obj.weather[0]?.description) || obj.description || null,
@@ -2575,6 +2724,20 @@
             last_updated: obj.last_updated ?? obj.updated_at ?? null,
             source: obj.source || 'unknown'
           };
+
+          const meta = (obj.meta && typeof obj.meta === 'object') ? { ...obj.meta } : {};
+          if (!('cached' in meta)) {
+            meta.cached = false;
+          }
+          if (!meta.location_source && obj.location_source) {
+            meta.location_source = obj.location_source;
+          }
+          if (!meta.weather_source && clone.source) {
+            meta.weather_source = clone.source;
+          }
+          clone.meta = meta;
+
+          return clone;
         }
 
         // Start

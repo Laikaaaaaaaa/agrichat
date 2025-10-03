@@ -2,6 +2,7 @@ import os
 import base64
 import io
 import json
+import copy
 import re
 import unicodedata
 import requests
@@ -97,6 +98,34 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
         if not self.weatherapi_key:
             logging.warning("⚠️  WEATHER_API_KEY chưa được cấu hình. Chức năng thời tiết có thể không hoạt động.")
 
+        # Weather/location fallback & caching configuration
+        default_city = os.getenv("DEFAULT_WEATHER_CITY", "Hà Nội").strip() or "Hà Nội"
+        default_region = os.getenv("DEFAULT_WEATHER_REGION", default_city).strip() or default_city
+        default_country_name = os.getenv("DEFAULT_WEATHER_COUNTRY", "Việt Nam").strip() or "Việt Nam"
+        default_country_code = os.getenv("DEFAULT_WEATHER_COUNTRY_CODE", "VN").strip() or "VN"
+        default_lat = self._safe_float(os.getenv("DEFAULT_WEATHER_LAT"))
+        if default_lat is None:
+            default_lat = 21.028511
+        default_lon = self._safe_float(os.getenv("DEFAULT_WEATHER_LON"))
+        if default_lon is None:
+            default_lon = 105.804817
+        default_tz = os.getenv("DEFAULT_WEATHER_TZ", "Asia/Ho_Chi_Minh").strip() or "Asia/Ho_Chi_Minh"
+
+        self.default_location = {
+            "city": default_city,
+            "region": default_region,
+            "country_name": default_country_name,
+            "country": default_country_code,
+            "latitude": default_lat,
+            "longitude": default_lon,
+            "tz_id": default_tz
+        }
+
+        self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 900)) or 900
+        self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300
+        self._ip_location_cache = {"timestamp": 0.0, "data": None}
+        self._weather_cache = {"timestamp": 0.0, "payload": None}
+
     # ------------------------------------------------------------------
     # Utility helpers
     # ------------------------------------------------------------------
@@ -175,6 +204,18 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
 
     def get_weather_info(self):
         logging.info("🌦️  API request: get_weather_info")
+
+        now = time.time()
+        cached_payload = self._weather_cache.get("payload") if hasattr(self, "_weather_cache") else None
+        cache_timestamp = self._weather_cache.get("timestamp", 0.0) if hasattr(self, "_weather_cache") else 0.0
+        if cached_payload and (now - cache_timestamp) < self.weather_cache_ttl:
+            logging.info("♻️  Weather cache hit (age=%.0fs)", now - cache_timestamp)
+            cached_copy = copy.deepcopy(cached_payload)
+            meta = cached_copy.get("meta") or {}
+            meta["cached"] = True
+            cached_copy["meta"] = meta
+            cached_copy["cached"] = True
+            return cached_copy
 
         def try_weatherapi(query: str):
             if not query:
@@ -344,23 +385,65 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                 logging.warning("⚠️  Open-Meteo query failed: %s", exc)
                 return None
 
-        try:
-            ip_resp = requests.get("https://ipapi.co/json/", timeout=6)
-            ip_resp.raise_for_status()
-            ip_data = ip_resp.json()
-        except Exception as exc:
-            logging.error("❌ Không thể lấy vị trí IP: %s", exc)
-            return {
-                "success": False,
-                "message": "Không thể xác định vị trí của bạn. Vui lòng kiểm tra kết nối mạng.",
-                "city": "Việt Nam",
-                "country": "VN"
+        ip_data = None
+        ip_meta = {
+            "source": None,
+            "cache_hit": False
+        }
+
+        if not hasattr(self, "_ip_location_cache"):
+            self._ip_location_cache = {"timestamp": 0.0, "data": None}
+
+        cached_ip = None
+        cached_ip_timestamp = 0.0
+        if self._ip_location_cache.get("data"):
+            cached_ip = self._ip_location_cache["data"]
+            cached_ip_timestamp = self._ip_location_cache.get("timestamp", 0.0)
+
+        if cached_ip and (now - cached_ip_timestamp) < self.ip_cache_ttl:
+            logging.info("♻️  Using cached IP location (age=%.0fs)", now - cached_ip_timestamp)
+            ip_data = copy.deepcopy(cached_ip)
+            ip_meta["source"] = "cache"
+            ip_meta["cache_hit"] = True
+        else:
+            try:
+                ip_resp = requests.get("https://ipapi.co/json/", timeout=6)
+                ip_resp.raise_for_status()
+                ip_data = ip_resp.json()
+                ip_meta["source"] = "ipapi"
+                self._ip_location_cache = {
+                    "timestamp": now,
+                    "data": copy.deepcopy(ip_data)
+                }
+            except Exception as exc:
+                logging.warning("⚠️  Không thể lấy vị trí IP từ ipapi: %s", exc)
+                ip_data = None
+
+        if not ip_data:
+            logging.info(
+                "ℹ️  Sử dụng vị trí mặc định cho thời tiết: %s, %s",
+                self.default_location.get("city"),
+                self.default_location.get("country")
+            )
+            ip_data = copy.deepcopy(self.default_location)
+            ip_meta["source"] = "default"
+            ip_meta["cache_hit"] = False
+            self._ip_location_cache = {
+                "timestamp": now,
+                "data": copy.deepcopy(ip_data)
             }
 
-        city = ip_data.get("city") or ip_data.get("region") or "Việt Nam"
+        city = ip_data.get("city") or ip_data.get("region") or self.default_location.get("city")
         country = ip_data.get("country_name") or ip_data.get("country") or "VN"
         lat = self._safe_float(ip_data.get("latitude"))
         lon = self._safe_float(ip_data.get("longitude"))
+
+        if lat is None or lon is None:
+            logging.warning("⚠️  IP lookup thiếu toạ độ. Dùng giá trị mặc định.")
+            lat = self.default_location.get("latitude")
+            lon = self.default_location.get("longitude")
+            if ip_meta["source"] != "default":
+                ip_meta["source"] = f"{ip_meta['source'] or 'unknown'}+default"
 
         weather = None
 
@@ -406,19 +489,38 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                 detailed_payload["location_name"] = city
             if not detailed_payload.get("location_country"):
                 detailed_payload["location_country"] = country
-            return {
+            response_payload = {
                 "success": True,
                 "city": city,
                 "country": country,
-                **detailed_payload
+                **detailed_payload,
+                "meta": {
+                    "location_source": ip_meta.get("source"),
+                    "location_cache_hit": ip_meta.get("cache_hit"),
+                    "weather_source": weather.get("source"),
+                    "cached": False
+                }
             }
+
+            if hasattr(self, "_weather_cache"):
+                self._weather_cache = {
+                    "timestamp": now,
+                    "payload": copy.deepcopy(response_payload)
+                }
+
+            return response_payload
 
         logging.warning("⚠️  Weather info unavailable after all fallbacks")
         return {
             "success": False,
             "city": city,
             "country": country,
-            "message": "Không thể lấy dữ liệu thời tiết. Vui lòng thử lại sau."
+            "message": "Không thể lấy dữ liệu thời tiết. Vui lòng thử lại sau.",
+            "meta": {
+                "location_source": ip_meta.get("source"),
+                "location_cache_hit": ip_meta.get("cache_hit"),
+                "weather_source": None
+            }
         }
 
     def initialize_gemini_model(self):
@@ -3538,165 +3640,188 @@ Trả lời chi tiết, khoa học và dễ hiểu. Giữ nguyên định dạng
                 ]
             })
 
-if __name__ == '__main__':
-    api = Api()
-    
-    # Flask routes
-    @app.route('/')
-    def index():
-        """Trang chủ"""
-        return render_template('index.html')
+api = Api()
 
-    @app.route('/news')
-    def news():
-        """Trang tin tức nông nghiệp"""
-        return render_template('news.html')
+# Flask routes
+@app.route('/')
+def index():
+    """Trang chủ"""
+    return render_template('index.html')
 
-    @app.route('/history')
-    def history():
-        """Trang lịch sử hội thoại"""
-        return render_template('history.html')
 
-    @app.route('/static/<path:filename>')
-    def static_files(filename):
-        """Serve static files"""
+@app.route('/news')
+def news():
+    """Trang tin tức nông nghiệp"""
+    return render_template('news.html')
+
+
+@app.route('/history')
+def history():
+    """Trang lịch sử hội thoại"""
+    return render_template('history.html')
+
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """Serve static files"""
+    return send_from_directory(HERE, filename)
+
+
+@app.route('/js/<path:filename>')
+def js_files(filename):
+    """Serve JS files"""
+    return send_from_directory(os.path.join(HERE, 'js'), filename)
+
+
+@app.route('/templates/<path:filename>')
+def template_files(filename):
+    """Serve template files"""
+    return send_from_directory(os.path.join(HERE, 'templates'), filename)
+
+
+@app.route('/<path:filename>')
+def html_files(filename):
+    """Serve HTML files directly"""
+    if filename.endswith('.html'):
         return send_from_directory(HERE, filename)
+    return "File not found", 404
 
-    @app.route('/js/<path:filename>')
-    def js_files(filename):
-        """Serve JS files"""
-        return send_from_directory(os.path.join(HERE, 'js'), filename)
 
-    @app.route('/templates/<path:filename>')
-    def template_files(filename):
-        """Serve template files"""
-        return send_from_directory(os.path.join(HERE, 'templates'), filename)
+@app.route('/api/log', methods=['POST'])
+def client_log():
+    """Receive client-side log events and emit them to the server log."""
+    data = request.get_json(silent=True) or {}
+    level = str(data.get('level', 'info')).lower()
+    source = data.get('source', 'client')
+    message = data.get('message', 'Client log event')
+    context = data.get('context') or {}
 
-    @app.route('/<path:filename>')
-    def html_files(filename):
-        """Serve HTML files directly"""
-        if filename.endswith('.html'):
-            return send_from_directory(HERE, filename)
-        return "File not found", 404
+    try:
+        context_str = json.dumps(context, ensure_ascii=False)
+    except Exception:
+        context_str = str(context)
 
-    @app.route('/api/log', methods=['POST'])
-    def client_log():
-        """Receive client-side log events and emit them to the server log."""
-        data = request.get_json(silent=True) or {}
-        level = str(data.get('level', 'info')).lower()
-        source = data.get('source', 'client')
-        message = data.get('message', 'Client log event')
-        context = data.get('context') or {}
+    log_message = f"🛰️ [{source}] {message}"
+    if context:
+        log_message = f"{log_message} | context={context_str}"
 
-        try:
-            context_str = json.dumps(context, ensure_ascii=False)
-        except Exception:
-            context_str = str(context)
+    if level == 'error':
+        logging.error(log_message)
+    elif level == 'warning':
+        logging.warning(log_message)
+    else:
+        logging.info(log_message)
 
-        log_message = f"🛰️ [{source}] {message}"
-        if context:
-            log_message = f"{log_message} | context={context_str}"
+    return jsonify({"success": True})
 
-        if level == 'error':
-            logging.error(log_message)
-        elif level == 'warning':
-            logging.warning(log_message)
-        else:
-            logging.info(log_message)
 
-        return jsonify({"success": True})
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """API endpoint for chat"""
+    try:
+        data = request.json
+        message = data.get('message', '')
+        image_data = data.get('image_data')
+        mode = data.get('mode', 'normal')
 
-    @app.route('/api/chat', methods=['POST'])
-    def chat():
-        """API endpoint for chat"""
-        try:
-            data = request.json
-            message = data.get('message', '')
-            image_data = data.get('image_data')
-            mode = data.get('mode', 'normal')
-            
-            logging.info(f"🔍 Chat API called - Message: '{message}', Mode: {mode}")
-            
-            # �️ KIỂM TRA YÊU CẦU TÌM ẢNH TRƯỚC
-            message_lower = message.lower()
-            image_keywords = [
-                'tìm ảnh', 'tim anh', 'tìm hình', 'tim hinh', 
-                'cho tôi ảnh', 'cho toi anh', 'ảnh về', 'anh ve',
-                'hình ảnh', 'hinh anh', 'show me image', 'find image',
-                'search image', 'get image', 'hiển thị ảnh', 'hien thi anh'
-            ]
-            
-            is_image_request = any(keyword in message_lower for keyword in image_keywords)
-            
-            if is_image_request:
-                logging.info("�️ Image search request detected")
-                
-                # Trích xuất chủ đề
-                query = message
-                for keyword in image_keywords:
-                    query = query.lower().replace(keyword, '').strip()
-                
-                stop_words = ['của', 'cho', 'về', 'với', 'trong', 'tôi', 'mình', 'bạn', 'đi', 'nha', 'ạ', 'nhé']
-                query_words = [word for word in query.split() if word not in stop_words]
-                clean_query = ' '.join(query_words).strip()
-                
-                if not clean_query:
-                    clean_query = 'nông nghiệp'
-                
-                logging.info(f"🎯 Search query: {clean_query}")
-                
-                # Tìm ảnh
-                images = api.search_image_with_retry(clean_query)
-                
-                if images and len(images) > 0:
-                    # Trả về format đặc biệt cho frontend
-                    return jsonify({
-                        "response": f"🖼️ Đây là {len(images)} ảnh về '{clean_query}':",
-                        "success": True,
-                        "type": "images",
-                        "images": images,
-                        "query": clean_query
-                    })
-                else:
-                    return jsonify({
-                        "response": f"😔 Xin lỗi, tôi không tìm được ảnh nào về '{clean_query}'. Bạn thử từ khóa khác nhé!",
-                        "success": True,
-                        "type": "text"
-                    })
-            
-            # Xử lý bình thường cho các request khác
-            if image_data:
-                logging.info("🤖 Calling api.analyze_image...")
-                response = api.analyze_image(image_data, message, mode)
+        logging.info(f"🔍 Chat API called - Message: '{message}', Mode: {mode}")
+
+        # �️ KIỂM TRA YÊU CẦU TÌM ẢNH TRƯỚC
+        message_lower = message.lower()
+        image_keywords = [
+            'tìm ảnh', 'tim anh', 'tìm hình', 'tim hinh',
+            'cho tôi ảnh', 'cho toi anh', 'ảnh về', 'anh ve',
+            'hình ảnh', 'hinh anh', 'show me image', 'find image',
+            'search image', 'get image', 'hiển thị ảnh', 'hien thi anh'
+        ]
+
+        is_image_request = any(keyword in message_lower for keyword in image_keywords)
+
+        if is_image_request:
+            logging.info("�️ Image search request detected")
+
+            # Trích xuất chủ đề
+            query = message
+            for keyword in image_keywords:
+                query = query.lower().replace(keyword, '').strip()
+
+            stop_words = ['của', 'cho', 'về', 'với', 'trong', 'tôi', 'mình', 'bạn', 'đi', 'nha', 'ạ', 'nhé']
+            query_words = [word for word in query.split() if word not in stop_words]
+            clean_query = ' '.join(query_words).strip()
+
+            if not clean_query:
+                clean_query = 'nông nghiệp'
+
+            logging.info(f"🎯 Search query: {clean_query}")
+
+            # Tìm ảnh
+            images = api.search_image_with_retry(clean_query)
+
+            if images and len(images) > 0:
+                # Trả về format đặc biệt cho frontend
+                return jsonify({
+                    "response": f"🖼️ Đây là {len(images)} ảnh về '{clean_query}':",
+                    "success": True,
+                    "type": "images",
+                    "images": images,
+                    "query": clean_query
+                })
             else:
-                logging.info("🤖 Calling api.chat...")
-                response = api.chat(message, mode)
-            
-            return jsonify({"response": response, "success": True, "type": "text"})
-        except Exception as e:
-            logging.error(f"❌ Lỗi chat API: {e}")
-            import traceback
-            logging.error(f"❌ Stack trace: {traceback.format_exc()}")
-            return jsonify({"response": f"Lỗi: {str(e)}", "success": False}), 500
+                return jsonify({
+                    "response": f"😔 Xin lỗi, tôi không tìm được ảnh nào về '{clean_query}'. Bạn thử từ khóa khác nhé!",
+                    "success": True,
+                    "type": "text"
+                })
 
-    @app.route('/api/weather', methods=['GET'])
-    def weather():
-        """API endpoint for weather"""
-        try:
-            weather_data = api.get_weather_info()
-            return jsonify(weather_data)
-        except Exception as e:
-            logging.error(f"Lỗi weather API: {e}")
-            return jsonify({"error": str(e)}), 500
+        # Xử lý bình thường cho các request khác
+        if image_data:
+            logging.info("🤖 Calling api.analyze_image...")
+            response = api.analyze_image(image_data, message, mode)
+        else:
+            logging.info("🤖 Calling api.chat...")
+            response = api.chat(message, mode)
+
+        return jsonify({"response": response, "success": True, "type": "text"})
+    except Exception as e:
+        logging.error(f"❌ Lỗi chat API: {e}")
+        import traceback
+        logging.error(f"❌ Stack trace: {traceback.format_exc()}")
+        return jsonify({"response": f"Lỗi: {str(e)}", "success": False}), 500
+
+
+@app.route('/api/weather', methods=['GET'])
+def weather():
+    """API endpoint for weather"""
+    try:
+        weather_data = api.get_weather_info()
+        return jsonify(weather_data)
+    except Exception as e:
+        logging.error(f"Lỗi weather API: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+def should_enable_debug() -> bool:
+    value = os.getenv('FLASK_DEBUG') or os.getenv('DEBUG') or ''
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def run_local():
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', '5000'))
+    debug = should_enable_debug()
 
     print("🚀 Khởi động AgriSense AI Web Server...")
-    print("📡 Server đang chạy tại: http://localhost:5000")
-    print("🌐 Mở trình duyệt và truy cập: http://localhost:5000")
+    print(f"📡 Server đang chạy tại: http://{host}:{port}")
+    print(f"🌐 Mở trình duyệt và truy cập: http://{host}:{port}")
     print("⭐ Nhấn Ctrl+C để dừng server")
-    
+
     app.run(
-        host='127.0.0.1',
-        port=5000,
-        debug=True,
-        use_reloader=False  # Tránh restart khi debug
+        host=host,
+        port=port,
+        debug=debug,
+        use_reloader=False
     )
+
+
+if __name__ == '__main__':
+    run_local()

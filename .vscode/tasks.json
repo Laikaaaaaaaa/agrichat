@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Geography Chatbot",
+			"type": "shell",
+			"command": "\"C:/Users/abc23/OneDrive/Máy tính/AgriSense AI/.venv/Scripts/python.exe\" -m streamlit run main.py",
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

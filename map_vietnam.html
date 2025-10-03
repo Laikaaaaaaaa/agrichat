@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bản đồ Thời tiết Việt Nam - AgriSense AI</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #b5e4c0;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* Header - mặc định luôn hiện */
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 70px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Đảm bảo luôn hiện ban đầu */
+            transform: translateY(0);
+        }
+
+        /* Chỉ ẩn khi có class hidden */
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+
+        /* Toggle button - tinh tế hơn */
+        .header-toggle {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 35px;
+            height: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 10px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-toggle:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-toggle.header-hidden {
+            background: rgba(22, 163, 74, 0.8);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .header-toggle.header-hidden:hover {
+            background: rgba(22, 163, 74, 1);
+        }
+
+        /* Icon mũi tên kép */
+        .double-arrow {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: -2px;
+        }
+
+        .double-arrow::before,
+        .double-arrow::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+        }
+
+        .double-arrow.up::before,
+        .double-arrow.up::after {
+            border-bottom: 3px solid currentColor;
+            margin-bottom: -1px;
+        }
+
+        .double-arrow.down::before,
+        .double-arrow.down::after {
+            border-top: 3px solid currentColor;
+            margin-top: -1px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #079364;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            line-height: 1.2;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: #079364;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .back-btn-text {
+            display: inline-block;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Map Container - mặc định để chỗ cho header */
+        .map-container {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Chỉ fullscreen khi header ẩn */
+        .map-container.fullscreen {
+            top: 0;
+        }
+
+        .windy-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                gap: 8px;
+                font-size: 18px;
+            }
+
+            .logo-text {
+                font-size: 18px;
+            }
+
+            .back-btn {
+                padding: 10px;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                justify-content: center;
+                gap: 0;
+            }
+
+            .back-btn i {
+                margin: 0;
+                font-size: 16px;
+            }
+
+            .back-btn-text {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Toggle Button - Tinh tế ở giữa -->
+    <button class="header-toggle" onclick="toggleHeader()" title="Ẩn/Hiện header">
+        <div id="toggle-icon" class="double-arrow up"></div>
+    </button>
+
+    <!-- Header -->
+    <div class="header" id="header">
+        <div class="logo">
+            <i class="fas fa-seedling"></i>
+            <span class="logo-text">AgriSense AI - Bản đồ Thời tiết</span>
+        </div>
+        <button class="back-btn" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i>
+            <span class="back-btn-text">Quay lại</span>
+        </button>
+    </div>
+
+    <!-- Map Container -->
+    <div class="map-container" id="map-container">
+        <iframe 
+            class="windy-iframe"
+            src="https://embed.windy.com/embed2.html?lat=16.000&lon=107.000&detailLat=16.000&detailLon=107.000&width=100%&height=100%&zoom=6&level=surface&overlay=wind&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
+            frameborder="0"
+            allowfullscreen>
+        </iframe>
+    </div>
+
+    <script>
+        // Toggle header visibility
+        function toggleHeader() {
+            const header = document.getElementById('header');
+            const mapContainer = document.getElementById('map-container');
+            const toggleBtn = document.querySelector('.header-toggle');
+            const toggleIcon = document.getElementById('toggle-icon');
+            
+            // Toggle classes
+            header.classList.toggle('hidden');
+            mapContainer.classList.toggle('fullscreen');
+            toggleBtn.classList.toggle('header-hidden');
+            
+            // Thay đổi icon mũi tên kép và override inline styles
+            if (header.classList.contains('hidden')) {
+                toggleIcon.className = 'double-arrow down';
+                toggleBtn.title = 'Hiện header';
+                // Force ẩn header
+                header.style.transform = 'translateY(-100%)';
+                mapContainer.style.top = '0';
+            } else {
+                toggleIcon.className = 'double-arrow up';
+                toggleBtn.title = 'Ẩn header';
+                // Force hiện header
+                header.style.transform = 'translateY(0)';
+                mapContainer.style.top = '70px';
+            }
+            
+            console.log('Toggle header - hidden:', header.classList.contains('hidden'));
+        }
+
+        // Quay về trang chính
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Shortcut: Nhấn ESC để toggle header
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                toggleHeader();
+            }
+        });
+
+        // Đảm bảo header hiện ban đầu - force visible
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.getElementById('header');
+            const mapContainer = document.getElementById('map-container');
+            const toggleBtn = document.querySelector('.header-toggle');
+            const toggleIcon = document.getElementById('toggle-icon');
+            
+            // Force header hiện ban đầu
+            header.classList.remove('hidden');
+            header.style.transform = 'translateY(0)';
+            
+            // Force map container bình thường
+            mapContainer.classList.remove('fullscreen');
+            mapContainer.style.top = '70px';
+            
+            // Reset toggle button
+            toggleBtn.classList.remove('header-hidden');
+            if (toggleIcon) {
+                toggleIcon.className = 'double-arrow up';
+            }
+            toggleBtn.title = 'Ẩn header';
+            
+            console.log('Header initialized and forced to show');
+        });
+    </script>
+</body>
+</html>

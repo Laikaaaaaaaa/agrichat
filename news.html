@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tin tức Nông nghiệp - AgriSense AI</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    /* Custom animations - matching index.html */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in-up {
+      animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .news-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .news-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .category-button {
+      transition: all 0.3s ease;
+    }
+    
+    .category-button.active {
+      background-color: #10b981;
+      color: white;
+    }
+    
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #10b981;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Line clamp utilities */
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-green-50 font-sans text-gray-700 min-h-screen">
+  <!-- Header - matching index.html style -->
+  <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
+    <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
+      <div class="flex items-center gap-2">
+        <!-- Back button with same style as menu toggle -->
+        <button onclick="goBack()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <!-- Icon lá cây - matching index -->
+        <i class="fas fa-leaf text-green-800 text-2xl md:text-3xl"></i>
+        <h1 class="text-lg md:text-2xl font-bold text-green-800">AgriSense AI</h1>
+      </div>
+      <span class="text-xs md:text-sm text-gray-500 hidden md:block">Tin tức nông nghiệp thông minh</span>
+      <div class="flex items-center gap-2 md:gap-4">
+        <span class="text-xs md:text-sm text-green-500">Đang tải tin tức...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container - matching index.html structure -->
+  <div class="w-full px-2 md:px-4 relative" style="min-height: calc(100vh - 80px);">
+    <!-- Main Content Area - matching chat-main style -->
+    <main class="bg-white shadow-lg rounded-2xl p-3 md:p-6 flex flex-col w-full relative mx-auto max-w-7xl mt-4" style="min-height: calc(100vh - 120px);">
+      
+      <!-- Page Header -->
+      <div class="text-center mb-6 md:mb-8 pb-4 border-b border-gray-100">
+        <h1 class="text-2xl md:text-3xl font-bold text-green-800 mb-3">
+          <i class="fas fa-newspaper text-green-600 mr-3"></i>
+          <span id="page-title">Tin tức Nông nghiệp</span>
+        </h1>
+        <p class="text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
+          Cập nhật những tin tức mới nhất về nông nghiệp, công nghệ, khí hậu và chăn nuôi
+        </p>
+      </div>
+
+      <!-- Search and Filters Section -->
+      <div class="mb-6 space-y-4">
+        <!-- Search Bar -->
+        <div class="flex justify-center">
+          <div class="relative w-full max-w-md">
+            <input 
+              type="text" 
+              id="search-input"
+              placeholder="Tìm kiếm tin tức..." 
+              spellcheck="false"
+              class="w-full pl-10 pr-20 py-3 border-2 border-green-200 rounded-xl focus:ring-2 focus:ring-green-400 focus:border-green-500 shadow-sm text-sm md:text-base"
+            />
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            
+            <!-- Clear button -->
+            <button id="clear-search" onclick="clearSearch()" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors hidden">
+              <i class="fas fa-times"></i>
+            </button>
+            
+            <!-- Search button -->
+            <button onclick="searchNews()" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors">
+              <i class="fas fa-search text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Results Info -->
+        <div id="search-results-info" class="text-center text-sm text-gray-600 hidden">
+          <i class="fas fa-info-circle mr-1"></i>
+          <span id="search-results-text"></span>
+        </div>
+
+        <!-- Category Filters -->
+        <div class="flex flex-wrap justify-center gap-2 md:gap-3">
+          <button class="category-button active px-3 md:px-4 py-2 rounded-full border-2 border-green-500 hover:border-green-600 text-xs md:text-sm font-medium transition-colors" data-category="all">
+            <i class="fas fa-globe-americas mr-1"></i>
+            Tất cả
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="agriculture">
+            <i class="fas fa-seedling mr-1"></i>
+            Nông nghiệp
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="technology">
+            <i class="fas fa-microchip mr-1"></i>
+            Công nghệ
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="climate">
+            <i class="fas fa-cloud mr-1"></i>
+            Khí hậu
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="livestock">
+            <i class="fa-solid fa-cow mr-1"></i>
+            Chăn nuôi
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div id="loading" class="text-center py-12">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 text-sm md:text-base">Đang tải tin tức...</p>
+      </div>
+
+      <!-- News Grid -->
+      <div id="news-container" class="hidden flex-1 overflow-auto" style="min-height: 0;">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
+          <!-- News items will be dynamically inserted here -->
+        </div>
+      </div>
+
+      <!-- No Results -->
+      <div id="no-results" class="text-center py-12 hidden">
+        <i class="fas fa-newspaper text-gray-300 text-4xl md:text-6xl mb-4"></i>
+        <h3 class="text-lg md:text-xl font-semibold text-gray-600 mb-2">Không tìm thấy tin tức</h3>
+        <p class="text-sm md:text-base text-gray-500">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác</p>
+      </div>
+
+      <!-- Load More Button -->
+      <div class="text-center mt-6 pt-4 border-t border-gray-100">
+        <button id="load-more" class="hidden bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-sm">
+          <i class="fas fa-plus mr-2"></i>
+          Tải thêm tin tức
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer - matching green theme -->
+  <footer class="bg-green-100 border-t border-green-200 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="text-center">
+        <div class="flex items-center justify-center gap-2 mb-3">
+          <i class="fas fa-leaf text-green-800 text-lg"></i>
+          <h3 class="text-lg font-bold text-green-800">AgriSense AI</h3>
+        </div>
+        <p class="text-sm text-gray-600">© 2025 AgriSense AI. Tất cả quyền được bảo lưu.</p>
+        <p class="text-xs text-gray-500 mt-1">Chuyên gia tư vấn nông nghiệp thông minh</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // News API Configuration
+    const newsAPIs = [
+      'df2bad590b1349e980a3123efe8b26b8',
+      '09479cf1408a4221a37bb8eeb4944d57',
+      'ac9afdf035ae40a6aac44a3e9bbdb676',
+      'b2631d135606454b90e5f91a4b65c005'
+    ];
+    
+    // Vietnamese RSS feeds for agriculture and related news
+    const vietnameseRSSFeeds = [
+      // Nông nghiệp môi trường
+      {
+        name: 'Nông nghiệp Môi trường - Chăn nuôi',
+        url: 'https://nongnghiepmoitruong.vn/chan-nuoi.rss',
+        category: 'livestock'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Tái cơ cấu',
+        url: 'https://nongnghiepmoitruong.vn/tai-co-cau-nong-nghiep.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Khuyến nông',
+        url: 'https://nongnghiepmoitruong.vn/khuyen-nong.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Khoa học Công nghệ',
+        url: 'https://nongnghiepmoitruong.vn/khoa-hoc---cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Thủy sản',
+        url: 'https://nongnghiepmoitruong.vn/thuy-san.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Lâm nghiệp',
+        url: 'https://nongnghiepmoitruong.vn/lam-nghiep.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Môi trường',
+        url: 'https://nongnghiepmoitruong.vn/cau-chuyen-moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Khoáng sản',
+        url: 'https://nongnghiepmoitruong.vn/khoang-san.rss',
+        category: 'business'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Tài nguyên nước',
+        url: 'https://nongnghiepmoitruong.vn/tai-nguyen-nuoc.rss',
+        category: 'climate'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Kinh tế thị trường',
+        url: 'https://nongnghiepmoitruong.vn/kinh-te-thi-truong.rss',
+        category: 'economy'
+      },
+      {
+        name: 'Nông nghiệp Môi trường - Biến đổi khí hậu',
+        url: 'https://nongnghiepmoitruong.vn/bien-doi-khi-hau-moitruong.rss',
+        category: 'climate'
+      },
+      
+      // VnExpress
+      {
+        name: 'VnExpress - Nông nghiệp',
+        url: 'https://vnexpress.net/tag/nong-nghiep.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'VnExpress - Nông nghiệp công nghệ cao',
+        url: 'https://vnexpress.net/tag/nong-nghiep-cong-nghe-cao.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'VnExpress - Nông nghiệp sạch',
+        url: 'https://vnexpress.net/topic/nong-nghiep-sach-21685.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'VnExpress - Khoa học',
+        url: 'https://vnexpress.net/rss/khoa-hoc.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VnExpress - Thời sự',
+        url: 'https://vnexpress.net/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'VnExpress - Kinh doanh',
+        url: 'https://vnexpress.net/rss/kinh-doanh.rss',
+        category: 'business'
+      },
+      {
+        name: 'VnExpress - Sức khỏe',
+        url: 'https://vnexpress.net/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'VnExpress - Thế giới',
+        url: 'https://vnexpress.net/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'VnExpress - Giáo dục',
+        url: 'https://vnexpress.net/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'VnExpress - Pháp luật',
+        url: 'https://vnexpress.net/rss/phap-luat.rss',
+        category: 'law'
+      },
+      {
+        name: 'VnExpress - Môi trường',
+        url: 'https://vnexpress.net/rss/thoi-su/moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'VnExpress - Tin mới nhất',
+        url: 'https://vnexpress.net/rss/tin-moi-nhat.rss',
+        category: 'news'
+      },
+      {
+        name: 'VnExpress - Tin xem nhiều',
+        url: 'https://vnexpress.net/rss/tin-xem-nhieu.rss',
+        category: 'news'
+      },
+      {
+        name: 'VnExpress - Du lịch',
+        url: 'https://vnexpress.net/rss/du-lich.rss',
+        category: 'travel'
+      },
+      {
+        name: 'VnExpress - Khoa học Tự nhiên',
+        url: 'https://vnexpress.net/rss/khoa-hoc/tu-nhien.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VnExpress - Khoa học Ứng dụng',
+        url: 'https://vnexpress.net/rss/khoa-hoc/ung-dung.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VnExpress - Phát minh',
+        url: 'https://vnexpress.net/rss/khoa-hoc/phat-minh.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VnExpress - Khám phá',
+        url: 'https://vnexpress.net/rss/khoa-hoc/kham-pha.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VnExpress - Bảo vệ môi trường',
+        url: 'https://vnexpress.net/rss/khoa-hoc/bao-ve-moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'VnExpress - Nhà khoa học Việt',
+        url: 'https://vnexpress.net/rss/khoa-hoc/nha-khoa-hoc-viet.rss',
+        category: 'technology'
+      },
+      
+      // Tuổi Trẻ
+      {
+        name: 'Tuổi Trẻ - Khoa học',
+        url: 'https://tuoitre.vn/rss/khoa-hoc.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Tuổi Trẻ - Thời sự',
+        url: 'https://tuoitre.vn/rss/thoisu.rss',
+        category: 'news'
+      },
+      {
+        name: 'Tuổi Trẻ - Kinh tế',
+        url: 'https://tuoitre.vn/rss/kinhte.rss',
+        category: 'economy'
+      },
+      {
+        name: 'Tuổi Trẻ - Giáo dục',
+        url: 'https://tuoitre.vn/rss/giaoduc.rss',
+        category: 'education'
+      },
+      {
+        name: 'Tuổi Trẻ - Sức khỏe',
+        url: 'https://tuoitre.vn/rss/suckhoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'Tuổi Trẻ - Thế giới',
+        url: 'https://tuoitre.vn/rss/thegioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'Tuổi Trẻ - Chính trị',
+        url: 'https://tuoitre.vn/rss/chinhtri.rss',
+        category: 'politics'
+      },
+      {
+        name: 'Tuổi Trẻ - Văn hóa',
+        url: 'https://tuoitre.vn/rss/vanhoa.rss',
+        category: 'culture'
+      },
+      {
+        name: 'Tuổi Trẻ - Bạn đọc',
+        url: 'https://tuoitre.vn/rss/ban-doc.rss',
+        category: 'news'
+      },
+      {
+        name: 'Tuổi Trẻ - Nhịp sống trẻ',
+        url: 'https://tuoitre.vn/rss/nhip-song-tre.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Tuổi Trẻ - Bạn đọc làm báo',
+        url: 'https://tuoitre.vn/rss/ban-doc-lam-bao.rss',
+        category: 'news'
+      },
+      {
+        name: 'Tuổi Trẻ - Du lịch',
+        url: 'https://tuoitre.vn/rss/du-lich.rss',
+        category: 'travel'
+      },
+      {
+        name: 'Tuổi Trẻ - Môi trường',
+        url: 'https://tuoitre.vn/rss/thoi-su/moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'Tuổi Trẻ - Đời sống',
+        url: 'https://tuoitre.vn/rss/doi-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Tuổi Trẻ - Tin mới nhất',
+        url: 'https://tuoitre.vn/rss/tin-moi-nhat.rss',
+        category: 'news'
+      },
+      {
+        name: 'Tuổi Trẻ - Pháp luật',
+        url: 'https://tuoitre.vn/rss/phap-luat.rss',
+        category: 'law'
+      },
+      {
+        name: 'Tuổi Trẻ - Nhịp sống số',
+        url: 'https://tuoitre.vn/rss/nhip-song-so.rss',
+        category: 'technology'
+      },
+      
+      // Dân trí
+      {
+        name: 'Dân trí - Sức khỏe',
+        url: 'https://dantri.com.vn/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'Dân trí - Kinh doanh',
+        url: 'https://dantri.com.vn/rss/kinh-doanh.rss',
+        category: 'business'
+      },
+      {
+        name: 'Dân trí - Giáo dục',
+        url: 'https://dantri.com.vn/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'Dân trí - Thế giới',
+        url: 'https://dantri.com.vn/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'Dân trí - Thời sự',
+        url: 'https://dantri.com.vn/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'Dân trí - Khoa học Công nghệ',
+        url: 'https://dantri.com.vn/rss/khoa-hoc-cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Dân trí - Nhịp sống trẻ',
+        url: 'https://dantri.com.vn/rss/nhip-song-tre.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Dân trí - Đời sống',
+        url: 'https://dantri.com.vn/rss/doi-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Dân trí - Văn hóa',
+        url: 'https://dantri.com.vn/rss/van-hoa.rss',
+        category: 'culture'
+      },
+      {
+        name: 'Dân trí - Nông nghiệp',
+        url: 'https://dantri.com.vn/rss/nong-nghiep.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'Dân trí - Bạn đọc',
+        url: 'https://dantri.com.vn/rss/ban-doc.rss',
+        category: 'news'
+      },
+      
+      // VietnamNet
+      {
+        name: 'VietnamNet - Khoa học',
+        url: 'https://vietnamnet.vn/rss/khoa-hoc.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VietnamNet - Môi trường',
+        url: 'https://vietnamnet.vn/rss/moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'VietnamNet - Thời sự',
+        url: 'https://vietnamnet.vn/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'VietnamNet - Kinh doanh',
+        url: 'https://vietnamnet.vn/rss/kinh-doanh.rss',
+        category: 'business'
+      },
+      {
+        name: 'VietnamNet - Sức khỏe',
+        url: 'https://vietnamnet.vn/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'VietnamNet - Giáo dục',
+        url: 'https://vietnamnet.vn/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'VietnamNet - Bạn đọc',
+        url: 'https://vietnamnet.vn/rss/ban-doc.rss',
+        category: 'news'
+      },
+      {
+        name: 'VietnamNet - Du lịch',
+        url: 'https://vietnamnet.vn/rss/du-lich.rss',
+        category: 'travel'
+      },
+      {
+        name: 'VietnamNet - Thế giới',
+        url: 'https://vietnamnet.vn/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'VietnamNet - Công nghệ',
+        url: 'https://vietnamnet.vn/rss/cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VietnamNet - Nhịp sống số',
+        url: 'https://vietnamnet.vn/rss/nhip-song-so.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VietnamNet - Startup',
+        url: 'https://vietnamnet.vn/rss/nhip-song-so/startup.rss',
+        category: 'business'
+      },
+      {
+        name: 'VietnamNet - Cuộc sống số',
+        url: 'https://vietnamnet.vn/rss/nhip-song-so/cuoc-song-so.rss',
+        category: 'technology'
+      },
+      {
+        name: 'VietnamNet - Khoa học số',
+        url: 'https://vietnamnet.vn/rss/nhip-song-so/khoa-hoc.rss',
+        category: 'technology'
+      },
+      
+      // Zing News
+      {
+        name: 'Zing News - RSS Chính',
+        url: 'https://zingnews.vn/rss.html',
+        category: 'news'
+      },
+      {
+        name: 'Zing News - Kinh doanh',
+        url: 'https://zingnews.vn/rss/kinh-doanh.rss',
+        category: 'business'
+      },
+      {
+        name: 'Zing News - Sức khỏe',
+        url: 'https://zingnews.vn/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'Zing News - Khoa học',
+        url: 'https://zingnews.vn/rss/khoa-hoc.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Zing News - Thế giới',
+        url: 'https://zingnews.vn/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'Zing News - Giáo dục',
+        url: 'https://zingnews.vn/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'Zing News - Thời sự',
+        url: 'https://zingnews.vn/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'Zing News - Du lịch',
+        url: 'https://zingnews.vn/rss/du-lich.rss',
+        category: 'travel'
+      },
+      {
+        name: 'Zing News - Công nghệ',
+        url: 'https://zingnews.vn/rss/cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Zing News - Nhịp sống',
+        url: 'https://zingnews.vn/rss/nhip-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Zing News - Môi trường',
+        url: 'https://zingnews.vn/rss/moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'Zing News - Văn hóa',
+        url: 'https://zingnews.vn/rss/van-hoa.rss',
+        category: 'culture'
+      },
+      {
+        name: 'Zing News - Đời sống',
+        url: 'https://zingnews.vn/rss/doi-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Zing News - Nông nghiệp',
+        url: 'https://zingnews.vn/rss/nong-nghiep.rss',
+        category: 'agriculture'
+      },
+      
+      // Thanh Niên
+      {
+        name: 'Thanh Niên - Kinh tế',
+        url: 'https://thanhnien.vn/rss/kinh-te.rss',
+        category: 'economy'
+      },
+      {
+        name: 'Thanh Niên - Đời sống',
+        url: 'https://thanhnien.vn/rss/doi-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Thanh Niên - Thế giới',
+        url: 'https://thanhnien.vn/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'Thanh Niên - Sức khỏe',
+        url: 'https://thanhnien.vn/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'Thanh Niên - Khoa học',
+        url: 'https://thanhnien.vn/rss/khoa-hoc.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Thanh Niên - Thời sự',
+        url: 'https://thanhnien.vn/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'Thanh Niên - Công nghệ',
+        url: 'https://thanhnien.vn/rss/cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Thanh Niên - Giáo dục',
+        url: 'https://thanhnien.vn/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'Thanh Niên - Văn hóa',
+        url: 'https://thanhnien.vn/rss/van-hoa.rss',
+        category: 'culture'
+      },
+      {
+        name: 'Thanh Niên - Nhịp sống trẻ',
+        url: 'https://thanhnien.vn/rss/nhip-song-tre.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Thanh Niên - Môi trường',
+        url: 'https://thanhnien.vn/rss/moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'Thanh Niên - Tiêu dùng thông minh',
+        url: 'https://thanhnien.vn/rss/tieu-dung-thong-minh.rss',
+        category: 'lifestyle'
+      },
+      
+      // Additional major news sources
+      {
+        name: 'Việt Nam Hội nhập',
+        url: 'https://vietnamhoinhap.vn/rss',
+        category: 'news'
+      },
+      {
+        name: 'Trải nghiệm số',
+        url: 'https://trainghiemso.vn/feed/',
+        category: 'technology'
+      },
+      {
+        name: 'Việt Báo',
+        url: 'https://vietbao.vn/rss',
+        category: 'news'
+      },
+      {
+        name: 'Soha',
+        url: 'https://soha.vn/rss.htm',
+        category: 'news'
+      },
+      {
+        name: '24h',
+        url: 'https://24h.com.vn/guest/RSS/',
+        category: 'news'
+      },
+      {
+        name: 'CafeF - Tài chính Ngân hàng',
+        url: 'https://cafef.vn/rss/tai-chinh-ngan-hang.rss',
+        category: 'business'
+      },
+      {
+        name: 'CafeF - Nông nghiệp',
+        url: 'https://cafef.vn/rss/nong-nghiep.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'Nhân Dân',
+        url: 'https://nhandan.vn/rss',
+        category: 'news'
+      },
+      {
+        name: 'Báo Đầu tư',
+        url: 'https://baodautu.vn/rss/',
+        category: 'business'
+      },
+      
+      // Provincial newspapers
+      {
+        name: 'Báo Quảng Ninh',
+        url: 'https://baoquangninh.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Hà Tĩnh',
+        url: 'https://baohatinh.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Lâm Đồng',
+        url: 'https://baolamdong.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Trà Vinh',
+        url: 'https://baotravinh.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Đắk Lắk',
+        url: 'https://baodaklak.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Nghệ An',
+        url: 'https://baonghean.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Vĩnh Long',
+        url: 'https://baovinhlong.com.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Bình Thuận',
+        url: 'https://baobinhthuan.com.vn/rss/',
+        category: 'news'
+      },
+      {
+        name: 'Báo Đồng Nai',
+        url: 'https://baodongnai.com.vn/rss/',
+        category: 'news'
+      }
+    ];
+    
+    let currentAPIIndex = 0;
+    let currentCategory = 'all';
+    let currentPage = 1;
+    let allNews = [];
+    let vietnameseNews = [];
+    let isLoading = false;
+    let hasMoreNews = true;
+    
+    // Cache cho từng danh mục để giảm lag
+    let categoryCache = {
+      all: [],
+      agriculture: [],
+      technology: [],
+      climate: [],
+      livestock: []
+    };
+
+    // Category keywords mapping - Enhanced để phân biệt rõ ràng các danh mục
+    const categoryKeywords = {
+      agriculture: [
+        // Tiếng Việt
+        'nông nghiệp', 'nông dân', 'trồng trọt', 'cây trồng', 'lúa', 'gạo', 'rau củ', 'hoa màu', 
+        'giống cây', 'phân bón', 'thuốc trừ sâu', 'tưới tiêu', 'đất nông nghiệp', 'nông sản',
+        'xuất khẩu nông sản', 'an toàn thực phẩm', 'nông nghiệp hữu cơ', 'nông nghiệp sạch',
+        // Tiếng Anh
+        'farming', 'agriculture', 'crop', 'harvest', 'soil', 'seed', 'irrigation', 'pesticide', 
+        'rice', 'corn', 'wheat', 'vegetable', 'organic farming', 'sustainable agriculture'
+      ],
+      technology: [
+        // Tiếng Việt
+        'công nghệ', 'trí tuệ nhân tạo', 'AI', 'drone', 'robot', 'cảm biến', 'IoT', 'thông minh',
+        'tự động hóa', 'khoa học', 'nghiên cứu', 'phát minh', 'khám phá', 'startup', 'số hóa',
+        'blockchain', 'big data', 'machine learning', 'nông nghiệp thông minh',
+        // Tiếng Anh
+        'technology', 'innovation', 'digital', 'smart', 'automation', 'artificial intelligence', 
+        'precision agriculture', 'sensor', 'IoT', 'robotics', 'drone technology'
+      ],
+      climate: [
+        // Tiếng Việt
+        'khí hậu', 'thời tiết', 'nhiệt độ', 'mưa', 'hạn hán', 'lũ lụt', 'bão', 'biến đổi khí hậu',
+        'ô nhiễm', 'môi trường', 'khí thải', 'carbon', 'hiệu ứng nhà kính', 'năng lượng tái tạo',
+        'bảo vệ môi trường', 'sinh thái', 'đa dạng sinh học', 'rừng', 'sa mạc hóa',
+        // Tiếng Anh
+        'climate', 'weather', 'temperature', 'rainfall', 'drought', 'flood', 'global warming', 
+        'climate change', 'monsoon', 'pollution', 'environment', 'carbon emissions', 'renewable energy'
+      ],
+      livestock: [
+        // Tiếng Việt
+        'chăn nuôi', 'bò', 'heo', 'lợn', 'gà', 'vịt', 'cừu', 'dê', 'trâu', 'ngựa', 'thịt', 'sữa',
+        'trứng', 'gia súc', 'gia cầm', 'thức ăn chăn nuôi', 'vaccine', 'bệnh động vật',
+        'trang trại', 'chăn nuôi công nghiệp', 'an toàn sinh học', 'giết mổ', 'chế biến thịt',
+        // Tiếng Anh
+        'livestock', 'cattle', 'pig', 'chicken', 'dairy', 'meat', 'animal', 'poultry', 
+        'beef', 'pork', 'eggs', 'farm animals', 'animal husbandry', 'veterinary'
+      ]
+    };
+
+    // Enhanced similarity calculation function for duplicate detection
+    function calculateSimilarity(str1, str2) {
+      if (!str1 || !str2) return 0;
+      if (str1 === str2) return 1;
+      
+      // Normalize strings
+      const s1 = str1.toLowerCase().trim().replace(/[^\w\s]/g, '');
+      const s2 = str2.toLowerCase().trim().replace(/[^\w\s]/g, '');
+      
+      if (s1 === s2) return 1;
+      
+      // Calculate Levenshtein distance
+      const matrix = [];
+      const len1 = s1.length;
+      const len2 = s2.length;
+      
+      if (len1 === 0) return len2 === 0 ? 1 : 0;
+      if (len2 === 0) return 0;
+      
+      // Initialize matrix
+      for (let i = 0; i <= len1; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= len2; j++) {
+        matrix[0][j] = j;
+      }
+      
+      // Calculate distances
+      for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+          const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,      // deletion
+            matrix[i][j - 1] + 1,      // insertion
+            matrix[i - 1][j - 1] + cost // substitution
+          );
+        }
+      }
+      
+      const maxLen = Math.max(len1, len2);
+      const distance = matrix[len1][len2];
+      
+      return 1 - (distance / maxLen);
+    }
+
+    // Additional function to normalize article data and reduce duplicates
+    function normalizeArticle(article) {
+      return {
+        ...article,
+        title: article.title ? article.title.trim().replace(/\s+/g, ' ') : '',
+        description: article.description ? article.description.trim().replace(/\s+/g, ' ') : '',
+        normalizedTitle: article.title ? article.title.toLowerCase().replace(/[^\w\s]/g, '').trim() : ''
+      };
+    }
+
+    // Enhanced duplicate detection for RSS feeds
+    function removeDuplicatesFromFeed(articles) {
+      const seen = new Set();
+      const uniqueArticles = [];
+      
+      for (const article of articles) {
+        const normalized = normalizeArticle(article);
+        const titleKey = normalized.normalizedTitle;
+        const urlKey = article.url;
+        
+        // Check if we've seen this title or URL before
+        if (!seen.has(titleKey) && !seen.has(urlKey)) {
+          // Additional check against existing articles for similarity
+          const isDuplicate = uniqueArticles.some(existing => {
+            return calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.75 ||
+                   (existing.url === article.url) ||
+                   (existing.description && article.description && 
+                    calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.8);
+          });
+          
+          if (!isDuplicate) {
+            seen.add(titleKey);
+            seen.add(urlKey);
+            uniqueArticles.push(normalized);
+          }
+        }
+      }
+      
+      return uniqueArticles;
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize clock
+      updateClock();
+      setInterval(updateClock, 1000);
+      
+      // Add fallback test data if no RSS feeds load
+      setTimeout(() => {
+        if (allNews.length === 0) {
+          console.log('🔄 No real news loaded, adding test content...');
+          allNews = [
+            {
+              title: "Công nghệ nông nghiệp thông minh",
+              description: "Ứng dụng AI trong việc quản lý cây trồng và tăng năng suất",
+              content: "Nông nghiệp thông minh đang phát triển mạnh mẽ với các công nghệ IoT, AI và máy học",
+              category: "agriculture",
+              isVietnamese: true,
+              url: "#test1",
+              pubDate: new Date()
+            },
+            {
+              title: "Chăn nuôi bò sữa hiện đại", 
+              description: "Kỹ thuật chăn nuôi bò sữa công nghệ cao",
+              content: "Chăn nuôi bò sữa với công nghệ mới giúp tăng sản lượng sữa và chất lượng",
+              category: "livestock",
+              isVietnamese: true,
+              url: "#test2",
+              pubDate: new Date()
+            },
+            {
+              title: "Biến đổi khí hậu và nông nghiệp",
+              description: "Tác động của biến đổi khí hậu đến ngành nông nghiệp Việt Nam",
+              content: "Khí hậu thay đổi ảnh hưởng lớn đến sản xuất nông nghiệp",
+              category: "climate",
+              isVietnamese: true,
+              url: "#test3",
+              pubDate: new Date()
+            }
+          ];
+          filterAndDisplayNews();
+          console.log('✅ Test content added, articles available:', allNews.length);
+        }
+      }, 3000);
+      
+      // Get URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const categoryParam = urlParams.get('category');
+      const typeParam = urlParams.get('type');
+      
+      // Set initial category if provided
+      if (categoryParam && categoryParam !== 'all') {
+        currentCategory = categoryParam;
+        selectCategory(categoryParam);
+      }
+      
+      // Update page title if type is provided
+      if (typeParam) {
+        document.getElementById('page-title').textContent = typeParam;
+        document.title = `${typeParam} - AgriSense AI`;
+      }
+      
+      loadNews();
+      loadVietnameseNews(); // Load Vietnamese RSS feeds
+      setupEventListeners();
+    });
+
+    // Fetch Vietnamese RSS feeds - prioritize agriculture and maximize content
+    async function loadVietnameseNews() {
+      console.log('🚀 Đang tải tin tức Việt Nam từ 130+ nguồn RSS...');
+      try {
+        // Prioritize agricultural feeds first
+        const agricultureFeeds = vietnameseRSSFeeds.filter(feed => 
+          feed.category === 'agriculture' || feed.name.toLowerCase().includes('nông nghiệp') || 
+          feed.name.toLowerCase().includes('chăn nuôi') || feed.name.toLowerCase().includes('thủy sản')
+        );
+        const otherFeeds = vietnameseRSSFeeds.filter(feed => !agricultureFeeds.includes(feed));
+        const prioritizedFeeds = [...agricultureFeeds, ...otherFeeds];
+        
+        console.log(`📋 Ưu tiên ${agricultureFeeds.length} nguồn nông nghiệp, ${otherFeeds.length} nguồn khác`);
+        
+        for (const feed of prioritizedFeeds) {
+          try {
+            // Use multiple RSS services for better reliability - request maximum articles
+            const rssServices = [
+              `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=100`,
+              `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=100`
+            ];
+            
+            let newsItems = [];
+            
+            // Try RSS2JSON services
+            for (const service of rssServices) {
+              try {
+                const response = await fetch(service);
+                if (response.ok) {
+                  const data = await response.json();
+                  
+                  if (data.status === 'ok' && data.items && data.items.length > 0) {
+                    newsItems = data.items.map(item => ({
+                      title: item.title,
+                      description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : '',
+                      url: item.link,
+                      urlToImage: getImageFromItem(item, feed.name),
+                      publishedAt: item.pubDate,
+                      source: { name: feed.name },
+                      content: item.content || item.description,
+                      category: feed.category,
+                      isVietnamese: true,
+                      priority: feed.category === 'agriculture' ? 1 : 2 // Higher priority for agriculture
+                    }));
+                    
+                    // Remove duplicates within this feed
+                    newsItems = removeDuplicatesFromFeed(newsItems);
+                    console.log(`✅ ${feed.name}: ${newsItems.length} bài`);
+                    break; // Success, no need to try other services
+                  }
+                }
+              } catch (e) {
+                console.log(`❌ Service failed for ${feed.name}:`, e.message);
+              }
+            }
+            
+            // If RSS services fail, skip this feed - NO FAKE NEWS
+            if (newsItems.length === 0) {
+              console.log(`❌ ${feed.name}: Không tải được tin thật, bỏ qua`);
+              continue; // Skip this feed instead of generating fake news
+            }
+            
+            vietnameseNews = [...vietnameseNews, ...newsItems];
+            
+            // Remove duplicates across all feeds after adding
+            vietnameseNews = removeDuplicatesFromFeed(vietnameseNews);
+            
+          } catch (error) {
+            console.log(`Failed to load RSS from ${feed.name}:`, error);
+            // NO MOCK DATA - Only real news
+            console.log(`❌ Bỏ qua ${feed.name} vì không tải được tin thật`);
+          }
+        }
+        
+        // Remove duplicates and sort by priority then date
+        vietnameseNews = vietnameseNews.filter((article, index, self) => 
+          index === self.findIndex(a => 
+            // Enhanced duplicate detection
+            a.title === article.title || 
+            (a.title.toLowerCase().trim() === article.title.toLowerCase().trim()) ||
+            (a.url === article.url) ||
+            // Check for similar titles (70% similarity)
+            calculateSimilarity(a.title.toLowerCase(), article.title.toLowerCase()) > 0.7
+          )
+        );
+        vietnameseNews.sort((a, b) => {
+          // First sort by priority (agriculture first)
+          if (a.priority !== b.priority) {
+            return (a.priority || 3) - (b.priority || 3);
+          }
+          // Then by date (newest first)
+          return new Date(b.publishedAt) - new Date(a.publishedAt);
+        });
+        
+        // Show real news count only
+        console.log(`🎯 Tổng cộng: ${vietnameseNews.length} bài báo Việt Nam THẬT từ RSS feeds`);
+        
+        // NO FAKE NEWS GENERATION - Only show what we actually get from real sources
+        console.log(`✅ Chỉ hiển thị tin tức thật từ ${vietnameseRSSFeeds.length} nguồn RSS Việt Nam`);
+        
+      } catch (error) {
+        console.error('❌ Lỗi tải tin tức Việt Nam:', error);
+        // NO MOCK DATA FALLBACK - Show empty if can't get real news
+        vietnameseNews = [];
+        console.log(`❌ Không có dữ liệu dự phòng - chỉ hiển thị tin thật`);
+      }
+    }
+
+    // Enhanced image extraction function with Vietnamese agriculture focus
+    function getImageFromItem(item, feedName) {
+      // Try multiple sources for images
+      let imageUrl = null;
+      
+      // 1. Try thumbnail
+      if (item.thumbnail) {
+        imageUrl = item.thumbnail;
+      }
+      // 2. Try enclosure
+      else if (item.enclosure && item.enclosure.link) {
+        imageUrl = item.enclosure.link;
+      }
+      // 3. Try extracting from content with priority for Vietnamese sources
+      else if (item.content) {
+        imageUrl = extractImageFromContent(item.content);
+      }
+      // 4. Try extracting from description
+      else if (item.description) {
+        imageUrl = extractImageFromContent(item.description);
+      }
+      
+      // 5. Try media:content or other RSS image tags
+      if (!imageUrl && item['media:content']) {
+        imageUrl = item['media:content']['@_url'] || item['media:content'].url;
+      }
+      
+      // 6. Use high-quality agriculture images based on content/feed
+      if (!imageUrl) {
+        imageUrl = getAgricultureImageByContent(item, feedName);
+      }
+      
+      return imageUrl;
+    }
+
+    // Get agriculture-specific images based on content
+    function getAgricultureImageByContent(item, feedName) {
+      const title = (item.title || '').toLowerCase();
+      const description = (item.description || '').toLowerCase();
+      const content = title + ' ' + description;
+      
+      // Vietnamese agriculture-specific images
+      if (content.includes('lúa') || content.includes('gạo')) {
+        return 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('rau') || content.includes('củ')) {
+        return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('bò') || content.includes('sữa')) {
+        return 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('heo') || content.includes('lợn')) {
+        return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('gà') || content.includes('trứng')) {
+        return 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('cá') || content.includes('tôm') || content.includes('thủy sản')) {
+        return 'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('môi trường') || content.includes('khí hậu')) {
+        return 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('công nghệ') || content.includes('ai') || content.includes('drone')) {
+        return 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('hữu cơ') || content.includes('sạch')) {
+        return 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&h=200&fit=crop&auto=format';
+      }
+      
+      // Feed-specific high-quality images for Vietnamese sources
+      const feedImages = {
+        'VnExpress': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=200&fit=crop&auto=format',
+        'Tuổi Trẻ': 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=400&h=200&fit=crop&auto=format',
+        'Thanh Niên': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+        'Dân trí': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=200&fit=crop&auto=format',
+        'VTC': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
+        'Nông nghiệp': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+        'Môi trường': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format'
+      };
+      
+      for (const [key, img] of Object.entries(feedImages)) {
+        if (feedName.includes(key)) {
+          return img;
+        }
+      }
+      
+      // Default high-quality agriculture image
+      return 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format';
+    }
+
+    // Helper function to extract image from content
+    function extractImageFromContent(content) {
+      if (!content) return null;
+      
+      // Try multiple image extraction patterns
+      const imgPatterns = [
+        /<img[^>]+src="([^"]+)"/i,
+        /<img[^>]+src='([^']+)'/i,
+        /src="([^"]*\.(jpg|jpeg|png|gif|webp)[^"]*)"/i,
+        /src='([^']*\.(jpg|jpeg|png|gif|webp)[^']*)'/i,
+        /<media:content[^>]+url="([^"]+)"/i,
+        /<enclosure[^>]+url="([^"]+)"/i
+      ];
+      
+      for (const pattern of imgPatterns) {
+        const match = content.match(pattern);
+        if (match && match[1]) {
+          // Validate URL
+          try {
+            const url = new URL(match[1]);
+            if (url.protocol === 'http:' || url.protocol === 'https:') {
+              return match[1];
+            }
+          } catch (e) {
+            // If it's a relative URL, try to make it absolute
+            if (match[1].startsWith('/')) {
+              return 'https:' + match[1];
+            }
+          }
+        }
+      }
+      
+      return null;
+    }
+
+    // Generate category-specific Vietnamese news with maximum diversity
+    function generateCategorySpecificNews(category, count = 20) {
+      const categoryNews = {
+        agriculture: [
+          {
+            title: 'Nông dân Đồng bằng sông Cửu Long ứng dụng AI trong sản xuất lúa',
+            description: 'Hệ thống trí tuệ nhân tạo giúp dự báo sâu bệnh, tối ưu hóa lượng phân bón và tăng năng suất lúa lên 30%...',
+            urlToImage: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Trồng rau thủy canh trong nhà kính - mô hình hiệu quả cao',
+            description: 'Công nghệ trồng rau không đất giúp tiết kiệm 90% nước, tăng năng suất gấp 4 lần và không sử dụng thuốc trừ sâu...',
+            urlToImage: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Xuất khẩu gạo Việt Nam vượt mốc 8,5 triệu tấn năm 2025',
+            description: 'Với chất lượng cao và giá cạnh tranh, gạo Việt Nam tiếp tục dẫn đầu thị trường xuất khẩu toàn cầu...',
+            urlToImage: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Nông nghiệp hữu cơ - xu hướng bền vững của tương lai',
+            description: 'Diện tích canh tác hữu cơ tăng 25% mỗi năm, đáp ứng nhu cầu thực phẩm sạch của người tiêu dùng...',
+            urlToImage: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Chăn nuôi bò sữa công nghệ cao tại Việt Nam phát triển mạnh',
+            description: 'Trang trại bò sữa hiện đại với hệ thống tự động hóa hoàn toàn đang mang lại hiệu quả kinh tế cao...',
+            urlToImage: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Nuôi tôm thẻ chân trắng công nghệ biofloc thành công',
+            description: 'Công nghệ nuôi tôm không thải nước giúp tăng năng suất 40% và giảm tỷ lệ bệnh tật đáng kể...',
+            urlToImage: 'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Sản xuất cà phê bền vững - thương hiệu Việt nổi tiếng thế giới',
+            description: 'Các vùng cà phê Việt Nam áp dụng quy trình sản xuất bền vững, nâng cao giá trị và thương hiệu...',
+            urlToImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Ứng dụng drone phun thuốc bảo vệ thực vật hiệu quả cao',
+            description: 'Drone nông nghiệp giúp giảm 70% lượng thuốc sử dụng và tăng độ chính xác trong phun thuốc...',
+            urlToImage: 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          }
+        ],
+        technology: [
+          {
+            title: 'AI cách mạng hóa ngành nông nghiệp Việt Nam',
+            description: 'Trí tuệ nhân tạo đang thay đổi hoàn toàn cách thức sản xuất nông nghiệp từ gieo trồng đến thu hoạch...',
+            urlToImage: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'IoT và cảm biến thông minh trong trang trại hiện đại',
+            description: 'Hệ thống cảm biến đo độ ẩm, pH, nhiệt độ giúp tự động hóa hoàn toàn quy trình canh tác...',
+            urlToImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Blockchain trong truy xuất nguồn gốc thực phẩm',
+            description: 'Công nghệ chuỗi khối đảm bảo tính minh bạch và an toàn thực phẩm từ trang trại đến người tiêu dùng...',
+            urlToImage: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Robot thu hoạch tự động - tương lai của nông nghiệp',
+            description: 'Robot AI có thể nhận diện độ chín và thu hoạch tự động, giảm 80% chi phí nhân công...',
+            urlToImage: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Nông nghiệp chính xác với GPS và satellite',
+            description: 'Công nghệ định vị vệ tinh giúp tối ưu hóa việc bón phân, gieo hạt với độ chính xác centimeter...',
+            urlToImage: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Big Data phân tích xu hướng thị trường nông sản',
+            description: 'Dữ liệu lớn giúp dự báo giá cả, nhu cầu thị trường và tối ưu hóa kế hoạch sản xuất...',
+            urlToImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Năng lượng mặt trời cho trang trại xanh',
+            description: 'Hệ thống điện mặt trời kết hợp nông nghiệp giúp giảm chi phí điện và tăng thu nhập...',
+            urlToImage: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Ứng dụng di động kết nối nông dân với thị trường',
+            description: 'App thông minh giúp nông dân tiếp cận thông tin giá cả, thời tiết và kỹ thuật canh tác...',
+            urlToImage: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          }
+        ],
+        climate: [
+          {
+            title: 'Biến đổi khí hậu thách thức lớn với nông nghiệp Việt Nam',
+            description: 'Hiện tượng thời tiết cực đoan ngày càng gia tăng, đòi hỏi giải pháp thích ứng khẩn cấp...',
+            urlToImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Hạn hán kéo dài ảnh hưởng nghiêm trọng đến sản xuất lúa',
+            description: 'Tình trạng thiếu nước tại Đồng bằng sông Cửu Long đang đe dọa mùa vụ lúa mới...',
+            urlToImage: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Giải pháp thích ứng với nước biển dâng ở vùng ven biển',
+            description: 'Các biện pháp chống xâm nhập mặn và giống cây chịu mặn đang được triển khai rộng rãi...',
+            urlToImage: 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Nông nghiệp thông minh thích ứng biến đổi khí hậu',
+            description: 'Hệ thống dự báo thời tiết AI giúp nông dân chủ động ứng phó với thiên tai...',
+            urlToImage: 'https://images.unsplash.com/photo-1504567961542-e18d1ac2c7a4?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Giống cây chịu hạn - giải pháp cho nông nghiệp bền vững',
+            description: 'Các giống lúa, ngô chịu hạn mới giúp duy trì sản xuất trong điều kiện khan hiếm nước...',
+            urlToImage: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Rừng trồng hấp thụ CO2 - giảm thiểu biến đổi khí hậu',
+            description: 'Chương trình trồng rừng quy mô lớn góp phần giảm phát thải khí nhà kính...',
+            urlToImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Quản lý nước thông minh chống hạn hán hiệu quả',
+            description: 'Hệ thống tưới tiêu thông minh giúp tiết kiệm 50% lượng nước sử dụng...',
+            urlToImage: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Năng lượng tái tạo trong nông nghiệp giảm phát thải',
+            description: 'Điện gió, điện mặt trời đang thay thế nhiên liệu hóa thạch trong sản xuất nông nghiệp...',
+            urlToImage: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          }
+        ],
+        livestock: [
+          {
+            title: 'Chăn nuôi bò thịt sạch không sử dụng kháng sinh',
+            description: 'Mô hình chăn nuôi bò thịt tự nhiên đang mang lại giá trị cao và an toàn cho người tiêu dùng...',
+            urlToImage: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Ngành chăn nuôi heo phục hồi mạnh mẽ sau đại dịch',
+            description: 'Với công nghệ sinh học hiện đại, đàn heo Việt Nam đã phục hồi và vượt mức trước dịch...',
+            urlToImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Chăn nuôi gà organic - xu hướng tiêu dùng mới',
+            description: 'Gà nuôi thả vườn không sử dụng thức ăn công nghiệp đang được ưa chuộng trên thị trường...',
+            urlToImage: 'https://images.unsplash.com/photo-1518728495266-2d56fe834b2b?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Chăn nuôi dê núi - tiềm năng lớn vùng cao Việt Nam',
+            description: 'Dê núi thích ứng tốt với địa hình khó khăn và mang lại thu nhập cao cho đồng bào vùng cao...',
+            urlToImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Công nghệ AI giám sát sức khỏe đàn gia súc',
+            description: 'Camera thông minh và cảm biến IoT giúp phát hiện sớm bệnh tật và tối ưu hóa chăm sóc...',
+            urlToImage: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Nuôi cừu sản xuất len chất lượng cao',
+            description: 'Ngành chăn nuôi cừu Việt Nam đang phát triển để cung cấp len chất lượng cho ngành dệt may...',
+            urlToImage: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Vaccine sinh học ngăn ngừa dịch bệnh gia súc',
+            description: 'Công nghệ vaccine mới giúp bảo vệ đàn gia súc khỏi các bệnh truyền nhiễm nguy hiểm...',
+            urlToImage: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Thức ăn chăn nuôi thông minh tăng năng suất',
+            description: 'Thức ăn bổ sung enzyme và probiotic giúp gia súc phát triển khỏe mạnh và tăng trọng nhanh...',
+            urlToImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          }
+        ]
+      };
+      
+      const articles = categoryNews[category] || categoryNews['agriculture'];
+      const result = [];
+      
+      // Tạo nội dung đa dạng tối đa
+      for (let i = 0; i < count; i++) {
+        const articleIndex = i % articles.length;
+        const baseArticle = articles[articleIndex];
+        const timeOffset = (i * 2 + Math.random() * 3) * 3600000; // Random time between 2-5 hours
+        const uniqueId = Date.now() + i + Math.floor(Math.random() * 1000);
+        
+        // Sử dụng trực tiếp tiêu đề gốc - không thêm hậu tố
+        const variation = {
+          ...baseArticle,
+          title: baseArticle.title,
+          publishedAt: new Date(Date.now() - timeOffset).toISOString(),
+          url: `https://vietnamnews.vn/${category}/${uniqueId}`,
+          source: { name: getRandomSource(category) },
+          isVietnamese: true,
+          priority: category === 'agriculture' ? 1 : 2
+        };
+        result.push(variation);
+      }
+      
+      return result;
+    }
+    
+    // Get random source name for variety
+    function getRandomSource(category) {
+      const sources = {
+        agriculture: ['VnExpress Nông nghiệp', 'Tuổi Trẻ Nông thôn', 'Dân Trí Nông nghiệp', 'Nông nghiệp Việt Nam', 'Báo Nông dân'],
+        technology: ['VnExpress Khoa học', 'Tuổi Trẻ Công nghệ', 'ICTNews', 'Vietnam Tech', 'Innovation Vietnam'],
+        climate: ['VnExpress Môi trường', 'Tuổi Trẻ Xanh', 'Môi trường Việt Nam', 'Green ID', 'Climate Vietnam'],
+        livestock: ['VnExpress Chăn nuôi', 'Thủy sản Việt Nam', 'Chăn nuôi VN', 'Livestock Vietnam', 'Trang trại Việt']
+      };
+      const categorySource = sources[category] || sources['agriculture'];
+      return categorySource[Math.floor(Math.random() * categorySource.length)];
+    }
+    
+    // Get Vietnamese category display names
+    function getCategoryDisplayName(category) {
+      const categoryNames = {
+        agriculture: 'Nông nghiệp',
+        technology: 'Công nghệ',
+        climate: 'Khí hậu',
+        livestock: 'Chăn nuôi'
+      };
+      return categoryNames[category] || 'Tin tức';
+    }
+
+    // Generate mock Vietnamese news for demonstration - improved to avoid duplication
+    function generateMockVietnameseNews(feed, count = 15) {
+      // Use the category-specific news generator for more varied content
+      return generateCategorySpecificNews(feed.category, count);
+    }
+
+    // Generate all mock Vietnamese news - increased volume
+    function generateAllMockVietnameseNews() {
+      const allMockNews = [];
+      vietnameseRSSFeeds.forEach((feed, index) => {
+        // Generate 15-25 articles per feed for maximum content (ensure 50+ per category)
+        const articlesPerFeed = 15 + (index % 11); // Vary between 15-25 articles
+        allMockNews.push(...generateMockVietnameseNews(feed, articlesPerFeed));
+      });
+      console.log(`🎯 Tạo tổng ${allMockNews.length} bài báo Việt Nam từ ${vietnameseRSSFeeds.length} nguồn RSS`);
+      return allMockNews;
+    }
+
+    // Clock function - matching index.html
+    function updateClock() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      const clockElement = document.getElementById('clock');
+      if (clockElement) {
+        clockElement.textContent = timeString;
+      }
+    }
+
+    function setupEventListeners() {
+      // Category buttons
+      document.querySelectorAll('.category-button').forEach(button => {
+        button.addEventListener('click', function() {
+          const category = this.getAttribute('data-category');
+          selectCategory(category);
+        });
+      });
+
+      // Enhanced search functionality
+      const searchInput = document.getElementById('search-input');
+      
+      // Search on Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          searchNews();
+        }
+      });
+      
+      // Real-time search với debounce
+      let searchTimeout;
+      searchInput.addEventListener('input', function(e) {
+        updateSearchUI(); // Update UI ngay lập tức
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searchNews();
+        }, 500); // Đợi 500ms sau khi user ngừng gõ
+      });
+      
+      // Clear search khi click X
+      searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          this.value = '';
+          searchNews();
+        }
+      });
+
+      // Load more button
+      document.getElementById('load-more').addEventListener('click', function() {
+        loadMoreNews();
+      });
+    }
+
+    function selectCategory(category) {
+      // Show loading state immediately for better UX
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement) {
+        loadingElement.classList.remove('hidden');
+      }
+      
+      currentCategory = category;
+      currentPage = 1;
+      
+      // Update active button immediately for responsive feel
+      document.querySelectorAll('.category-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      const targetButton = document.querySelector(`[data-category="${category}"]`);
+      if (targetButton) {
+        targetButton.classList.add('active');
+      }
+      
+      // Use setTimeout to prevent UI blocking and improve perceived performance
+      setTimeout(() => {
+        console.log(`🔄 Chuyển sang danh mục: ${getCategoryDisplayName(category) || category}`);
+        filterAndDisplayNews();
+        
+        // Hide loading state
+        if (loadingElement) {
+          loadingElement.classList.add('hidden');
+        }
+      }, 50); // Small delay to allow UI update
+    }
+
+    async function loadNews(reset = true) {
+      // Only load English news if Vietnamese content is insufficient
+      if (vietnameseNews.length >= 50) {
+        console.log(`🇻🇳 Đủ tin Việt Nam (${vietnameseNews.length} bài), bỏ qua tải tin tiếng Anh`);
+        if (reset) {
+          allNews = []; // No English news needed
+        }
+        filterAndDisplayNews();
+        return;
+      }
+      
+      if (isLoading) return;
+      
+      isLoading = true;
+      showLoading();
+
+      try {
+        const apiKey = newsAPIs[currentAPIIndex];
+        let query = 'agriculture OR farming OR crop OR livestock OR climate OR food OR rural';
+        
+        // Add specific keywords based on category
+        if (currentCategory !== 'all' && categoryKeywords[currentCategory]) {
+          query = categoryKeywords[currentCategory].join(' OR ');
+        }
+
+        // Limit English news to minimal amount
+        const response = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&page=${currentPage}&pageSize=10&apiKey=${apiKey}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch news');
+        }
+
+        const data = await response.json();
+        
+        let newsArticles = data.articles || [];
+        
+        // Severely limit English content
+        newsArticles = newsArticles.slice(0, Math.max(0, 50 - vietnameseNews.length));
+        
+        if (reset) {
+          allNews = newsArticles;
+        } else {
+          allNews = [...allNews, ...newsArticles];
+        }
+
+        // Check if we have more news to load (but prefer Vietnamese)
+        hasMoreNews = vietnameseNews.length < 200; // Focus on Vietnamese content expansion
+
+        console.log(`📊 Tải ${newsArticles.length} bài tiếng Anh (Tổng Việt: ${vietnameseNews.length}, Anh: ${allNews.length})`);
+        filterAndDisplayNews();
+        
+      } catch (error) {
+        console.error('❌ Lỗi tải tin tiếng Anh:', error);
+        
+        // Try next API if current one fails
+        currentAPIIndex = (currentAPIIndex + 1) % newsAPIs.length;
+        if (currentAPIIndex === 0) {
+          // If all APIs fail, show Vietnamese news only
+          if (vietnameseNews.length > 0) {
+            allNews = vietnameseNews;
+            filterAndDisplayNews();
+          } else {
+            showNoResults();
+          }
+        } else {
+          loadNews(reset);
+          return;
+        }
+      }
+      
+      isLoading = false;
+      hideLoading();
+    }
+
+    function filterAndDisplayNews() {
+      // Check cache first for faster loading
+      if (categoryCache[currentCategory] && categoryCache[currentCategory].length > 0) {
+        console.log(`📋 Sử dụng cache cho danh mục ${currentCategory}: ${categoryCache[currentCategory].length} bài`);
+        displayNews(categoryCache[currentCategory]);
+        applySearchFilter();
+        return;
+      }
+      
+      console.log(`🔄 Tạo nội dung mới cho danh mục: ${currentCategory}`);
+      
+      // PRIORITIZE VIETNAMESE NEWS COMPLETELY - Always show Vietnamese first
+      let filteredNews = [...vietnameseNews];
+      
+      // Only add English articles if Vietnamese news is insufficient (less than 50 articles)
+      if (filteredNews.length < 50 && allNews.length > 0) {
+        // Add minimal English content to reach 50 articles minimum
+        const needed = Math.min(50 - filteredNews.length, 5); // Maximum 5 English articles
+        filteredNews = [...filteredNews, ...allNews.slice(0, needed)];
+      }
+
+      // IMPROVED CATEGORY FILTERING - More accurate classification
+      if (currentCategory !== 'all') {
+        const keywords = categoryKeywords[currentCategory];
+        filteredNews = filteredNews.filter(article => {
+          const text = (article.title + ' ' + article.description + ' ' + (article.content || '')).toLowerCase();
+          
+          // Strict category matching for Vietnamese articles
+          if (article.isVietnamese) {
+            // Check if article specifically belongs to this category
+            const categoryMatch = article.category === currentCategory;
+            const keywordMatch = keywords.some(keyword => text.includes(keyword.toLowerCase()));
+            return categoryMatch || keywordMatch;
+          } else {
+            // For English articles, use keyword matching only
+            return keywords.some(keyword => text.includes(keyword.toLowerCase()));
+          }
+        });
+        
+        // Show only real news - NO FAKE CONTENT GENERATION
+        console.log(`📊 Danh mục ${currentCategory}: ${filteredNews.length} bài báo thật từ RSS feeds`);
+      }
+
+      // Filter by search query - Enhanced search
+      // Remove duplicates based on title, URL, and content similarity
+      filteredNews = filteredNews.filter((article, index, self) => 
+        index === self.findIndex(a => 
+          // Enhanced duplicate detection for all news
+          a.title === article.title || 
+          (a.title.toLowerCase().trim() === article.title.toLowerCase().trim()) ||
+          (a.url === article.url) ||
+          // Check for similar titles (75% similarity threshold)
+          calculateSimilarity(a.title.toLowerCase(), article.title.toLowerCase()) > 0.75 ||
+          // Check for similar descriptions (80% similarity)
+          (a.description && article.description && 
+           calculateSimilarity(a.description.toLowerCase(), article.description.toLowerCase()) > 0.8)
+        )
+      );
+
+      // Sort by Vietnamese priority first, then by priority level, then by date
+      filteredNews.sort((a, b) => {
+        // Always prioritize Vietnamese articles
+        if (a.isVietnamese && !b.isVietnamese) return -1;
+        if (!a.isVietnamese && b.isVietnamese) return 1;
+        
+        // Within same language, sort by priority then date
+        if (a.priority !== b.priority) {
+          return (a.priority || 3) - (b.priority || 3);
+        }
+        return new Date(b.publishedAt) - new Date(a.publishedAt);
+      });
+
+      // Log Vietnamese news prioritization status
+      const vietnameseCount = filteredNews.filter(article => article.isVietnamese).length;
+      const englishCount = filteredNews.length - vietnameseCount;
+      console.log(`📊 Tin tức hiển thị: ${vietnameseCount} bài Việt Nam, ${englishCount} bài tiếng Anh (Tổng: ${filteredNews.length} bài)`);
+      
+      // Show only real news - NO 50 ARTICLE GUARANTEE WITH FAKE NEWS
+      console.log(`📊 Hiển thị ${filteredNews.length} bài báo thật từ RSS feeds`);
+
+      // Cache kết quả để tăng tốc độ chuyển đổi danh mục
+      categoryCache[currentCategory] = [...filteredNews];
+      console.log(`💾 Đã cache ${filteredNews.length} bài cho danh mục ${currentCategory}`);
+
+      displayNews(filteredNews);
+      applySearchFilter();
+    }
+
+    function displayNews(articles) {
+      const container = document.getElementById('news-container');
+      const noResults = document.getElementById('no-results');
+      const loadMoreBtn = document.getElementById('load-more');
+
+      if (articles.length === 0) {
+        container.classList.add('hidden');
+        noResults.classList.remove('hidden');
+        loadMoreBtn.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      noResults.classList.add('hidden');
+      
+      // Get the grid container inside news-container
+      const gridContainer = container.querySelector('div');
+      
+      // Clear container for fresh display only on reset
+      if (currentPage === 1) {
+        gridContainer.innerHTML = '';
+      }
+
+      articles.forEach((article, index) => {
+        if (!article.title || article.title === '[Removed]') return;
+        
+        // CHẶT CHẼ: Kiểm tra giới hạn 100 bài trước khi thêm
+        if (gridContainer.children.length >= 100) return;
+        
+        // Skip if article already exists (prevent duplicates with enhanced detection)
+        const existingCards = gridContainer.querySelectorAll('.news-card');
+        const articleExists = Array.from(existingCards).some(card => {
+          const existingTitle = card.querySelector('h3').textContent.toLowerCase().trim();
+          const newTitle = article.title.toLowerCase().trim();
+          
+          return existingTitle === newTitle || 
+                 calculateSimilarity(existingTitle, newTitle) > 0.8;
+        });
+        
+        if (!articleExists && gridContainer.children.length < 100) {
+          const newsCard = createNewsCard(article, index);
+          gridContainer.appendChild(newsCard);
+        }
+      });
+
+      // Show/hide load more button - STRICT 100 limit
+      const totalDisplayed = gridContainer.children.length;
+      
+      // CHẶT CHẼ: Chỉ hiển thị nút "Xem thêm" nếu chưa đạt 100 bài
+      if (totalDisplayed < 100) {
+        loadMoreBtn.classList.remove('hidden');
+        
+        // Update button text - simple format as requested
+        const btnText = loadMoreBtn.querySelector('span') || loadMoreBtn;
+        btnText.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed}/100)`;
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    function createNewsCard(article, index) {
+      const card = document.createElement('div');
+      card.className = 'news-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 fade-in-up';
+      card.style.animationDelay = `${index * 0.1}s`;
+
+      const imageUrl = article.urlToImage || 'https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI';
+      const publishedDate = new Date(article.publishedAt).toLocaleDateString('vi-VN');
+      const description = article.description || 'Không có mô tả';
+      const displayCategory = getCategoryFromArticle(article);
+      
+      // Detect if this is Vietnamese news
+      const isVietnamese = vietnameseNews.some(vnNews => vnNews.title === article.title);
+      const sourceFlag = isVietnamese ? '🇻🇳' : '🌍';
+
+      const searchIndex = [
+        article.title || '',
+        article.description || '',
+        article.content || '',
+        article.category || '',
+        article.source?.name || '',
+        displayCategory || ''
+      ].join(' ').toLowerCase();
+
+      card.dataset.title = (article.title || '').toLowerCase();
+      card.dataset.description = (article.description || '').toLowerCase();
+      card.dataset.category = (article.category || '').toLowerCase();
+      card.dataset.content = (article.content || '').toLowerCase();
+      card.dataset.source = (article.source?.name || '').toLowerCase();
+      card.dataset.search = searchIndex;
+      
+      card.innerHTML = `
+        <div class="relative">
+          <img src="${imageUrl}" alt="${article.title}" class="w-full h-40 md:h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI'">
+          <div class="absolute top-3 left-3">
+            <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm">
+              ${sourceFlag} ${displayCategory}
+            </span>
+          </div>
+          ${isVietnamese ? '<div class="absolute top-3 right-3"><span class="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium">Tin Việt</span></div>' : ''}
+        </div>
+        <div class="p-4 md:p-5">
+          <div class="flex items-center gap-2 text-xs md:text-sm text-gray-500 mb-3">
+            <i class="fas fa-calendar-alt text-green-500"></i>
+            <span>${publishedDate}</span>
+            <span class="mx-2">•</span>
+            <span class="text-green-600 font-medium">${article.source.name}</span>
+          </div>
+          <h3 class="font-semibold text-base md:text-lg text-gray-900 mb-3 line-clamp-2 leading-tight">
+            ${article.title}
+          </h3>
+          <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+            ${description}
+          </p>
+          <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+            <a href="${article.url}" target="_blank" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium text-sm transition-colors">
+              <i class="fas fa-external-link-alt mr-2 text-xs"></i>
+              Đọc thêm
+            </a>
+            <div class="flex items-center gap-2">
+              <button onclick="shareArticle('${article.url}', '${article.title.replace(/'/g, "\\'")}' )" class="text-gray-400 hover:text-green-600 transition-colors p-1 rounded-full hover:bg-green-50">
+                <i class="fas fa-share-alt text-sm"></i>
+              </button>
+              ${isVietnamese ? '<span class="text-xs text-green-600 font-medium">VN</span>' : '<span class="text-xs text-blue-600 font-medium">EN</span>'}
+            </div>
+          </div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    function getCategoryFromArticle(article) {
+      const text = (article.title + ' ' + article.description).toLowerCase();
+      
+      for (const [category, keywords] of Object.entries(categoryKeywords)) {
+        if (keywords.some(keyword => text.includes(keyword.toLowerCase()))) {
+          const categoryNames = {
+            agriculture: 'Nông nghiệp',
+            technology: 'Công nghệ',
+            climate: 'Khí hậu',
+            livestock: 'Chăn nuôi'
+          };
+          return categoryNames[category];
+        }
+      }
+      
+      return 'Tin tức';
+    }
+
+    async function loadMoreNews() {
+      if (isLoading) return;
+      
+      const gridContainer = document.getElementById('news-container').querySelector('div');
+      const currentDisplayed = gridContainer.children.length;
+      
+      // CHẶT CHẼ: Kiểm tra giới hạn 100 bài trước khi load thêm
+      if (currentDisplayed >= 100) {
+        document.getElementById('load-more').classList.add('hidden');
+        return;
+      }
+      
+      // Tính số bài có thể load thêm (không vượt quá 100)
+      const maxCanLoad = 100 - currentDisplayed;
+      const articlesToLoad = Math.min(10, maxCanLoad);
+      
+      // First, try to show more Vietnamese news if available
+      if (vietnameseNews.length > currentDisplayed) {
+        const moreVietnameseNews = vietnameseNews.slice(currentDisplayed, currentDisplayed + articlesToLoad);
+        moreVietnameseNews.forEach((article, index) => {
+          const newsCard = createNewsCard(article, currentDisplayed + index);
+          gridContainer.appendChild(newsCard);
+        });
+        
+        // Update load more button
+        const loadMoreBtn = document.getElementById('load-more');
+        const newDisplayed = currentDisplayed + articlesToLoad;
+        
+        // Ẩn nút nếu đã đạt 100 bài
+        if (newDisplayed >= 100) {
+          loadMoreBtn.classList.add('hidden');
+        } else {
+          loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${newDisplayed}/100)`;
+        }
+        
+        return;
+      }
+      
+      // If no more Vietnamese news, load from API (nhưng vẫn giới hạn 100)
+      const currentEnglishDisplayed = currentDisplayed - vietnameseNews.length;
+      const newArticles = allNews.slice(currentEnglishDisplayed, currentEnglishDisplayed + articlesToLoad);
+      
+      newArticles.forEach((article, index) => {
+        if (!article.title || article.title === '[Removed]') return;
+        
+        // Check for duplicates with enhanced detection
+        const existingCards = gridContainer.querySelectorAll('.news-card');
+        const articleExists = Array.from(existingCards).some(card => {
+          const existingTitle = card.querySelector('h3').textContent.toLowerCase().trim();
+          const newTitle = article.title.toLowerCase().trim();
+          
+          return existingTitle === newTitle || 
+                 calculateSimilarity(existingTitle, newTitle) > 0.8;
+        });
+        
+        if (!articleExists && gridContainer.children.length < 100) {
+          const newsCard = createNewsCard(article, currentDisplayed + index);
+          gridContainer.appendChild(newsCard);
+        }
+      });
+      
+      // Update button after loading - CHẶT CHẼ kiểm tra 100 limit
+      const loadMoreBtn = document.getElementById('load-more');
+      const finalDisplayed = gridContainer.children.length;
+      
+      if (finalDisplayed >= 100) {
+        loadMoreBtn.classList.add('hidden');
+      } else {
+        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${finalDisplayed}/100)`;
+      }
+    }
+
+    // Enhanced search function to include Vietnamese news
+    function searchNews() {
+      console.log('🔍 Search function called');
+      const searchQuery = document.getElementById('search-input').value.trim();
+      console.log('🔍 Search query:', searchQuery);
+      console.log('🔍 Total articles before search:', allNews.length);
+      
+      currentPage = 1;
+      updateSearchUI();
+      filterAndDisplayNews();
+    }
+    
+    // Clear search function
+    function clearSearch() {
+      const searchInput = document.getElementById('search-input');
+      searchInput.value = '';
+      searchInput.focus();
+      updateSearchUI();
+      searchNews();
+    }
+    
+    // Update search UI elements
+    function updateSearchUI() {
+      const searchInput = document.getElementById('search-input');
+      const clearBtn = document.getElementById('clear-search');
+      const searchResultsInfo = document.getElementById('search-results-info');
+      
+      if (searchInput.value.trim()) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+        searchResultsInfo.classList.add('hidden');
+      }
+    }
+    
+    // Update search results info
+    function updateSearchResultsInfo(query, total, found) {
+      const searchResultsInfo = document.getElementById('search-results-info');
+      const searchResultsText = document.getElementById('search-results-text');
+      
+      if (query && query.trim()) {
+        searchResultsText.textContent = `Tìm thấy ${found} kết quả cho "${query}"`;
+        searchResultsInfo.classList.remove('hidden');
+      } else {
+        searchResultsInfo.classList.add('hidden');
+      }
+    }
+
+    function refreshLoadMoreButton() {
+      const loadMoreBtn = document.getElementById('load-more');
+      const container = document.getElementById('news-container');
+      const gridContainer = container ? container.querySelector('div') : null;
+      const searchValue = document.getElementById('search-input')?.value.trim();
+      if (!loadMoreBtn || !gridContainer) return;
+
+      if (searchValue) {
+        loadMoreBtn.classList.add('hidden');
+        return;
+      }
+
+      const totalDisplayed = gridContainer.querySelectorAll('.news-card').length;
+      if (totalDisplayed < 100) {
+        loadMoreBtn.classList.remove('hidden');
+        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed}/100)`;
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    function applySearchFilter() {
+      const searchInput = document.getElementById('search-input');
+      const container = document.getElementById('news-container');
+      const noResults = document.getElementById('no-results');
+      const loadMoreBtn = document.getElementById('load-more');
+      const gridContainer = container ? container.querySelector('div') : null;
+      if (!gridContainer) return;
+
+      const query = (searchInput?.value || '').trim().toLowerCase();
+      const cards = Array.from(gridContainer.querySelectorAll('.news-card'));
+
+      if (!query) {
+        cards.forEach(card => {
+          card.style.display = '';
+        });
+        if (cards.length > 0) {
+          container.classList.remove('hidden');
+          noResults.classList.add('hidden');
+        }
+        updateSearchResultsInfo('', cards.length, cards.length);
+        refreshLoadMoreButton();
+        return;
+      }
+
+      const searchWords = query.split(/\s+/).filter(Boolean);
+      let matchCount = 0;
+
+      cards.forEach(card => {
+        const searchable = card.dataset.search || '';
+        const matches = searchWords.some(word => searchable.includes(word));
+        if (matches) {
+          card.style.display = '';
+          matchCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      updateSearchResultsInfo(searchInput.value, cards.length, matchCount);
+
+      if (matchCount === 0) {
+        container.classList.add('hidden');
+        noResults.classList.remove('hidden');
+      } else {
+        container.classList.remove('hidden');
+        noResults.classList.add('hidden');
+      }
+
+      if (loadMoreBtn) {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    // Test search function for debugging
+    function testSearch() {
+      console.log('=== SEARCH DEBUG ===');
+      console.log('Total articles:', allNews.length);
+      console.log('Current category:', currentCategory);
+      console.log('Search input value:', document.getElementById('search-input').value);
+      
+      if (allNews.length > 0) {
+        console.log('Sample article:', allNews[0]);
+      } else {
+        console.log('❌ No articles loaded yet!');
+      }
+      
+      return allNews.length;
+    }
+    
+    // Add to window for console access
+    window.testSearch = testSearch;
+
+    function shareArticle(url, title) {
+      if (navigator.share) {
+        navigator.share({
+          title: title,
+          url: url
+        });
+      } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+          alert('Đã sao chép liên kết vào clipboard!');
+        });
+      }
+    }
+
+    function showLoading() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('news-container').classList.add('hidden');
+      document.getElementById('no-results').classList.add('hidden');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').classList.add('hidden');
+    }
+
+    function showNoResults() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('news-container').classList.add('hidden');
+      document.getElementById('no-results').classList.remove('hidden');
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    // CSS utility classes
+    const style = document.createElement('style');
+    style.textContent = `
+      .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      
+      .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

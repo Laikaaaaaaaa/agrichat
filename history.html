@@ -1,0 +1,605 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriSense AI - Lịch sử hội thoại</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        .conversation-item { transition: all 0.2s ease; cursor: pointer; }
+        .conversation-item:hover { background-color: #f0fdf4; border-color: #6de499; }
+        .conversation-item.active { background-color: #dcfce7; border-color: #5bd889; }
+        .back-button { position: fixed; bottom: 20px; right: 20px; background-color: #6edc9b; color: white; padding: 12px 24px; border-radius: 9999px; text-decoration: none; }
+        .back-button:hover { background-color: #6bd89e; }
+        
+        /* CSS cho text truncation */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+            max-height: 2.8em;
+        }
+        
+        /* CSS cho image galleries trong history */
+        .image-gallery {
+            max-width: 600px !important;
+            margin: 15px auto !important;
+        }
+        .image-item {
+            background: white !important;
+            border-radius: 12px !important;
+            padding: 15px !important;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.12) !important;
+            transition: all 0.3s ease !important;
+        }
+        .image-item:hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.18) !important;
+        }
+        .image-item img {
+            width: 100% !important;
+            height: 160px !important;
+            object-fit: cover !important;
+            border-radius: 8px !important;
+            margin-bottom: 10px !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+        }
+        .image-item img:hover {
+            transform: scale(1.05) !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-history text-2xl"></i>
+                    <h1 class="text-2xl font-bold">Lịch sử hội thoại</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm opacity-90">AgriSense AI</span>
+                    <div class="text-right">
+                        <div class="text-sm opacity-75">Tổng cộng</div>
+                        <div id="total-conversations" class="font-bold">0 cuộc hội thoại</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-comments text-green-600"></i>
+                            Danh sách hội thoại
+                        </h2>
+                        <div class="flex gap-2">
+                            <button id="fix-titles-btn" class="text-blue-500 hover:text-blue-700 text-sm" title="Sửa tên cuộc hội thoại">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                            <button id="clear-all-btn" class="text-red-500 hover:text-red-700 text-sm" title="Xóa tất cả">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="search-conversations" placeholder="Tìm kiếm..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+                <div id="conversation-list" class="overflow-y-auto custom-scrollbar h-full"></div>
+            </div>
+            
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-gray-200 bg-gray-50">
+                    <div id="chat-header" class="flex items-center justify-between">
+                        <div>
+                            <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-comment-dots text-green-600"></i>
+                                Chi tiết hội thoại
+                            </h2>
+                            <p class="text-sm text-gray-500 mt-1">Chọn một cuộc hội thoại để xem chi tiết</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="chat-messages" class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                    <div id="empty-state" class="h-full flex items-center justify-center text-gray-500">
+                        <div class="text-center">
+                            <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
+                            <h3 class="text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
+                            <p class="text-sm">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <a href="index.html" class="back-button flex items-center">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Quay lại
+    </a>
+
+    <script>
+    class ChatHistoryManager {
+        constructor() {
+            this.conversations = [];
+            this.selectedConversationId = null;
+            this.init();
+        }
+        
+        init() {
+            this.loadConversations();
+            this.bindEvents();
+            this.renderConversationList();
+            this.updateStats();
+        }
+        
+        // Helper function để tạo title ngắn gọn
+        createShortTitle(content) {
+            if (!content || content.length <= 30) {
+                return content;
+            }
+            
+            // Cắt ở từ cuối cùng để không cắt giữa từ
+            const truncated = content.substring(0, 30);
+            const lastSpaceIndex = truncated.lastIndexOf(' ');
+            return lastSpaceIndex > 15 ? truncated.substring(0, lastSpaceIndex) + '...' : truncated + '...';
+        }
+        
+        loadConversations() {
+            try {
+                const stored = localStorage.getItem('agrisense_chat_history');
+                this.conversations = stored ? JSON.parse(stored) : [];
+                
+                // Cập nhật tên cho các cuộc hội thoại cũ chưa có tên đúng
+                let updated = false;
+                console.log('🔍 Checking conversations for title updates...');
+                
+                this.conversations.forEach((conv, index) => {
+                    console.log(`📋 Conversation ${index}:`, {
+                        id: conv.id,
+                        title: conv.title,
+                        messageCount: conv.messages.length,
+                        messages: conv.messages.map(m => ({
+                            sender: m.sender,
+                            type: m.type,
+                            contentPreview: m.content ? m.content.substring(0, 50) + '...' : 'no content'
+                        }))
+                    });
+                    
+                    if ((conv.title === 'Cuộc hội thoại mới' || conv.title.startsWith('Cuộc hội thoại ')) && conv.messages.length > 0) {
+                        console.log('🎯 Found conversation with default/numbered title, looking for first user message...');
+                        console.log('📝 All messages in this conversation:', conv.messages.map((msg, idx) => ({
+                            index: idx,
+                            sender: msg.sender,
+                            type: msg.type || 'text',
+                            content: msg.content ? msg.content.substring(0, 100) : 'empty',
+                            id: msg.id
+                        })));
+                        
+                        // Tìm user message đầu tiên có content
+                        let firstUserMessage = conv.messages.find(msg => {
+                            const isUserMessage = msg.sender === 'user';
+                            const hasContent = msg.content && msg.content.trim().length > 0;
+                            const isNotHtml = msg.type !== 'html';
+                            
+                            console.log('🔍 Checking user message:', {
+                                sender: msg.sender,
+                                hasContent: hasContent,
+                                type: msg.type,
+                                contentPreview: msg.content ? msg.content.substring(0, 30) : 'empty'
+                            });
+                            
+                            return isUserMessage && hasContent && isNotHtml;
+                        });
+                        
+                        // Nếu không có user message, lấy message đầu tiên có content hữu ích
+                        if (!firstUserMessage) {
+                            console.log('⚠️ No user message found, looking for any meaningful message...');
+                            firstUserMessage = conv.messages.find(msg => {
+                                const hasContent = msg.content && msg.content.trim().length > 10; // Ít nhất 10 ký tự
+                                const isNotHtml = msg.type !== 'html';
+                                const isNotGreeting = !msg.content.includes('Chào bạn!'); // Bỏ qua lời chào tự động
+                                
+                                console.log('🔍 Checking any message:', {
+                                    sender: msg.sender,
+                                    hasContent: hasContent,
+                                    isNotGreeting: isNotGreeting,
+                                    contentPreview: msg.content ? msg.content.substring(0, 30) : 'empty'
+                                });
+                                
+                                return hasContent && isNotHtml && isNotGreeting;
+                            });
+                        }
+                        
+                        if (firstUserMessage) {
+                            const newTitle = this.createShortTitle(firstUserMessage.content);
+                            conv.title = newTitle;
+                            updated = true;
+                            console.log('🔄 Updated conversation title:', conv.id, '→', newTitle);
+                        } else {
+                            // Nếu không có user message, đặt tên theo số thứ tự
+                            if (conv.title === 'Cuộc hội thoại mới') {
+                                const newTitle = `Cuộc hội thoại ${index + 1}`;
+                                conv.title = newTitle;
+                                updated = true;
+                                console.log('🔢 Set numbered title:', conv.id, '→', newTitle);
+                            }
+                        }
+                    }
+                });
+                
+                // Lưu lại nếu có cập nhật
+                if (updated) {
+                    localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+                    console.log('✅ Saved updated conversation titles');
+                }
+                
+                console.log('Loaded conversations:', this.conversations.length);
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+                this.conversations = [];
+            }
+        }
+        
+        bindEvents() {
+            const searchInput = document.getElementById('search-conversations');
+            searchInput.addEventListener('input', (e) => {
+                this.searchConversations(e.target.value);
+            });
+            
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            clearAllBtn.addEventListener('click', () => {
+                this.clearAllConversations();
+            });
+            
+            const fixTitlesBtn = document.getElementById('fix-titles-btn');
+            fixTitlesBtn.addEventListener('click', () => {
+                this.fixAllConversationTitles();
+            });
+        }
+        
+        renderConversationList(filteredConversations = null) {
+            const conversationList = document.getElementById('conversation-list');
+            const conversations = filteredConversations || this.conversations;
+            
+            if (conversations.length === 0) {
+                conversationList.innerHTML = `
+                    <div class="p-4 text-center text-gray-500">
+                        <i class="fas fa-comment-slash text-3xl mb-2"></i>
+                        <p>Chưa có cuộc hội thoại nào</p>
+                        <p class="text-sm mt-1">Bắt đầu chat để tạo lịch sử</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            conversationList.innerHTML = conversations.map(conv => {
+                const lastMessage = conv.messages[conv.messages.length - 1];
+                let preview = 'Không có tin nhắn';
+                
+                if (lastMessage && lastMessage.content) {
+                    if (lastMessage.type === 'html') {
+                        // Cho HTML content (image gallery), hiển thị text mô tả
+                        if (lastMessage.content.includes('🖼️')) {
+                            preview = '🖼️ Thư viện ảnh';
+                        } else {
+                            // Loại bỏ HTML tags để lấy text content
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = lastMessage.content;
+                            const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                            preview = textContent.substring(0, 80) + (textContent.length > 80 ? '...' : '');
+                        }
+                    } else {
+                        // Text content thông thường
+                        preview = lastMessage.content.substring(0, 80) + (lastMessage.content.length > 80 ? '...' : '');
+                    }
+                }
+                
+                return `
+                    <div class="conversation-item border border-gray-200 m-2 p-3 rounded-lg" 
+                         data-conversation-id="${conv.id}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-medium text-sm text-gray-800 truncate flex-1 mr-2">${conv.title}</h3>
+                            <span class="text-xs text-gray-500 whitespace-nowrap">${this.formatDate(conv.lastUpdated)}</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-2 line-clamp-2">${preview}</p>
+                        <div class="flex justify-between items-center text-xs text-gray-500">
+                            <span>${conv.messages.length} tin nhắn</span>
+                            <button class="delete-conversation text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors" 
+                                    data-conversation-id="${conv.id}"
+                                    title="Xóa cuộc hội thoại">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            conversationList.addEventListener('click', (e) => {
+                const conversationItem = e.target.closest('.conversation-item');
+                const deleteBtn = e.target.closest('.delete-conversation');
+                
+                if (deleteBtn) {
+                    e.stopPropagation();
+                    this.deleteConversation(deleteBtn.dataset.conversationId);
+                } else if (conversationItem) {
+                    this.selectConversation(conversationItem.dataset.conversationId);
+                }
+            });
+        }
+        
+        selectConversation(conversationId) {
+            this.selectedConversationId = conversationId;
+            const conversation = this.conversations.find(c => c.id === conversationId);
+            
+            if (!conversation) return;
+            
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-conversation-id="${conversationId}"]`).classList.add('active');
+            
+            this.renderChatMessages(conversation);
+        }
+        
+        renderChatMessages(conversation) {
+            const chatMessages = document.getElementById('chat-messages');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
+            chatMessages.innerHTML = conversation.messages.map(message => {
+                const isBot = message.sender === 'bot';
+                const alignment = isBot ? 'text-left' : 'text-right';
+                const bgColor = isBot ? 'bg-gray-100' : 'bg-green-500 text-white';
+                
+                // Xử lý nội dung message
+                let contentHtml = '';
+                
+                // Hiển thị ảnh nếu có
+                if (message.imageUrl) {
+                    contentHtml += `<div class="message-image mb-2">
+                        <img src="${message.imageUrl}" alt="Uploaded image" 
+                             style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" 
+                             onclick="openImageModal('${message.imageUrl}')">
+                    </div>`;
+                }
+                
+                // Hiển thị nội dung text hoặc HTML
+                if (message.content) {
+                    if (message.type === 'html') {
+                        // Hiển thị HTML content trực tiếp (cho image galleries)
+                        contentHtml += message.content;
+                    } else {
+                        // Hiển thị text content thông thường
+                        contentHtml += `<div>${message.content}</div>`;
+                    }
+                }
+                
+                return `
+                    <div class="${alignment} mb-4">
+                        <div class="inline-block ${bgColor} p-3 rounded-xl shadow max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl">
+                            ${contentHtml}
+                            <div class="text-xs mt-2 ${isBot ? 'text-gray-500' : 'text-green-100'}">${this.formatTime(message.timestamp)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        searchConversations(query) {
+            if (!query.trim()) {
+                this.renderConversationList();
+                return;
+            }
+            
+            const filtered = this.conversations.filter(conv => {
+                return conv.title.toLowerCase().includes(query.toLowerCase()) ||
+                       conv.messages.some(msg => msg.content.toLowerCase().includes(query.toLowerCase()));
+            });
+            
+            this.renderConversationList(filtered);
+        }
+        
+        deleteConversation(conversationId) {
+            if (!confirm('Bạn có chắc chắn muốn xóa cuộc hội thoại này?')) return;
+            
+            this.conversations = this.conversations.filter(c => c.id !== conversationId);
+            localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+            
+            if (this.selectedConversationId === conversationId) {
+                this.selectedConversationId = null;
+                document.getElementById('chat-messages').innerHTML = `
+                    <div id="empty-state" class="h-full flex items-center justify-center text-gray-500">
+                        <div class="text-center">
+                            <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
+                            <h3 class="text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
+                            <p class="text-sm">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            this.renderConversationList();
+            this.updateStats();
+        }
+        
+        clearAllConversations() {
+            if (!confirm('Bạn có chắc chắn muốn xóa TẤT CẢ lịch sử hội thoại?')) return;
+            
+            localStorage.removeItem('agrisense_chat_history');
+            this.conversations = [];
+            this.selectedConversationId = null;
+            
+            this.renderConversationList();
+            this.updateStats();
+            
+            document.getElementById('chat-messages').innerHTML = `
+                <div id="empty-state" class="h-full flex items-center justify-center text-gray-500">
+                    <div class="text-center">
+                        <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
+                        <h3 class="text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
+                        <p class="text-sm">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        updateStats() {
+            const totalElement = document.getElementById('total-conversations');
+            const count = this.conversations.length;
+            totalElement.textContent = `${count} cuộc hội thoại`;
+        }
+        
+        formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('vi-VN');
+            } catch {
+                return 'N/A';
+            }
+        }
+        
+        fixAllConversationTitles() {
+            console.log('🔧 Manually fixing all conversation titles...');
+            let updated = 0;
+            
+            this.conversations.forEach((conv, index) => {
+                // Force update cho các cuộc hội thoại có title mặc định hoặc số thứ tự
+                const needsUpdate = conv.title === 'Cuộc hội thoại mới' || conv.title.startsWith('Cuộc hội thoại ');
+                
+                if (needsUpdate && conv.messages.length > 0) {
+                    let firstUserMessage = conv.messages.find(msg => {
+                        return msg.sender === 'user' && 
+                               msg.content && 
+                               msg.content.trim().length > 0 && 
+                               msg.type !== 'html';
+                    });
+                    
+                    // Nếu không có user message, tìm message có content hữu ích
+                    if (!firstUserMessage) {
+                        firstUserMessage = conv.messages.find(msg => {
+                            const hasContent = msg.content && msg.content.trim().length > 10;
+                            const isNotHtml = msg.type !== 'html';
+                            const isNotGreeting = !msg.content.includes('Chào bạn!');
+                            return hasContent && isNotHtml && isNotGreeting;
+                        });
+                    }
+                    
+                    if (firstUserMessage) {
+                        // Ưu tiên dùng tin nhắn có content
+                        const newTitle = this.createShortTitle(firstUserMessage.content);
+                        conv.title = newTitle;
+                        updated++;
+                        console.log(`✅ Fixed title ${index + 1} with message:`, newTitle);
+                    } else if (conv.title === 'Cuộc hội thoại mới') {
+                        // Nếu không có message phù hợp, đặt số thứ tự
+                        const newTitle = `Cuộc hội thoại ${index + 1}`;
+                        conv.title = newTitle;
+                        updated++;
+                        console.log(`✅ Fixed title ${index + 1} with number:`, newTitle);
+                    }
+                }
+            });
+            
+            if (updated > 0) {
+                localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+                this.renderConversationList();
+                alert(`✅ Đã cập nhật ${updated} tên cuộc hội thoại!`);
+                console.log(`🎉 Updated ${updated} conversation titles`);
+            } else {
+                alert('ℹ️ Không có cuộc hội thoại nào cần cập nhật tên.');
+                console.log('ℹ️ No conversations needed title updates');
+            }
+        }
+        
+        formatTime(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return 'N/A';
+            }
+        }
+    }
+
+    // Function để mở modal xem ảnh full size
+    function openImageModal(imageId, imageUrl, title = '', description = '', photographer = '', source = '') {
+        // Decode URI components
+        title = decodeURIComponent(title) || 'Ảnh';
+        description = decodeURIComponent(description) || 'Không có mô tả';
+        photographer = decodeURIComponent(photographer) || 'Không rõ tác giả';
+        source = decodeURIComponent(source) || 'AgriSense AI';
+        
+        // Tạo modal overlay
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+        modal.onclick = function() { document.body.removeChild(modal); };
+        
+        // Tạo container ảnh
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'relative max-w-4xl max-h-4xl p-4';
+        imgContainer.onclick = function(e) { e.stopPropagation(); };
+        
+        // Tạo ảnh
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'max-w-full max-h-full rounded-lg';
+        img.alt = title;
+        
+        // Thông tin ảnh
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-4 rounded-b-lg';
+        infoDiv.innerHTML = `
+            <h3 class="text-lg font-bold mb-2">${title}</h3>
+            <p class="text-sm mb-2">${description}</p>
+            <div class="text-xs text-gray-300">
+                <span>📸 ${photographer}</span> • <span>🌐 ${source}</span>
+            </div>
+        `;
+        
+        // Nút đóng
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.className = 'absolute top-2 right-2 text-white text-3xl font-bold bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75';
+        closeBtn.onclick = function() { document.body.removeChild(modal); };
+        
+        imgContainer.appendChild(img);
+        imgContainer.appendChild(infoDiv);
+        imgContainer.appendChild(closeBtn);
+        modal.appendChild(imgContainer);
+        document.body.appendChild(modal);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        new ChatHistoryManager();
+    });
+    </script>
+</body>
+</html>

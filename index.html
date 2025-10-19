@@ -2247,22 +2247,23 @@
 </head>
 <body class="bg-green-50 font-sans text-gray-700 h-screen overflow-hidden">
   <!-- Header -->
-  <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0 h-20">
-    <div class="container mx-auto px-4 h-full flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <!-- Menu toggle button -->
-        <button id="menu-toggle" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500" type="button" aria-controls="sidebar" aria-expanded="false" style="cursor: pointer;">
-          <i class="fas fa-bars"></i>
-        </button>
-        <!-- Brand -->
-        <div class="flex items-center gap-2">
-          <i class="fas fa-leaf text-green-800 text-2xl md:text-3xl"></i>
-          <h1 class="text-xl md:text-2xl font-bold text-green-800">AgriSense AI</h1>
-        </div>
+  <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0 h-20 relative">
+    <!-- Menu toggle button - Fixed to left edge -->
+    <button id="menu-toggle" class="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 z-10" type="button" aria-controls="sidebar" aria-expanded="false" style="cursor: pointer;">
+      <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="h-full flex justify-between items-center pl-20 pr-4">
+      <!-- Brand -->
+      <div class="flex items-center gap-2">
+        <i class="fas fa-leaf text-green-800 text-2xl md:text-3xl"></i>
+        <h1 class="text-xl md:text-2xl font-bold text-green-800">AgriSense AI</h1>
       </div>
+      
       <span class="text-sm md:text-base text-gray-600 hidden md:block">Chuyên gia tư vấn nông nghiệp thông minh</span>
+      
       <div class="flex items-center gap-4">
-  <span id="connection-status" class="text-sm text-green-500">Đang kết nối...</span>
+        <span id="connection-status" class="text-sm text-green-500">Đang kết nối...</span>
         <span id="clock" class="text-sm text-gray-600"></span>
       </div>
     </div>

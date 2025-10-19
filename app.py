@@ -842,12 +842,9 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                         logging.info(f"Đang chờ {retry_delay} giây trước khi thử lại do hết quota/rate limit...")
                         continue
                     else:
-                        # Nếu đã hết số lần thử, thông báo người dùng cần chờ
-                        wait_time = max(retry_delay, 30)  # Ít nhất nên đợi 30 giây
-                        raise Exception(
-                            f"Hệ thống đang bị giới hạn bởi quota. Vui lòng đợi {int(wait_time)} giây và thử lại sau.\n" +
-                            "Lý do: API free tier có giới hạn số lượng request trong một khoảng thời gian."
-                        )
+                        # Reached max attempts - break to try DeepSeek fallback
+                        logging.warning("⚠️ Tất cả Gemini keys đã hết quota. Chuyển sang DeepSeek...")
+                        break
 
                 if "dangerous_content" in error_message or "danger" in error_message:
                     logging.error("Nội dung bị chặn bởi safety filter. Kiểm tra prompt hoặc giảm mức độ yêu cầu cho test.")

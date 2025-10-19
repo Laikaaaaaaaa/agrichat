@@ -9,6 +9,7 @@ import requests
 import time
 import random
 import logging
+from types import SimpleNamespace
 from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -64,6 +65,19 @@ class Api:
         # Log initial setup
         logging.info("🔑 Sử dụng API key ban đầu...")
         self.initialize_gemini_model()
+
+        # DeepSeek fallback configuration
+        self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
+        deepseek_model_env = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
+        self.deepseek_model = deepseek_model_env or "deepseek-chat"
+        deepseek_base_env = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com").strip()
+        self.deepseek_api_base = deepseek_base_env.rstrip("/") or "https://api.deepseek.com"
+        self.deepseek_timeout = self._safe_float(os.getenv("DEEPSEEK_TIMEOUT", 20)) or 20
+
+        if self.deepseek_api_key:
+            logging.info("🛡️  DeepSeek fallback đã được bật (phát hiện DEEPSEEK_API_KEY).")
+        else:
+            logging.info("ℹ️  DeepSeek fallback chưa bật vì thiếu DEEPSEEK_API_KEY.")
 
         self.geography_prompt = """
 Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh. Bạn có khả năng cung cấp thông tin và giải đáp thắc mắc liên quan đến nông nghiệp, bao gồm nhưng không giới hạn ở các chủ đề như cây trồng, vật nuôi, thời tiết, thị trường nông sản và các vấn đề nông nghiệp khác. Hãy cung cấp thông tin chính xác và hữu ích nhất có thể.
@@ -843,7 +857,71 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                 raise gen_error
 
         # If all keys failed, raise the last error with the last exception
+        if self.deepseek_api_key:
+            logging.info("🔄 Gemini thất bại. Đang chuyển sang DeepSeek fallback...")
+            try:
+                return self.generate_with_deepseek(content, stream=stream)
+            except Exception as deepseek_error:
+                logging.error(f"❌ DeepSeek fallback cũng thất bại: {deepseek_error}")
+                last_exception = deepseek_error
+
         raise Exception(f"Tất cả {max_attempts} lần thử API keys thất bại. Lỗi cuối: {last_exception}")
+
+    def generate_with_deepseek(self, content, stream=False):
+        """Fallback generator sử dụng DeepSeek chat completions."""
+        if stream:
+            raise ValueError("DeepSeek fallback hiện chưa hỗ trợ stream=True")
+
+        if not self.deepseek_api_key:
+            raise ValueError("Chưa cấu hình DEEPSEEK_API_KEY")
+
+        url = f"{self.deepseek_api_base}/v1/chat/completions"
+        system_prompt = os.getenv(
+            "DEEPSEEK_SYSTEM_PROMPT",
+            "Bạn là AgriSense AI - Trợ lý nông nghiệp chuyên nghiệp của Việt Nam."
+        ).strip()
+
+        payload = {
+            "model": self.deepseek_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content}
+            ],
+            "temperature": self._safe_float(os.getenv("DEEPSEEK_TEMPERATURE", 0.7)) or 0.7,
+            "max_tokens": int(self._safe_float(os.getenv("DEEPSEEK_MAX_TOKENS", 2048)) or 2048),
+        }
+
+        headers = {
+            "Authorization": f"Bearer {self.deepseek_api_key}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=self.deepseek_timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            choices = data.get("choices") or []
+            if not choices:
+                raise ValueError("DeepSeek trả về response không có choices")
+
+            message = choices[0].get("message") or {}
+            content_text = message.get("content")
+            if not content_text:
+                raise ValueError("DeepSeek không trả về nội dung hợp lệ")
+
+            return SimpleNamespace(
+                text=content_text,
+                provider="deepseek",
+                raw=data
+            )
+        except Exception as exc:
+            raise Exception(f"DeepSeek lỗi: {exc}") from exc
 
     def chat(self, message, mode='normal'):
         """

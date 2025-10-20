@@ -1525,6 +1525,49 @@
     *{ box-sizing:border-box; backface-visibility:hidden; }
     #chat-box{ transition:none; contain:layout style paint; }
 
+    /* MOBILE FIX: Ensure input area is always visible on mobile */
+    @media (max-width: 768px) {
+      #chat-main {
+        padding-bottom: 0 !important;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      
+      .chat-controls {
+        position: sticky !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: white !important;
+        padding: 0.75rem !important;
+        border-top: 1px solid #e5e7eb !important;
+        z-index: 100 !important;
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1) !important;
+      }
+      
+      #chat-box {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 1rem !important;
+      }
+      
+      /* Ensure buttons are touch-friendly on mobile */
+      #send-btn, #camera-btn {
+        min-height: 48px !important;
+        min-width: 48px !important;
+      }
+      
+      #message-input {
+        min-height: 48px !important;
+        font-size: 16px !important; /* Prevents zoom on iOS */
+      }
+    }
+
     /* end unified CSS */
     
     /* Responsive image grid */

@@ -6438,8 +6438,48 @@
     // Watchdog: if still loading after a while, show error
     scheduleWeatherWatchdog(weatherEl);
 
-    // PRIORITY 1: Try IP-based weather lookup (no permissions needed)
-    console.log('🌍 Trying IP-based weather lookup first...');
+    // PRIORITY 1: Try browser geolocation FIRST (most accurate - GPS/WiFi)
+    const GEOLOCATION_TIMEOUT_MS = 8000;
+    if ('geolocation' in navigator) {
+      try {
+        console.log('📍 Requesting browser geolocation (most accurate)...');
+        const position = await getBrowserGeolocation({
+          timeout: GEOLOCATION_TIMEOUT_MS,
+          enableHighAccuracy: true,  // Use GPS if available
+          maximumAge: 2 * 60 * 1000  // Cache for 2 minutes only
+        });
+
+        if (position?.coords) {
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log('✅ Browser geolocation detected:', {
+            latitude,
+            longitude,
+            accuracy: `${Math.round(accuracy)}m`
+          });
+
+          const geoSuccess = await getWeatherInfoClientFallback(weatherEl, {
+            latitude,
+            longitude,
+            city: 'Vị trí của bạn',
+            skipIpLookup: true,
+            silentFail: false
+          });
+
+          if (geoSuccess) {
+            console.log('✅ Weather data loaded via precise geolocation');
+            return;
+          }
+        }
+      } catch (geoError) {
+        console.warn('⚠️ Geolocation unavailable or denied:', geoError.message);
+        console.log('🔄 Falling back to IP-based location...');
+      }
+    } else {
+      console.log('❌ Geolocation API not supported, using IP fallback');
+    }
+
+    // PRIORITY 2: Fallback to IP-based weather lookup (less accurate but no permission needed)
+    console.log('🌍 Trying IP-based weather lookup as fallback...');
     const ipWeather = await getWeatherByIP();
     
     if (ipWeather) {
@@ -6450,45 +6490,6 @@
         ...ipWeather
       });
       return;
-    }
-
-    // PRIORITY 2: Try browser geolocation as fallback
-    const GEOLOCATION_TIMEOUT_MS = 5000;
-    if ('geolocation' in navigator) {
-      try {
-        console.log('📍 IP lookup failed, trying browser geolocation...');
-        const position = await getBrowserGeolocation({
-          timeout: GEOLOCATION_TIMEOUT_MS,
-          enableHighAccuracy: false,
-          maximumAge: 5 * 60 * 1000
-        });
-
-        if (position?.coords) {
-          const { latitude, longitude, accuracy } = position.coords;
-          console.log('📍 Browser geolocation detected:', {
-            latitude,
-            longitude,
-            accuracy
-          });
-
-          const geoSuccess = await getWeatherInfoClientFallback(weatherEl, {
-            latitude,
-            longitude,
-            city: 'Vị trí của bạn',
-            skipIpLookup: true,
-            silentFail: true
-          });
-
-          if (geoSuccess) {
-            console.log('✅ Weather data loaded via geolocation');
-            return;
-          }
-        }
-      } catch (geoError) {
-        console.warn('⚠️ Geolocation unavailable or denied:', geoError);
-      }
-    } else {
-      console.info('ℹ️ Geolocation API not supported by this browser.');
     }
 
     // PRIORITY 3: Try backend API if available

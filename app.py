@@ -216,8 +216,10 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
     # Weather fetching (moved backend-side to avoid browser CORS issues)
     # ------------------------------------------------------------------
 
-    def get_weather_info(self):
+    def get_weather_info(self, client_ip=None):
         logging.info("🌦️  API request: get_weather_info")
+        if client_ip:
+            logging.info(f"📍 Client IP provided: {client_ip}")
 
         now = time.time()
         cached_payload = self._weather_cache.get("payload") if hasattr(self, "_weather_cache") else None
@@ -420,18 +422,72 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
             ip_meta["source"] = "cache"
             ip_meta["cache_hit"] = True
         else:
-            try:
-                ip_resp = requests.get("https://ipapi.co/json/", timeout=6)
-                ip_resp.raise_for_status()
-                ip_data = ip_resp.json()
-                ip_meta["source"] = "ipapi"
-                self._ip_location_cache = {
-                    "timestamp": now,
-                    "data": copy.deepcopy(ip_data)
-                }
-            except Exception as exc:
-                logging.warning("⚠️  Không thể lấy vị trí IP từ ipapi: %s", exc)
-                ip_data = None
+            # Try multiple geolocation services for better accuracy
+            geolocation_services = []
+            
+            # If client IP provided, add it to service URLs
+            if client_ip:
+                geolocation_services.extend([
+                    ("ipapi.co", f"https://ipapi.co/{client_ip}/json/"),
+                    ("ip-api.com", f"http://ip-api.com/json/{client_ip}?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone"),
+                    ("ipwhois.app", f"http://ipwhois.app/json/{client_ip}"),
+                ])
+            else:
+                # Auto-detect (will use server IP, not ideal for production)
+                geolocation_services.extend([
+                    ("ipapi.co", "https://ipapi.co/json/"),
+                    ("ip-api.com", "http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone"),
+                    ("ipwhois.app", "http://ipwhois.app/json/"),
+                ])
+            
+            for service_name, service_url in geolocation_services:
+                try:
+                    logging.info(f"🔍 Trying geolocation service: {service_name}")
+                    ip_resp = requests.get(service_url, timeout=6)
+                    ip_resp.raise_for_status()
+                    raw_data = ip_resp.json()
+                    
+                    # Normalize different API response formats
+                    if service_name == "ip-api.com":
+                        if raw_data.get("status") == "success":
+                            ip_data = {
+                                "city": raw_data.get("city"),
+                                "region": raw_data.get("regionName"),
+                                "country": raw_data.get("countryCode"),
+                                "country_name": raw_data.get("country"),
+                                "latitude": raw_data.get("lat"),
+                                "longitude": raw_data.get("lon"),
+                                "tz_id": raw_data.get("timezone")
+                            }
+                        else:
+                            continue
+                    elif service_name == "ipwhois.app":
+                        if raw_data.get("success"):
+                            ip_data = {
+                                "city": raw_data.get("city"),
+                                "region": raw_data.get("region"),
+                                "country": raw_data.get("country_code"),
+                                "country_name": raw_data.get("country"),
+                                "latitude": raw_data.get("latitude"),
+                                "longitude": raw_data.get("longitude"),
+                                "tz_id": raw_data.get("timezone")
+                            }
+                        else:
+                            continue
+                    else:  # ipapi.co
+                        ip_data = raw_data
+                    
+                    ip_meta["source"] = service_name
+                    self._ip_location_cache = {
+                        "timestamp": now,
+                        "data": copy.deepcopy(ip_data)
+                    }
+                    logging.info(f"✅ Got location from {service_name}: {ip_data.get('city')}, {ip_data.get('country_name')}")
+                    break  # Success, exit the loop
+                    
+                except Exception as exc:
+                    logging.warning(f"⚠️ {service_name} failed: {exc}")
+                    continue  # Try next service
 
         if not ip_data:
             logging.info(
@@ -3866,9 +3922,20 @@ def chat():
 
 @app.route('/api/weather', methods=['GET'])
 def weather():
-    """API endpoint for weather"""
+    """API endpoint for weather - Gets real user location from IP"""
     try:
-        weather_data = api.get_weather_info()
+        # Get real client IP (handles proxies, load balancers, Heroku)
+        client_ip = None
+        if request.headers.get('X-Forwarded-For'):
+            # Get first IP from X-Forwarded-For chain (real client IP)
+            client_ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+        elif request.headers.get('X-Real-IP'):
+            client_ip = request.headers.get('X-Real-IP').strip()
+        else:
+            client_ip = request.remote_addr
+        
+        logging.info(f"🌍 Weather request from IP: {client_ip}")
+        weather_data = api.get_weather_info(client_ip=client_ip)
         return jsonify(weather_data)
     except Exception as e:
         logging.error(f"Lỗi weather API: {e}")

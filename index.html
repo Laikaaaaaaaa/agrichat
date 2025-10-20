@@ -2292,10 +2292,17 @@
 
       <!-- Khí hậu & Thời tiết (HTML + JS - backend tích hợp, chỉ thay thế block này) -->
       <div class="space-y-2 md:space-y-3">
-        <h2 class="text-base md:text-lg font-semibold text-green-700 flex items-center gap-2">
-          <i class="fas fa-cloud text-green-700 text-sm md:text-lg"></i>
-          Khí hậu & Thời tiết
-        </h2>
+        <div class="flex items-center justify-between">
+          <h2 class="text-base md:text-lg font-semibold text-green-700 flex items-center gap-2">
+            <i class="fas fa-cloud text-green-700 text-sm md:text-lg"></i>
+            Khí hậu & Thời tiết
+          </h2>
+          <!-- Location permission button -->
+          <button id="request-location-btn" class="hidden text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md" onclick="requestPreciseLocation()">
+            <i class="fas fa-crosshairs text-xs"></i>
+            <span>Vị trí chính xác</span>
+          </button>
+        </div>
 
         <div id="weather-info" class="rounded-xl bg-gradient-to-br from-green-50 via-white to-blue-50 p-3 md:p-4 shadow-sm border border-green-100 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300" data-state="idle" onclick="openWeatherMap()" title="Click để xem bản đồ thời tiết chi tiết">
           <div class="flex items-center gap-3">
@@ -6484,6 +6491,19 @@
     
     if (ipWeather) {
       console.log('✅ Weather data loaded via IP lookup:', ipWeather);
+      
+      // Show "Enable precise location" button if IP location looks wrong
+      const locationBtn = document.getElementById('request-location-btn');
+      const isLikelyWrongLocation = 
+        ipWeather.location_country !== 'Vietnam' && 
+        ipWeather.location_country !== 'VN' &&
+        ipWeather.location_country !== 'Việt Nam';
+      
+      if (locationBtn && isLikelyWrongLocation) {
+        locationBtn.classList.remove('hidden');
+        console.log('🔔 Showing location permission button (detected wrong country)');
+      }
+      
       renderWeatherDisplay(weatherEl, {
         city: ipWeather.location_name || 'Vị trí của bạn',
         country: ipWeather.location_country || 'VN',
@@ -6842,6 +6862,63 @@
     }
   };
 
+  // Function to request precise location when user clicks button
+  window.requestPreciseLocation = async function() {
+    console.log('📍 User requested precise location...');
+    const weatherEl = document.getElementById('weather-info');
+    const locationBtn = document.getElementById('request-location-btn');
+    
+    if (!weatherEl) return;
+    
+    // Hide button while processing
+    if (locationBtn) {
+      locationBtn.classList.add('hidden');
+    }
+    
+    renderWeatherLoading(weatherEl, 'Đang yêu cầu vị trí chính xác...');
+    
+    try {
+      const position = await getBrowserGeolocation({
+        timeout: 10000,
+        enableHighAccuracy: true,
+        maximumAge: 0  // Force fresh location
+      });
+      
+      if (position?.coords) {
+        const { latitude, longitude, accuracy } = position.coords;
+        console.log('✅ Precise location granted:', { latitude, longitude, accuracy: `${Math.round(accuracy)}m` });
+        
+        const success = await getWeatherInfoClientFallback(weatherEl, {
+          latitude,
+          longitude,
+          city: 'Vị trí chính xác của bạn',
+          skipIpLookup: true,
+          silentFail: false
+        });
+        
+        if (success) {
+          console.log('✅ Weather updated with precise location');
+          // Keep button hidden on success
+        }
+      }
+    } catch (error) {
+      console.error('❌ Location permission denied or failed:', error);
+      
+      // Show helpful message
+      const mainEl = document.getElementById('weather-main');
+      const subEl = document.getElementById('weather-sub');
+      if (mainEl && subEl) {
+        mainEl.textContent = 'Không thể lấy vị trí chính xác';
+        subEl.innerHTML = '<span class="text-xs">Vui lòng cho phép truy cập vị trí trong cài đặt trình duyệt</span>';
+      }
+      
+      // Show button again for retry
+      if (locationBtn) {
+        setTimeout(() => locationBtn.classList.remove('hidden'), 2000);
+      }
+    }
+  };
+  
   // Old weather initialization removed - new weather widget is self-initializing
   
   // Open sidebar by default

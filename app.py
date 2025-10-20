@@ -113,16 +113,16 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
             logging.warning("⚠️  WEATHER_API_KEY chưa được cấu hình. Chức năng thời tiết có thể không hoạt động.")
 
         # Weather/location fallback & caching configuration
-        default_city = os.getenv("DEFAULT_WEATHER_CITY", "Hà Nội").strip() or "Hà Nội"
+        default_city = os.getenv("DEFAULT_WEATHER_CITY", "Hồ Chí Minh").strip() or "Hồ Chí Minh"
         default_region = os.getenv("DEFAULT_WEATHER_REGION", default_city).strip() or default_city
         default_country_name = os.getenv("DEFAULT_WEATHER_COUNTRY", "Việt Nam").strip() or "Việt Nam"
         default_country_code = os.getenv("DEFAULT_WEATHER_COUNTRY_CODE", "VN").strip() or "VN"
         default_lat = self._safe_float(os.getenv("DEFAULT_WEATHER_LAT"))
         if default_lat is None:
-            default_lat = 21.028511
+            default_lat = 10.762622  # Hồ Chí Minh coordinates
         default_lon = self._safe_float(os.getenv("DEFAULT_WEATHER_LON"))
         if default_lon is None:
-            default_lon = 105.804817
+            default_lon = 106.660172  # Hồ Chí Minh coordinates
         default_tz = os.getenv("DEFAULT_WEATHER_TZ", "Asia/Ho_Chi_Minh").strip() or "Asia/Ho_Chi_Minh"
 
         self.default_location = {

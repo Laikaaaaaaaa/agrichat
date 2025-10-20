@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bản đồ Thời tiết Việt Nam - AgriSense AI</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+    <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -118,10 +125,14 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-size: 24px;
             font-weight: bold;
             color: #079364;
+        }
+
+        .logo img {
+            height: 56px;
         }
 
         .logo-text {
@@ -212,8 +223,7 @@
     <!-- Header -->
     <div class="header" id="header">
         <div class="logo">
-            <i class="fas fa-seedling"></i>
-            <span class="logo-text">AgriSense AI - Bản đồ Thời tiết</span>
+            <img src="/static/logo/logo.png" alt="AgriSense AI Logo" style="height: 56px; width: auto; object-fit: contain;">
         </div>
         <button class="back-btn" onclick="goBack()">
             <i class="fas fa-arrow-left"></i>

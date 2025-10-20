@@ -6,6 +6,13 @@
   <meta http-equiv="Content-Security-Policy" content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;">
   <title>AgriSense AI - Nông nghiệp thông minh</title>
   
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+  
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com?v=3.4.0"></script>
   <!-- Font Awesome -->
@@ -2283,18 +2290,14 @@
 <body class="bg-green-50 font-sans text-gray-700 h-screen overflow-hidden">
   <!-- Header -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0 h-20 relative">
-    <!-- Menu toggle button - Fixed to left edge -->
-    <button id="menu-toggle" class="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 z-10" type="button" aria-controls="sidebar" aria-expanded="false" style="cursor: pointer;">
-      <i class="fas fa-bars"></i>
-    </button>
-    
-    <div class="h-full flex justify-between items-center pl-20 pr-4">
-      <!-- Brand -->
-      <div class="flex items-center">
-        <img src="static/logo/snapedit_1760952760314-removebg-preview.png" alt="AgriSense AI Logo" class="h-14 md:h-16 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <div style="display:none;" class="text-xl md:text-2xl font-bold text-green-800">
-          <i class="fas fa-leaf text-green-600"></i> AgriSense AI
-        </div>
+    <div class="h-full flex justify-between items-center px-4 md:px-6">
+      <!-- Brand with menu button -->
+      <div class="flex items-center gap-3">
+        <!-- Menu toggle button -->
+        <button id="menu-toggle" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 z-10" type="button" aria-controls="sidebar" aria-expanded="false" style="cursor: pointer;">
+          <i class="fas fa-bars"></i>
+        </button>
+        <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="h-12 md:h-14 w-auto object-contain">
       </div>
       
       <span class="text-sm md:text-base text-gray-600 hidden md:block">Chuyên gia tư vấn nông nghiệp thông minh</span>

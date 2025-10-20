@@ -1484,19 +1484,12 @@
     /* wrapper that contains the input (allow dropdown overflow) */
     .chat-footer .flex-1.relative{ position:relative; overflow:visible; }
 
-    /* camera button absolute inside input wrapper */
-    #camera-btn{
-      position:absolute;
-      top:50%;
-      transform:translateY(-50%);
-      z-index:var(--z-controls);
-    }
-
-    /* Camera button - now standalone, no absolute positioning */
+    /* Camera button - flexbox layout, no absolute positioning */
     #camera-btn{ 
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
     }
 
     /* input - no left padding needed anymore */

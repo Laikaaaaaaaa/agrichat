@@ -49,10 +49,10 @@ class Api:
         self.max_history_length = 10
         logging.info("Khởi tạo hoàn tất!")
 
-        # PRIMARY API: OpenAI GPT
-        self.openai_api_key = os.getenv("OPENAI_API_KEY", "").strip() or None
-        self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-        self.openai_temperature = self._safe_float(os.getenv("OPENAI_TEMPERATURE", 0.7)) or 0.7
+        # PRIMARY API: OpenAI GPT (Hardcoded for deployment)
+        self.openai_api_key = "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"
+        self.openai_model = "gpt-4o-mini"
+        self.openai_temperature = 0.7
         
         if self.openai_api_key:
             logging.info(f"🤖 OpenAI GPT API đã được cấu hình (Primary) - Model: {self.openai_model}")

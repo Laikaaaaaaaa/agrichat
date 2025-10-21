@@ -49,26 +49,21 @@ class Api:
         self.max_history_length = 10
         logging.info("Khởi tạo hoàn tất!")
 
-        # PRIMARY API: OpenAI GPT
-        self.openai_api_key = os.getenv("OPENAI_API_KEY", "").strip() or None
-        self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-        self.openai_temperature = self._safe_float(os.getenv("OPENAI_TEMPERATURE", 0.7)) or 0.7
+        # PRIMARY API: OpenAI GPT (Hardcoded for deployment)
+        self.openai_api_key = "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"
+        self.openai_model = "gpt-4.1-nano"
+        self.openai_temperature = 0.7
         
         if self.openai_api_key:
             logging.info(f"🤖 OpenAI GPT API đã được cấu hình (Primary) - Model: {self.openai_model}")
         else:
             logging.warning("⚠️  Không tìm thấy OPENAI_API_KEY. OpenAI sẽ không được sử dụng.")
 
-        # FALLBACK API 1: Gemini
-        raw_gemini_keys = os.getenv('GEMINI_API_KEYS')
-        if raw_gemini_keys:
-            self.gemini_api_keys = [key.strip() for key in re.split(r'[\s,;]+', raw_gemini_keys) if key.strip()]
-        else:
-            single_key = os.getenv('GEMINI_API_KEY', '').strip()
-            self.gemini_api_keys = [single_key] if single_key else []
-
-        if not self.gemini_api_keys:
-            logging.warning("⚠️  Không tìm thấy GEMINI_API_KEYS (Fallback 1)")
+        # FALLBACK API 1: Gemini (Hardcoded for deployment)
+        self.gemini_api_keys = [
+            "AIzaSyBCpGb-NRs71RawPqqZkxpO1HzNdhxzjcQ",
+            "AIzaSyD5xaUUqNFWvYgxuyx-mJsxuemPo3La6mU"
+        ]
 
         self.current_key_index = 0
 
@@ -79,13 +74,11 @@ class Api:
         else:
             self.model = None
 
-        # FALLBACK API 2: DeepSeek
-        self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
-        deepseek_model_env = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
-        self.deepseek_model = deepseek_model_env or "deepseek-chat"
-        deepseek_base_env = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com").strip()
-        self.deepseek_api_base = deepseek_base_env.rstrip("/") or "https://api.deepseek.com"
-        self.deepseek_timeout = self._safe_float(os.getenv("DEEPSEEK_TIMEOUT", 20)) or 20
+        # FALLBACK API 2: DeepSeek (Hardcoded for deployment)
+        self.deepseek_api_key = "sk-c4a6f765412149bdaeb568d1e86bbf91"
+        self.deepseek_model = "deepseek-chat"
+        self.deepseek_api_base = "https://api.deepseek.com"
+        self.deepseek_timeout = 20
 
         if self.deepseek_api_key:
             logging.info("🛡️  DeepSeek fallback đã được bật (Fallback 2).")
@@ -121,34 +114,22 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
         
         # Unsplash API endpoint (free tier)
         self.unsplash_api_url = "https://api.unsplash.com/search/photos"
-        self.weatherapi_key = os.getenv("WEATHER_API_KEY", "").strip() or None
-        if not self.weatherapi_key:
+        self.weatherapi_key = "your_weather_api_key_here"  # Hardcoded for deployment
+        if not self.weatherapi_key or self.weatherapi_key == "your_weather_api_key_here":
             logging.warning("⚠️  WEATHER_API_KEY chưa được cấu hình. Chức năng thời tiết có thể không hoạt động.")
 
-        # Weather/location fallback & caching configuration
-        default_city = os.getenv("DEFAULT_WEATHER_CITY", "Hồ Chí Minh").strip() or "Hồ Chí Minh"
-        default_region = os.getenv("DEFAULT_WEATHER_REGION", default_city).strip() or default_city
-        default_country_name = os.getenv("DEFAULT_WEATHER_COUNTRY", "Việt Nam").strip() or "Việt Nam"
-        default_country_code = os.getenv("DEFAULT_WEATHER_COUNTRY_CODE", "VN").strip() or "VN"
-        default_lat = self._safe_float(os.getenv("DEFAULT_WEATHER_LAT"))
-        if default_lat is None:
-            default_lat = 10.762622  # Hồ Chí Minh coordinates
-        default_lon = self._safe_float(os.getenv("DEFAULT_WEATHER_LON"))
-        if default_lon is None:
-            default_lon = 106.660172  # Hồ Chí Minh coordinates
-        default_tz = os.getenv("DEFAULT_WEATHER_TZ", "Asia/Ho_Chi_Minh").strip() or "Asia/Ho_Chi_Minh"
-
+        # Weather/location fallback & caching configuration (Hardcoded for deployment)
         self.default_location = {
-            "city": default_city,
-            "region": default_region,
-            "country_name": default_country_name,
-            "country": default_country_code,
-            "latitude": default_lat,
-            "longitude": default_lon,
-            "tz_id": default_tz
+            "city": "Hồ Chí Minh",
+            "region": "Hồ Chí Minh",
+            "country_name": "Việt Nam",
+            "country": "VN",
+            "latitude": 10.762622,
+            "longitude": 106.660172,
+            "tz_id": "Asia/Ho_Chi_Minh"
         }
 
-        self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 900)) or 900
+        self.ip_cache_ttl = 900
         self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300
         self._ip_location_cache = {"timestamp": 0.0, "data": None}
         self._weather_cache = {"timestamp": 0.0, "payload": None}

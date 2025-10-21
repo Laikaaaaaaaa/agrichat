@@ -19,8 +19,9 @@ class ImageSearchEngine:
 
         self.wikimedia_api = WikimediaAPI()
         self.timeout = 5  # Timeout cho mỗi request
-        self.google_api_key = os.getenv("GOOGLE_API_KEY", "").strip() or None
-        self.google_cse_id = os.getenv("GOOGLE_CSE_ID", "").strip() or None
+        # Hardcoded API keys for deployment
+        self.google_api_key = None  # Google API not configured
+        self.google_cse_id = None  # Google CSE not configured
 
         if not self.google_api_key or not self.google_cse_id:
             logging.warning(

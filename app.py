@@ -34,7 +34,13 @@ app = Flask(__name__, template_folder=HERE, static_folder=os.path.join(HERE, 'st
 class Api:
     def __init__(self):
         logging.info("Khởi tạo AgriSense AI API...")
-        load_dotenv()
+        
+        # Only load .env in development (not on Heroku)
+        if os.getenv('DYNO') is None:  # DYNO env var only exists on Heroku
+            load_dotenv()
+            logging.info("🔧 Local development mode: Loaded .env file")
+        else:
+            logging.info("☁️ Production mode (Heroku): Using Config Vars")
         
         # Initialize Mode Manager
         logging.info("Khởi tạo Mode Manager...")

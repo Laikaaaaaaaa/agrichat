@@ -49,7 +49,17 @@ class Api:
         self.max_history_length = 10
         logging.info("Khởi tạo hoàn tất!")
 
-        # Setup API keys từ biến môi trường (.env)
+        # PRIMARY API: OpenAI GPT
+        self.openai_api_key = os.getenv("OPENAI_API_KEY", "").strip() or None
+        self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+        self.openai_temperature = self._safe_float(os.getenv("OPENAI_TEMPERATURE", 0.7)) or 0.7
+        
+        if self.openai_api_key:
+            logging.info(f"🤖 OpenAI GPT API đã được cấu hình (Primary) - Model: {self.openai_model}")
+        else:
+            logging.warning("⚠️  Không tìm thấy OPENAI_API_KEY. OpenAI sẽ không được sử dụng.")
+
+        # FALLBACK API 1: Gemini
         raw_gemini_keys = os.getenv('GEMINI_API_KEYS')
         if raw_gemini_keys:
             self.gemini_api_keys = [key.strip() for key in re.split(r'[\s,;]+', raw_gemini_keys) if key.strip()]
@@ -58,15 +68,18 @@ class Api:
             self.gemini_api_keys = [single_key] if single_key else []
 
         if not self.gemini_api_keys:
-            logging.warning("⚠️  Không tìm thấy GEMINI_API_KEYS hoặc GEMINI_API_KEY trong môi trường. Vui lòng cấu hình .env")
+            logging.warning("⚠️  Không tìm thấy GEMINI_API_KEYS (Fallback 1)")
 
         self.current_key_index = 0
 
         # Log initial setup
-        logging.info("🔑 Sử dụng API key ban đầu...")
-        self.initialize_gemini_model()
+        if self.gemini_api_keys:
+            logging.info("🔑 Gemini API keys đã sẵn sàng (Fallback 1)...")
+            self.initialize_gemini_model()
+        else:
+            self.model = None
 
-        # DeepSeek fallback configuration
+        # FALLBACK API 2: DeepSeek
         self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
         deepseek_model_env = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
         self.deepseek_model = deepseek_model_env or "deepseek-chat"
@@ -75,7 +88,7 @@ class Api:
         self.deepseek_timeout = self._safe_float(os.getenv("DEEPSEEK_TIMEOUT", 20)) or 20
 
         if self.deepseek_api_key:
-            logging.info("🛡️  DeepSeek fallback đã được bật (phát hiện DEEPSEEK_API_KEY).")
+            logging.info("🛡️  DeepSeek fallback đã được bật (Fallback 2).")
         else:
             logging.info("ℹ️  DeepSeek fallback chưa bật vì thiếu DEEPSEEK_API_KEY.")
 
@@ -813,29 +826,45 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
         return result
 
     def generate_content_with_fallback(self, content, stream=False):
-        max_attempts = 3  # Giảm số lần thử để tránh spam request
+        """
+        Generate content with API priority:
+        1. OpenAI GPT (Primary)
+        2. Gemini (Fallback 1)
+        3. DeepSeek (Fallback 2)
+        """
         last_exception = None
+
+        # TRY 1: OpenAI GPT (Primary)
+        if self.openai_api_key:
+            try:
+                logging.info("🤖 Đang sử dụng OpenAI GPT (Primary API)...")
+                return self.generate_with_openai(content, stream=stream)
+            except Exception as openai_error:
+                last_exception = openai_error
+                logging.warning(f"⚠️ OpenAI thất bại: {openai_error}")
+                logging.info("🔄 Chuyển sang Gemini fallback...")
+
+        # TRY 2: Gemini (Fallback 1)
+        max_attempts = 3
         retry_delay = 0
-        base_delay = 3  # Delay cơ bản giữa các lần thử
+        base_delay = 3
 
         for attempt in range(max_attempts):
             try:
-                # Luôn delay một chút giữa các request để tránh hit rate limit
                 if attempt > 0:
                     delay = retry_delay if retry_delay > 0 else base_delay
-                    logging.info(f"Đợi {delay} giây trước khi thử lại (lần thử {attempt + 1}/{max_attempts})...")
+                    logging.info(f"Đợi {delay} giây trước khi thử lại Gemini (lần thử {attempt + 1}/{max_attempts})...")
                     time.sleep(delay)
                     retry_delay = 0
 
                 if not hasattr(self, 'model') or self.model is None:
-                    logging.info("Đang khởi tạo lại model...")
+                    logging.info("Đang khởi tạo lại Gemini model...")
                     if not self.initialize_gemini_model():
-                        raise Exception("Không thể khởi tạo model")
+                        raise Exception("Không thể khởi tạo Gemini model")
 
                 if attempt > 0:
                     time.sleep(0.8)
 
-                # Configure generation parameters
                 generation_config = {
                     "temperature": 0.9,
                     "top_p": 1,
@@ -843,9 +872,8 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                     "max_output_tokens": 2048,
                 }
 
-                # Ensure we're using the preview model
                 if not isinstance(self.model, genai.GenerativeModel) or self.model._model_name != "gemini-2.5-flash-lite-preview-09-2025":
-                    logging.info("🔄 Khởi tạo lại model...")
+                    logging.info("🔄 Khởi tạo lại Gemini model...")
                     self.model = genai.GenerativeModel("gemini-2.5-flash-lite-preview-09-2025")
 
                 if stream:
@@ -866,59 +894,111 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
             except Exception as gen_error:
                 last_exception = gen_error
                 error_message = str(gen_error).lower()
-                logging.error(f"Lỗi khi tạo nội dung (key #{self.current_key_index + 1}): {error_message}")
+                logging.error(f"Lỗi Gemini (key #{self.current_key_index + 1}): {error_message}")
 
                 if "not found" in error_message or "is not found" in error_message or "model" in error_message:
-                    try:
-                        models_resp = genai.list_models()
-                        logging.info(f"Refreshed model list for debugging: {str(models_resp)[:300]}")
-                    except Exception as e:
-                        logging.warning(f"Không thể gọi list_models để debug: {e}")
-
                     if attempt < max_attempts - 1:
-                        logging.info("Chuyển sang API key tiếp theo do lỗi model/endpoint.")
+                        logging.info("Chuyển sang Gemini API key tiếp theo...")
                         self.switch_to_next_api_key()
                         continue
                     else:
                         break
 
                 if any(token in error_message for token in ['quota', 'rate', 'limit', '429', 'permission', 'invalid', 'key']):
-                    # Extract retry delay from error message
                     try:
                         retry_match = re.search(r'retry in (\d+(\.\d+)?)', error_message)
                         if retry_match:
-                            retry_delay = float(retry_match.group(1)) + 1  # Add 1 second buffer
-                            logging.info(f"Phát hiện thời gian chờ bắt buộc: {retry_delay} giây")
+                            retry_delay = float(retry_match.group(1)) + 1
                         else:
-                            retry_delay = base_delay * (attempt + 1)  # Tăng thời gian chờ theo số lần thử
+                            retry_delay = base_delay * (attempt + 1)
                     except:
                         retry_delay = base_delay * (attempt + 1)
 
                     if attempt < max_attempts - 1:
-                        logging.info(f"Đang chờ {retry_delay} giây trước khi thử lại do hết quota/rate limit...")
                         continue
                     else:
-                        # Reached max attempts - break to try DeepSeek fallback
                         logging.warning("⚠️ Tất cả Gemini keys đã hết quota. Chuyển sang DeepSeek...")
                         break
 
                 if "dangerous_content" in error_message or "danger" in error_message:
-                    logging.error("Nội dung bị chặn bởi safety filter. Kiểm tra prompt hoặc giảm mức độ yêu cầu cho test.")
+                    logging.error("Nội dung bị chặn bởi Gemini safety filter.")
                     raise gen_error
 
-                logging.error(f"Lỗi không xử lý được: {error_message}")
+                logging.error(f"Lỗi Gemini không xử lý được: {error_message}")
                 raise gen_error
 
-        # If all keys failed, raise the last error with the last exception
+        # TRY 3: DeepSeek (Fallback 2)
         if self.deepseek_api_key:
-            logging.info("🔄 Gemini thất bại. Đang chuyển sang DeepSeek fallback...")
+            logging.info("🔄 Gemini thất bại. Đang chuyển sang DeepSeek (Fallback 2)...")
             try:
                 return self.generate_with_deepseek(content, stream=stream)
             except Exception as deepseek_error:
                 logging.error(f"❌ DeepSeek fallback cũng thất bại: {deepseek_error}")
                 last_exception = deepseek_error
 
-        raise Exception(f"Tất cả {max_attempts} lần thử API keys thất bại. Lỗi cuối: {last_exception}")
+        raise Exception(f"Tất cả API thất bại. Lỗi cuối: {last_exception}")
+
+    def generate_with_openai(self, content, stream=False):
+        """Primary generator sử dụng OpenAI GPT."""
+        if stream:
+            raise ValueError("OpenAI fallback hiện chưa hỗ trợ stream=True")
+
+        if not self.openai_api_key:
+            raise ValueError("Chưa cấu hình OPENAI_API_KEY")
+
+        url = "https://api.openai.com/v1/chat/completions"
+        system_prompt = """Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh của Việt Nam. 
+Bạn có kiến thức chuyên sâu về:
+- Cây trồng, vật nuôi và quản lý trang trại
+- Thời tiết và khí hậu ảnh hưởng đến nông nghiệp
+- Bệnh tật cây trồng và phòng trừ sâu bệnh
+- Kỹ thuật canh tác hiện đại và công nghệ nông nghiệp
+- Thị trường nông sản và kinh tế nông nghiệp
+
+Hãy trả lời một cách chuyên nghiệp, thân thiện và hữu ích."""
+
+        payload = {
+            "model": self.openai_model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content}
+            ],
+            "temperature": self.openai_temperature,
+            "max_tokens": 2048,
+        }
+
+        headers = {
+            "Authorization": f"Bearer {self.openai_api_key}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            choices = data.get("choices") or []
+            if not choices:
+                raise ValueError("OpenAI trả về response không có choices")
+
+            message = choices[0].get("message") or {}
+            content_text = message.get("content")
+            if not content_text:
+                raise ValueError("OpenAI không trả về nội dung hợp lệ")
+
+            return SimpleNamespace(
+                text=content_text,
+                provider="openai",
+                model=self.openai_model,
+                raw=data
+            )
+        except Exception as exc:
+            raise Exception(f"OpenAI lỗi: {exc}") from exc
 
     def generate_with_deepseek(self, content, stream=False):
         """Fallback generator sử dụng DeepSeek chat completions."""

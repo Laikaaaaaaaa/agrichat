@@ -160,7 +160,7 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      z-index: 2100;
+      z-index: var(--z-image-modal);
       display: none;
       flex-direction: column;
       align-items: center;
@@ -1002,7 +1002,8 @@
       --push-w: var(--sidebar-w);
       --mobile-bp: 768px;
       --z-sidebar: 3000;
-      --z-backdrop: 2500;
+      --z-backdrop: 4000;
+      --z-image-modal: 5000;
       --z-footer: 2000;
       --z-controls: 1300;
       --z-menus: 3000;

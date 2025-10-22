@@ -276,15 +276,15 @@
       saveConversations() {
         localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
         
-        // Lưu ID của cuộc hội thoại hiện tại để khôi phục sau
+        // Lưu ID vào sessionStorage (chỉ tồn tại trong phiên làm việc, mất khi đóng tab)
         if (this.currentConversation) {
-          localStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
+          sessionStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
         }
       }
 
-      // Khôi phục cuộc hội thoại đang dở khi quay lại trang
+      // Khôi phục cuộc hội thoại đang dở khi quay lại trang (TRONG CÙNG PHIÊN)
       restoreCurrentConversation() {
-        const currentId = localStorage.getItem('agrisense_current_conversation_id');
+        const currentId = sessionStorage.getItem('agrisense_current_conversation_id');
         if (currentId && this.conversations.length > 0) {
           // Tìm cuộc hội thoại trong danh sách
           const found = this.conversations.find(conv => conv.id === currentId);
@@ -1036,8 +1036,8 @@
           messageInput.placeholder = 'Nhập câu hỏi của bạn...';
         }
         
-        // Clear current conversation ID from localStorage since we're starting fresh
-        localStorage.removeItem('agrisense_current_conversation_id');
+        // Clear current conversation ID from sessionStorage since we're starting fresh
+        sessionStorage.removeItem('agrisense_current_conversation_id');
         
         console.log('✨ Started new chat conversation');
     };

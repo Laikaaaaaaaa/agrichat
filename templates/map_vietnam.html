@@ -306,15 +306,14 @@
             window.location.href = 'index.html';
         }
 
-        // Shortcut: Nhấn ESC để toggle header
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                toggleHeader();
-            }
-        });
-
         // Đảm bảo header hiện ban đầu - force visible
         document.addEventListener('DOMContentLoaded', function() {
+            // Shortcut: Nhấn ESC để toggle header (di chuyển vào trong DOMContentLoaded)
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    toggleHeader();
+                }
+            });
             const header = document.getElementById('header');
             const mapContainer = document.getElementById('map-container');
             const toggleBtn = document.querySelector('.header-toggle');

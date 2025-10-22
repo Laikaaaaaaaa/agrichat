@@ -29,7 +29,6 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/index.min.js"></script>
   
   <!-- Markdown-it for formatting -->
   <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
@@ -3967,6 +3966,26 @@
     // Defensive: ensure sidebar shows if JS runs
     const sidebarEl = document.getElementById('sidebar');
     if (sidebarEl) sidebarEl.classList.add('open');
+
+    // Xử lý scroll cho chat box (phải ở trong DOMContentLoaded)
+    let isUserScrolling = false;
+    let scrollTimeout;
+
+    if (chatBox) {
+      chatBox.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        isUserScrolling = true;
+
+        scrollTimeout = setTimeout(() => {
+          isUserScrolling = false;
+        }, 150); // Đợi user ngừng scroll 150ms mới reset trạng thái
+
+        // Cập nhật trạng thái scroll
+        chatBox.dataset.scrolledToBottom = 
+          (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight) < 50;
+      });
+      console.log('✅ Chat box scroll listener attached');
+    }
   });
 
   // Data analysis keywords for different categories - Enhanced with more specific detection
@@ -5445,24 +5464,6 @@
     }
   };
   
-
-  // Xử lý scroll cho chat box
-  let isUserScrolling = false;
-  let scrollTimeout;
-
-  chatBox.addEventListener('scroll', () => {
-    clearTimeout(scrollTimeout);
-    isUserScrolling = true;
-
-    scrollTimeout = setTimeout(() => {
-      isUserScrolling = false;
-    }, 150); // Đợi user ngừng scroll 150ms mới reset trạng thái
-
-    // Cập nhật trạng thái scroll
-    chatBox.dataset.scrolledToBottom = 
-      (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight) < 50;
-  });
-
   // Function to trigger data sidebar from Python backend
   function triggerDataSidebar(query) {
     console.log('🎯 Backend triggered data sidebar for:', query);

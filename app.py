@@ -3974,19 +3974,19 @@ def index():
 @app.route('/news')
 def news():
     """Trang tin tức nông nghiệp"""
-    return render_template('news.html')
+    return send_from_directory(HERE, 'news.html')
 
 
 @app.route('/history')
 def history():
     """Trang lịch sử hội thoại"""
-    return render_template('history.html')
+    return send_from_directory(HERE, 'history.html')
 
 
 @app.route('/map_vietnam')
 def map_vietnam():
     """Trang bản đồ Việt Nam"""
-    return render_template('map_vietnam.html')
+    return send_from_directory(HERE, 'map_vietnam.html')
 
 
 @app.route('/static/<path:filename>')

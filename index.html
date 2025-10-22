@@ -791,8 +791,9 @@
           // Save message to chat history - ALWAYS save if there's text or image
           if (window.chatHistoryManager && (text || imageUrl)) {
             const messageType = imageUrl ? 'image' : 'text';
-            console.log('💾 Saving message:', { sender, text: text?.substring(0, 50), imageUrl, messageType });
-            window.chatHistoryManager.addMessage(sender, text, imageUrl, messageType);
+            const contentToSave = text || ''; // Use empty string instead of null
+            console.log('💾 Saving message:', { sender, text: contentToSave.substring(0, 50), imageUrl, messageType });
+            window.chatHistoryManager.addMessage(sender, contentToSave, imageUrl, messageType);
           }
           
           if (!chatBox.dataset.userScrolling) {
@@ -899,8 +900,9 @@
             // ALWAYS save user messages
             if (window.chatHistoryManager) {
               const messageType = imageUrl ? 'image' : 'text';
-              console.log('💾 Saving USER message:', { text: originalText?.substring(0, 50), imageUrl, messageType });
-              window.chatHistoryManager.addMessage(sender, originalText, imageUrl, messageType);
+              const contentToSave = originalText || ''; // Use empty string instead of null
+              console.log('💾 Saving USER message:', { text: contentToSave.substring(0, 50), imageUrl, messageType });
+              window.chatHistoryManager.addMessage(sender, contentToSave, imageUrl, messageType);
             }
 
             if (!chatBox.dataset.userScrolling) {
@@ -931,7 +933,8 @@
 
               if (window.chatHistoryManager && originalText) {
                 const messageType = imageUrl ? 'image' : 'text';
-                window.chatHistoryManager.addMessage(sender, originalText, imageUrl, messageType);
+                const contentToSave = originalText || '';
+                window.chatHistoryManager.addMessage(sender, contentToSave, imageUrl, messageType);
               }
 
               resolve(wrapper);
@@ -986,8 +989,9 @@
                 // ALWAYS save bot message after typewriter completes
                 if (window.chatHistoryManager) {
                   const messageType = imageUrl ? 'image' : 'text';
-                  console.log('💾 Saving BOT message after typewriter:', { text: originalText?.substring(0, 50), imageUrl, messageType });
-                  window.chatHistoryManager.addMessage(sender, originalText, imageUrl, messageType);
+                  const contentToSave = originalText || '';
+                  console.log('💾 Saving BOT message after typewriter:', { text: contentToSave.substring(0, 50), imageUrl, messageType });
+                  window.chatHistoryManager.addMessage(sender, contentToSave, imageUrl, messageType);
                 }
 
                 resolve(wrapper);

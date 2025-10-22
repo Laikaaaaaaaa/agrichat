@@ -777,9 +777,9 @@
                     }
                 }
                 
-                // Skip empty messages (no content and no image)
-                if (!contentHtml.trim()) {
-                    console.warn('⚠️ Skipping empty message:', message);
+                // Skip ONLY if no content AND no image (completely empty)
+                if (!contentHtml.trim() && !message.imageUrl) {
+                    console.warn('⚠️ Skipping completely empty message:', message);
                     return '';
                 }
                 

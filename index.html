@@ -5719,18 +5719,51 @@
 Hãy trả lời cụ thể, chi tiết và thực tế!`;
           }
           
-          // Call Flask API for image analysis
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              message: imagePrompt,
-              image_data: imageData,
-              mode: currentMode
-            })
-          });
+          // Call Flask API for image analysis with retry for 503
+          let response;
+          let retries = 0;
+          const maxRetries = 3;
+          
+          while (retries < maxRetries) {
+            try {
+              response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  message: imagePrompt,
+                  image_data: imageData,
+                  mode: currentMode
+                })
+              });
+              
+              if (response.ok) {
+                break; // Success!
+              }
+              
+              if (response.status === 503 && retries < maxRetries - 1) {
+                console.log(`⏳ Server đang khởi động... thử lại lần ${retries + 1}/${maxRetries - 1}`);
+                // Update typing indicator with wait message
+                if (typingWrapper) {
+                  const bubble = typingWrapper.querySelector('.inline-block');
+                  if (bubble) {
+                    bubble.innerHTML = `<div class="text-sm">⏳ Server đang khởi động, vui lòng đợi ${3 * (retries + 1)}s...</div>`;
+                  }
+                }
+                await new Promise(resolve => setTimeout(resolve, 3000 * (retries + 1))); // Wait 3s, 6s, 9s
+                retries++;
+                continue;
+              }
+              
+              throw new Error(`HTTP error! status: ${response.status}`);
+            } catch (error) {
+              if (retries >= maxRetries - 1) {
+                throw error;
+              }
+              retries++;
+            }
+          }
           
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

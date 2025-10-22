@@ -331,7 +331,40 @@
       }
 
       saveConversations() {
-        localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+        // ✅ GIỚI HẠN: Chỉ giữ 20 conversation gần nhất
+        if (this.conversations.length > 20) {
+          console.warn('⚠️ Quá nhiều conversations, xóa cũ...');
+          this.conversations = this.conversations.slice(-20);
+        }
+        
+        // ✅ XÓA ẢNH TRONG MESSAGES CŨ để giảm dung lượng
+        const conversationsToSave = this.conversations.map(conv => {
+          const messages = conv.messages.map(msg => {
+            // Giữ metadata nhưng xóa base64 image
+            if (msg.image) {
+              return {
+                ...msg,
+                image: null, // Xóa ảnh
+                hadImage: true // Đánh dấu từng có ảnh
+              };
+            }
+            return msg;
+          });
+          return { ...conv, messages };
+        });
+        
+        try {
+          localStorage.setItem('agrisense_chat_history', JSON.stringify(conversationsToSave));
+          console.log(`✅ Đã lưu ${conversationsToSave.length} conversations (không có ảnh)`);
+        } catch (e) {
+          console.error('❌ Lỗi lưu localStorage:', e);
+          // Nếu vẫn lỗi, xóa hết và chỉ giữ conversation hiện tại
+          if (e.name === 'QuotaExceededError') {
+            console.warn('💾 Xóa toàn bộ lịch sử cũ...');
+            this.conversations = this.currentConversation ? [this.currentConversation] : [];
+            localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+          }
+        }
         
         // Lưu ID vào sessionStorage (chỉ tồn tại trong phiên làm việc, mất khi đóng tab)
         if (this.currentConversation) {

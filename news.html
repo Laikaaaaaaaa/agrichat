@@ -17,6 +17,18 @@
   <!-- Font Awesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
+    /* Fix mobile viewport issues with Chrome address bar */
+    html {
+      height: 100%;
+      overflow-x: hidden;
+    }
+    
+    body {
+      min-height: 100%;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
     /* Custom animations - matching index.html */
     @keyframes fadeInUp {
       from {
@@ -133,7 +145,7 @@
     }
   </style>
 </head>
-<body class="bg-green-50 font-sans text-gray-700 min-h-screen">
+<body class="bg-green-50 font-sans text-gray-700">
   <!-- Header - matching index.html style -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
     <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
@@ -155,9 +167,9 @@
   </header>
 
   <!-- Main Content Container - matching index.html structure -->
-  <div class="w-full px-2 md:px-4 relative" style="min-height: calc(100vh - 80px);">
+  <div class="w-full px-2 md:px-4 relative">
     <!-- Main Content Area - matching chat-main style -->
-    <main class="bg-white shadow-lg rounded-2xl p-3 md:p-6 flex flex-col w-full relative mx-auto max-w-7xl mt-4" style="min-height: calc(100vh - 120px);">
+    <main class="bg-white shadow-lg rounded-2xl p-3 md:p-6 flex flex-col w-full relative mx-auto max-w-7xl mt-4 mb-4">
       
       <!-- Page Header -->
       <div class="text-center mb-6 md:mb-8 pb-4 border-b border-gray-100">
@@ -319,10 +331,6 @@
   <footer class="bg-green-100 border-t border-green-200 mt-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="text-center">
-        <div class="flex items-center justify-center gap-2 mb-3">
-          <i class="fas fa-leaf text-green-800 text-lg"></i>
-          <h3 class="text-lg font-bold text-green-800">AgriSense AI</h3>
-        </div>
         <p class="text-sm text-gray-600">© 2025 AgriSense AI. Tất cả quyền được bảo lưu.</p>
         <p class="text-xs text-gray-500 mt-1">Chuyên gia tư vấn nông nghiệp thông minh</p>
       </div>

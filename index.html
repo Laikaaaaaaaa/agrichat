@@ -3319,8 +3319,8 @@
                 </div>
               </button>
               
-              <!-- Take Photo Option (Mobile only) -->
-              <button id="take-photo-option" class="md:hidden w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center gap-3">
+              <!-- Take Photo Option (Mobile only - hidden by default, shown by JS) -->
+              <button id="take-photo-option" class="hidden w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                   <i class="fas fa-camera text-blue-600"></i>
                 </div>
@@ -3861,8 +3861,23 @@
     imageInputGallery.click();
   });
   
-  // Take photo directly (mobile only, with capture)
+  // Detect if device is truly mobile (has touch and mobile user agent)
+  const isMobileDevice = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+    const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    return isMobileUA && hasTouch;
+  };
+
+  // Show/hide take photo option based on actual device type
   if (takePhotoOption) {
+    if (isMobileDevice()) {
+      takePhotoOption.classList.remove('hidden');
+      console.log('📱 Mobile device detected - showing camera option');
+    } else {
+      console.log('💻 Desktop detected - hiding camera option');
+    }
+    
     takePhotoOption.addEventListener('click', () => {
       console.log('📸 Opening camera to take photo...');
       cameraMenu.classList.add('hidden');

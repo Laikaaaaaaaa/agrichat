@@ -3983,6 +3983,12 @@ def history():
     return render_template('history.html')
 
 
+@app.route('/map_vietnam')
+def map_vietnam():
+    """Trang bản đồ Việt Nam"""
+    return render_template('map_vietnam.html')
+
+
 @app.route('/static/<path:filename>')
 def static_files(filename):
     """Serve static files"""

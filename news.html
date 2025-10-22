@@ -35,11 +35,61 @@
     
     .news-card {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
     }
     
     .news-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Modal animations */
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    #article-modal {
+      animation: modalFadeIn 0.3s ease-out;
+    }
+    
+    #article-modal > div {
+      animation: modalSlideIn 0.3s ease-out;
+    }
+    
+    /* Modal image column - smaller on mobile, full on desktop */
+    #modal-image-column {
+      min-height: 200px;
+      max-height: 250px;
+    }
+    
+    @media (min-width: 768px) {
+      #modal-image-column {
+        max-height: none;
+        height: auto;
+        flex: 1;
+      }
+      
+      /* Make image column sticky effect */
+      .md\:w-2\/5 {
+        display: flex;
+        flex-direction: column;
+      }
     }
     
     .category-button {
@@ -97,7 +147,9 @@
       </div>
       <span class="text-xs md:text-sm text-gray-500 hidden md:block">Tin tức nông nghiệp thông minh</span>
       <div class="flex items-center gap-2 md:gap-4">
-        <span class="text-xs md:text-sm text-green-500">Đang tải tin tức...</span>
+        <span id="header-status" class="text-xs md:text-sm text-green-500">
+          <i class="fas fa-spinner fa-spin mr-1"></i>Đang tải tin tức...
+        </span>
       </div>
     </div>
   </header>
@@ -203,6 +255,64 @@
         </button>
       </div>
     </main>
+  </div>
+
+  <!-- Article Detail Modal -->
+  <div id="article-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="closeArticleModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fas fa-newspaper"></i>
+          <span>Chi tiết bài báo</span>
+        </h2>
+        <button onclick="closeArticleModal()" class="text-white hover:text-gray-200 transition-colors">
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+      
+      <!-- Modal Body - Two Column Layout -->
+      <div class="flex flex-col md:flex-row flex-1 overflow-hidden">
+        <!-- Left Column - Image with Action Buttons (Desktop only - sticky) -->
+        <div class="hidden md:flex md:w-2/5 flex-shrink-0 bg-gray-50 overflow-hidden flex-col">
+          <div id="modal-image-column" class="flex-shrink-0 relative">
+            <!-- Image will be inserted here -->
+          </div>
+          
+          <!-- Action Buttons - Desktop only (below image) -->
+          <div id="modal-actions-desktop" class="flex gap-3 p-4 bg-gray-100 border-t border-gray-200">
+            <!-- Buttons will be inserted here -->
+          </div>
+        </div>
+        
+        <!-- Right Column - Content (Scrollable with more height) -->
+        <div id="modal-content" class="flex-1 overflow-y-auto p-6" style="max-height: calc(95vh - 120px);">
+          <!-- Content will be inserted here (includes mobile image at top) -->
+        </div>
+      </div>
+      
+      <!-- Action Buttons - Mobile only (at bottom) -->
+      <div id="modal-actions-mobile" class="md:hidden border-t border-gray-200 px-4 py-3 bg-gray-50 flex-shrink-0">
+        <!-- Buttons will be inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Options Modal -->
+  <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onclick="closeShareModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 text-center">
+        <h3 class="text-lg font-semibold text-white">Chia sẻ bài viết</h3>
+      </div>
+      
+      <!-- Share Options - Horizontal Layout -->
+      <div class="p-8">
+        <div id="share-options" class="flex justify-center items-center gap-4 flex-wrap">
+          <!-- Options will be inserted by JavaScript -->
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Footer - matching green theme -->
@@ -842,6 +952,12 @@
     let isLoading = false;
     let hasMoreNews = true;
     
+    // NEW: Track loading state for progressive display
+    let currentDisplayCount = 0; // Số bài đang hiển thị
+    let loadedFeedsCount = 0;    // Số RSS feeds đã load
+    let allLoadedArticles = [];  // Tất cả bài đã load (chưa filter)
+    const ARTICLES_PER_PAGE = 10; // Hiển thị 10 bài mỗi lần
+    
     // Cache cho từng danh mục để giảm lag
     let categoryCache = {
       all: [],
@@ -850,6 +966,20 @@
       climate: [],
       livestock: []
     };
+
+    // Update header status message
+    function updateHeaderStatus(message, isLoading = false) {
+      const headerStatus = document.getElementById('header-status');
+      if (headerStatus) {
+        if (isLoading) {
+          headerStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i>${message}`;
+          headerStatus.className = 'text-xs md:text-sm text-green-500';
+        } else {
+          headerStatus.innerHTML = `<i class="fas fa-check-circle mr-1"></i>${message}`;
+          headerStatus.className = 'text-xs md:text-sm text-green-600 font-medium';
+        }
+      }
+    }
 
     // Category keywords mapping - Enhanced để phân biệt rõ ràng các danh mục
     const categoryKeywords = {
@@ -1012,29 +1142,52 @@
       
       // Show loading state
       showLoading();
+      updateHeaderStatus('Đang tải tin tức...', true);
       console.log('🚀 Bắt đầu tải tin tức...');
       
-      // Load Vietnamese news first and WAIT for it
-      await loadVietnameseNews();
-      console.log(`✅ Đã tải xong ${vietnameseNews.length} tin Việt Nam`);
+      // Load Vietnamese news - DON'T WAIT for all, it will display when ready
+      const vietnamesePromise = loadVietnameseNews();
       
-      // Only load English news if Vietnamese news is insufficient
-      if (vietnameseNews.length < 50) {
-        console.log('📰 Tải thêm tin tiếng Anh...');
-        await loadNews(true);
+      // Wait maximum 3 seconds, then display what we have
+      const displayTimeout = new Promise(resolve => setTimeout(resolve, 3000));
+      await Promise.race([vietnamesePromise, displayTimeout]);
+      
+      console.log(`⚡ Sau 3s: ${vietnameseNews.length} tin đã có`);
+      
+      // If we have some news, display it immediately
+      if (vietnameseNews.length > 0) {
+        console.log('📊 Hiển thị tin tức có sẵn...');
+        filterAndDisplayNews();
+        hideLoading();
+        updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+      } else {
+        // If no news yet, wait a bit more but don't block UI
+        console.log('⏳ Chưa có tin, đợi thêm 2s...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        if (vietnameseNews.length > 0) {
+          filterAndDisplayNews();
+          hideLoading();
+          updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+        }
       }
       
-      // Now display all loaded news
-      console.log('📊 Hiển thị tin tức...');
-      filterAndDisplayNews();
-      hideLoading();
+      // Continue loading in background
+      vietnamesePromise.then(() => {
+        console.log(`✅ Hoàn tất tải tất cả: ${vietnameseNews.length} tin VN`);
+        // Update display with all news
+        filterAndDisplayNews();
+        const totalNews = vietnameseNews.length + allNews.length;
+        updateHeaderStatus(`${totalNews} tin tức mới nhất`, false);
+      });
       
-      console.log(`✅ Sẵn sàng! Tổng: ${vietnameseNews.length} tin VN, ${allNews.length} tin EN`);
+      console.log(`🎯 Trang sẵn sàng với ${vietnameseNews.length} tin (đang tải thêm background)`);
     });
 
-    // Fetch Vietnamese RSS feeds - prioritize agriculture and maximize content
+    // Fetch Vietnamese RSS feeds - OPTIMIZED: Load only what's needed
     async function loadVietnameseNews() {
-      console.log('🚀 Đang tải tin tức Việt Nam từ 130+ nguồn RSS...');
+      console.log('🚀 Đang tải tin tức Việt Nam (chỉ load khi cần)...');
+      
       try {
         // Prioritize agricultural feeds first
         const agricultureFeeds = vietnameseRSSFeeds.filter(feed => 
@@ -1046,98 +1199,141 @@
         
         console.log(`📋 Ưu tiên ${agricultureFeeds.length} nguồn nông nghiệp, ${otherFeeds.length} nguồn khác`);
         
-        for (const feed of prioritizedFeeds) {
-          try {
-            // Use multiple RSS services for better reliability - request maximum articles
-            const rssServices = [
-              `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=100`,
-              `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=100`
-            ];
-            
-            let newsItems = [];
-            
-            // Try RSS2JSON services
-            for (const service of rssServices) {
-              try {
-                const response = await fetch(service);
-                if (response.ok) {
-                  const data = await response.json();
-                  
-                  if (data.status === 'ok' && data.items && data.items.length > 0) {
-                    newsItems = data.items.map(item => ({
-                      title: item.title,
-                      description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : '',
-                      url: item.link,
-                      urlToImage: getImageFromItem(item, feed.name),
-                      publishedAt: item.pubDate,
-                      source: { name: feed.name },
-                      content: item.content || item.description,
-                      category: feed.category,
-                      isVietnamese: true,
-                      priority: feed.category === 'agriculture' ? 1 : 2 // Higher priority for agriculture
-                    }));
-                    
-                    // Remove duplicates within this feed
-                    newsItems = removeDuplicatesFromFeed(newsItems);
-                    console.log(`✅ ${feed.name}: ${newsItems.length} bài`);
-                    break; // Success, no need to try other services
-                  }
-                }
-              } catch (e) {
-                console.log(`❌ Service failed for ${feed.name}:`, e.message);
-              }
-            }
-            
-            // If RSS services fail, skip this feed - NO FAKE NEWS
-            if (newsItems.length === 0) {
-              console.log(`❌ ${feed.name}: Không tải được tin thật, bỏ qua`);
-              continue; // Skip this feed instead of generating fake news
-            }
-            
-            vietnameseNews = [...vietnameseNews, ...newsItems];
-            
-            // Remove duplicates across all feeds after adding
-            vietnameseNews = removeDuplicatesFromFeed(vietnameseNews);
-            
-          } catch (error) {
-            console.log(`Failed to load RSS from ${feed.name}:`, error);
-            // NO MOCK DATA - Only real news
-            console.log(`❌ Bỏ qua ${feed.name} vì không tải được tin thật`);
-          }
-        }
+        // LOAD ONLY FIRST 5 FEEDS for initial display (~ 50-100 articles)
+        const initialFeeds = prioritizedFeeds.slice(0, 5);
+        console.log(`⚡ Load ${initialFeeds.length} nguồn đầu tiên...`);
         
-        // Remove duplicates and sort by priority then date
-        vietnameseNews = vietnameseNews.filter((article, index, self) => 
-          index === self.findIndex(a => 
-            // Enhanced duplicate detection
-            a.title === article.title || 
-            (a.title.toLowerCase().trim() === article.title.toLowerCase().trim()) ||
-            (a.url === article.url) ||
-            // Check for similar titles (70% similarity)
-            calculateSimilarity(a.title.toLowerCase(), article.title.toLowerCase()) > 0.7
-          )
-        );
-        vietnameseNews.sort((a, b) => {
-          // First sort by priority (agriculture first)
-          if (a.priority !== b.priority) {
-            return (a.priority || 3) - (b.priority || 3);
+        // Store full feed list for later loading
+        window.remainingFeeds = prioritizedFeeds.slice(5);
+        window.allPrioritizedFeeds = prioritizedFeeds;
+        
+        // Load initial feeds in parallel
+        const feedPromises = initialFeeds.map(feed => loadSingleFeed(feed));
+        const results = await Promise.all(feedPromises);
+        
+        // Collect all articles
+        results.forEach(items => {
+          if (items && items.length > 0) {
+            allLoadedArticles = [...allLoadedArticles, ...items];
           }
-          // Then by date (newest first)
+        });
+        
+        // Remove duplicates and sort
+        allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        allLoadedArticles.sort((a, b) => {
+          if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
           return new Date(b.publishedAt) - new Date(a.publishedAt);
         });
         
-        // Show real news count only
-        console.log(`🎯 Tổng cộng: ${vietnameseNews.length} bài báo Việt Nam THẬT từ RSS feeds`);
+        vietnameseNews = [...allLoadedArticles];
+        loadedFeedsCount = initialFeeds.length;
         
-        // NO FAKE NEWS GENERATION - Only show what we actually get from real sources
-        console.log(`✅ Chỉ hiển thị tin tức thật từ ${vietnameseRSSFeeds.length} nguồn RSS Việt Nam`);
+        console.log(`✅ Đã load ${loadedFeedsCount} nguồn, có ${vietnameseNews.length} bài`);
         
       } catch (error) {
-        console.error('❌ Lỗi tải tin tức Việt Nam:', error);
-        // NO MOCK DATA FALLBACK - Show empty if can't get real news
-        vietnameseNews = [];
-        console.log(`❌ Không có dữ liệu dự phòng - chỉ hiển thị tin thật`);
+        console.error('❌ Lỗi tải tin:', error);
       }
+    }
+    
+    // Load a single RSS feed
+    async function loadSingleFeed(feed) {
+      try {
+        const rssServices = [
+          `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=20`,
+          `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=20`
+        ];
+        
+        for (const service of rssServices) {
+          try {
+            const response = await fetch(service, { timeout: 5000 });
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.status === 'ok' && data.items && data.items.length > 0) {
+                const newsItems = data.items.map(item => ({
+                  title: item.title,
+                  description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : '',
+                  url: item.link,
+                  urlToImage: getImageFromItem(item, feed.name),
+                  publishedAt: item.pubDate,
+                  source: { name: feed.name },
+                  content: item.content || item.description,
+                  category: feed.category,
+                  isVietnamese: true,
+                  priority: feed.category === 'agriculture' ? 1 : 2
+                }));
+                
+                console.log(`✅ ${feed.name}: ${newsItems.length} bài`);
+                return newsItems;
+              }
+            }
+          } catch (e) {
+            // Try next service
+          }
+        }
+        
+        return [];
+      } catch (error) {
+        return [];
+      }
+    }
+    
+    // Load more feeds when user clicks "Load More"
+    async function loadMoreFeeds() {
+      if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
+        console.log('❌ Không còn nguồn RSS để load');
+        hasMoreNews = false;
+        return false;
+      }
+      
+      if (isLoading) {
+        console.log('⏳ Đang load, chờ tí...');
+        return false;
+      }
+      
+      isLoading = true;
+      updateHeaderStatus('Đang tải thêm tin tức...', true);
+      
+      // Load next 3 feeds
+      const nextBatch = window.remainingFeeds.slice(0, 3);
+      window.remainingFeeds = window.remainingFeeds.slice(3);
+      
+      console.log(`📦 Load thêm ${nextBatch.length} nguồn (còn ${window.remainingFeeds.length})`);
+      
+      const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
+      const results = await Promise.all(feedPromises);
+      
+      // Add new articles
+      results.forEach(items => {
+        if (items && items.length > 0) {
+          allLoadedArticles = [...allLoadedArticles, ...items];
+        }
+      });
+      
+      // Remove duplicates and sort
+      allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+      allLoadedArticles.sort((a, b) => {
+        if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
+        return new Date(b.publishedAt) - new Date(a.publishedAt);
+      });
+      
+      vietnameseNews = [...allLoadedArticles];
+      loadedFeedsCount += nextBatch.length;
+      
+      // Clear cache to force refresh
+      categoryCache = {
+        all: [],
+        agriculture: [],
+        technology: [],
+        climate: [],
+        livestock: []
+      };
+      
+      console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài`);
+      updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+      
+      isLoading = false;
+      return true;
     }
 
     // Enhanced image extraction function with Vietnamese agriculture focus
@@ -1598,8 +1794,9 @@
     function selectCategory(category) {
       currentCategory = category;
       currentPage = 1;
+      currentDisplayCount = 0; // Reset display count when changing category
       
-      // Update active button immediately for responsive feel
+      // Update active button IMMEDIATELY for instant feedback
       document.querySelectorAll('.category-button').forEach(btn => {
         btn.classList.remove('active');
       });
@@ -1609,9 +1806,11 @@
         targetButton.classList.add('active');
       }
       
-      // Display immediately from cache/loaded data - no need to reload
-      console.log(`🔄 Chuyển sang danh mục: ${getCategoryDisplayName(category) || category}`);
-      filterAndDisplayNews();
+      // Use requestAnimationFrame for smooth transition
+      requestAnimationFrame(() => {
+        console.log(`⚡ Chuyển sang: ${getCategoryDisplayName(category) || category}`);
+        filterAndDisplayNews(); // Will use cache if available = INSTANT
+      });
     }
 
     async function loadNews(reset = true) {
@@ -1675,16 +1874,18 @@
       isLoading = false;
     }
 
-    function filterAndDisplayNews() {
-      // Check cache first for faster loading
+    function filterAndDisplayNews(skipDisplay = false) {
+      // Check cache first for INSTANT loading
       if (categoryCache[currentCategory] && categoryCache[currentCategory].length > 0) {
-        console.log(`📋 Sử dụng cache cho danh mục ${currentCategory}: ${categoryCache[currentCategory].length} bài`);
-        displayNews(categoryCache[currentCategory]);
-        applySearchFilter();
+        console.log(`⚡ CACHE HIT cho ${currentCategory}: ${categoryCache[currentCategory].length} bài`);
+        if (!skipDisplay) {
+          displayNews(categoryCache[currentCategory]);
+          applySearchFilter();
+        }
         return;
       }
       
-      console.log(`🔄 Tạo nội dung mới cho danh mục: ${currentCategory}`);
+      console.log(`🔄 Tạo cache mới cho danh mục: ${currentCategory}`);
       
       // PRIORITIZE VIETNAMESE NEWS COMPLETELY - Always show Vietnamese first
       let filteredNews = [...vietnameseNews];
@@ -1696,43 +1897,36 @@
         filteredNews = [...filteredNews, ...allNews.slice(0, needed)];
       }
 
-      // IMPROVED CATEGORY FILTERING - More accurate classification
+      // OPTIMIZED CATEGORY FILTERING - Faster algorithm
       if (currentCategory !== 'all') {
         const keywords = categoryKeywords[currentCategory];
+        const keywordSet = new Set(keywords.map(k => k.toLowerCase())); // Use Set for O(1) lookup
+        
         filteredNews = filteredNews.filter(article => {
-          const text = (article.title + ' ' + article.description + ' ' + (article.content || '')).toLowerCase();
-          
-          // Strict category matching for Vietnamese articles
-          if (article.isVietnamese) {
-            // Check if article specifically belongs to this category
-            const categoryMatch = article.category === currentCategory;
-            const keywordMatch = keywords.some(keyword => text.includes(keyword.toLowerCase()));
-            return categoryMatch || keywordMatch;
-          } else {
-            // For English articles, use keyword matching only
-            return keywords.some(keyword => text.includes(keyword.toLowerCase()));
+          // Fast category match for Vietnamese articles
+          if (article.isVietnamese && article.category === currentCategory) {
+            return true;
           }
+          
+          // Keyword matching (optimized)
+          const text = (article.title + ' ' + article.description).toLowerCase();
+          for (const keyword of keywordSet) {
+            if (text.includes(keyword)) return true;
+          }
+          return false;
         });
         
-        // Show only real news - NO FAKE CONTENT GENERATION
-        console.log(`📊 Danh mục ${currentCategory}: ${filteredNews.length} bài báo thật từ RSS feeds`);
+        console.log(`📊 Danh mục ${currentCategory}: ${filteredNews.length} bài`);
       }
 
-      // Filter by search query - Enhanced search
-      // Remove duplicates based on title, URL, and content similarity
-      filteredNews = filteredNews.filter((article, index, self) => 
-        index === self.findIndex(a => 
-          // Enhanced duplicate detection for all news
-          a.title === article.title || 
-          (a.title.toLowerCase().trim() === article.title.toLowerCase().trim()) ||
-          (a.url === article.url) ||
-          // Check for similar titles (75% similarity threshold)
-          calculateSimilarity(a.title.toLowerCase(), article.title.toLowerCase()) > 0.75 ||
-          // Check for similar descriptions (80% similarity)
-          (a.description && article.description && 
-           calculateSimilarity(a.description.toLowerCase(), article.description.toLowerCase()) > 0.8)
-        )
-      );
+      // FAST duplicate removal - simplified algorithm
+      const seen = new Map();
+      filteredNews = filteredNews.filter(article => {
+        const key = article.url || article.title.toLowerCase().trim();
+        if (seen.has(key)) return false;
+        seen.set(key, true);
+        return true;
+      });
 
       // Sort by Vietnamese priority first, then by priority level, then by date
       filteredNews.sort((a, b) => {
@@ -1747,28 +1941,41 @@
         return new Date(b.publishedAt) - new Date(a.publishedAt);
       });
 
-      // Log Vietnamese news prioritization status
+      // Log status
       const vietnameseCount = filteredNews.filter(article => article.isVietnamese).length;
       const englishCount = filteredNews.length - vietnameseCount;
-      console.log(`📊 Tin tức hiển thị: ${vietnameseCount} bài Việt Nam, ${englishCount} bài tiếng Anh (Tổng: ${filteredNews.length} bài)`);
-      
-      // Show only real news - NO 50 ARTICLE GUARANTEE WITH FAKE NEWS
-      console.log(`📊 Hiển thị ${filteredNews.length} bài báo thật từ RSS feeds`);
+      console.log(`📊 Hiển thị: ${vietnameseCount} VN, ${englishCount} EN (Tổng: ${filteredNews.length})`);
 
       // Cache kết quả để tăng tốc độ chuyển đổi danh mục
       categoryCache[currentCategory] = [...filteredNews];
-      console.log(`💾 Đã cache ${filteredNews.length} bài cho danh mục ${currentCategory}`);
+      console.log(`💾 Đã cache ${filteredNews.length} bài cho ${currentCategory}`);
 
-      displayNews(filteredNews);
-      applySearchFilter();
+      // Only display if not skipped (when called from loadMoreNews)
+      if (!skipDisplay) {
+        console.log(`🎯 Gọi displayNews với ${filteredNews.length} bài...`);
+        displayNews(filteredNews);
+        console.log(`✅ displayNews hoàn tất`);
+        applySearchFilter();
+      } else {
+        console.log(`⏭️ Skip display - chỉ tạo cache`);
+      }
     }
 
-    function displayNews(articles) {
+    function displayNews(articles, append = false) {
+      console.log(`📺 displayNews: ${articles.length} bài, append=${append}`);
       const container = document.getElementById('news-container');
       const noResults = document.getElementById('no-results');
       const loadMoreBtn = document.getElementById('load-more');
+      const loading = document.getElementById('loading');
+
+      // Always hide loading spinner when displaying
+      if (loading) {
+        loading.classList.add('hidden');
+        console.log(`🚫 Đã ẩn loading spinner`);
+      }
 
       if (articles.length === 0) {
+        console.log(`❌ Không có bài báo để hiển thị`);
         container.classList.add('hidden');
         noResults.classList.remove('hidden');
         loadMoreBtn.classList.add('hidden');
@@ -1781,43 +1988,46 @@
       // Get the grid container inside news-container
       const gridContainer = container.querySelector('div');
       
-      // Clear container for fresh display only on reset
-      if (currentPage === 1) {
+      // Clear container if NOT appending
+      if (!append) {
         gridContainer.innerHTML = '';
+        currentDisplayCount = 0;
       }
 
-      articles.forEach((article, index) => {
+      // Calculate how many articles to display
+      const startIndex = currentDisplayCount;
+      const endIndex = Math.min(startIndex + ARTICLES_PER_PAGE, articles.length);
+      const articlesToShow = articles.slice(startIndex, endIndex);
+      
+      console.log(`📊 Hiển thị bài ${startIndex + 1}-${endIndex} / ${articles.length}`);
+
+      articlesToShow.forEach((article, index) => {
         if (!article.title || article.title === '[Removed]') return;
         
-        // CHẶT CHẼ: Kiểm tra giới hạn 100 bài trước khi thêm
-        if (gridContainer.children.length >= 100) return;
-        
-        // Skip if article already exists (prevent duplicates with enhanced detection)
+        // Skip if article already exists (prevent duplicates)
         const existingCards = gridContainer.querySelectorAll('.news-card');
         const articleExists = Array.from(existingCards).some(card => {
           const existingTitle = card.querySelector('h3').textContent.toLowerCase().trim();
           const newTitle = article.title.toLowerCase().trim();
-          
-          return existingTitle === newTitle || 
-                 calculateSimilarity(existingTitle, newTitle) > 0.8;
+          return existingTitle === newTitle;
         });
         
-        if (!articleExists && gridContainer.children.length < 100) {
-          const newsCard = createNewsCard(article, index);
+        if (!articleExists) {
+          const newsCard = createNewsCard(article, startIndex + index);
           gridContainer.appendChild(newsCard);
         }
       });
 
-      // Show/hide load more button - STRICT 100 limit
+      // Update display count
+      currentDisplayCount = endIndex;
       const totalDisplayed = gridContainer.children.length;
       
-      // CHẶT CHẼ: Chỉ hiển thị nút "Xem thêm" nếu chưa đạt 100 bài
-      if (totalDisplayed < 100) {
+      console.log(`✅ Đã hiển thị ${totalDisplayed} bài (${currentDisplayCount}/${articles.length})`);
+      
+      // Show/hide load more button based on remaining articles
+      if (currentDisplayCount < articles.length || window.remainingFeeds?.length > 0) {
         loadMoreBtn.classList.remove('hidden');
-        
-        // Update button text - simple format as requested
-        const btnText = loadMoreBtn.querySelector('span') || loadMoreBtn;
-        btnText.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed}/100)`;
+        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed})`;
       } else {
         loadMoreBtn.classList.add('hidden');
       }
@@ -1852,6 +2062,18 @@
       card.dataset.content = (article.content || '').toLowerCase();
       card.dataset.source = (article.source?.name || '').toLowerCase();
       card.dataset.search = searchIndex;
+      
+      // Store full article data for modal
+      card.articleData = article;
+      
+      // Add click event to open modal
+      card.addEventListener('click', function(e) {
+        // Don't open modal if clicking on links or buttons
+        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('a') || e.target.closest('button')) {
+          return;
+        }
+        openArticleModal(article);
+      });
       
       card.innerHTML = `
         <div class="relative">
@@ -1913,74 +2135,58 @@
     }
 
     async function loadMoreNews() {
-      if (isLoading) return;
+      console.log('🔽 User bấm "Tải thêm"');
       
-      const gridContainer = document.getElementById('news-container').querySelector('div');
-      const currentDisplayed = gridContainer.children.length;
-      
-      // CHẶT CHẼ: Kiểm tra giới hạn 100 bài trước khi load thêm
-      if (currentDisplayed >= 100) {
-        document.getElementById('load-more').classList.add('hidden');
+      if (isLoading) {
+        console.log('⏳ Đang load, chờ...');
         return;
       }
       
-      // Tính số bài có thể load thêm (không vượt quá 100)
-      const maxCanLoad = 100 - currentDisplayed;
-      const articlesToLoad = Math.min(10, maxCanLoad);
+      // Get current filtered articles for this category
+      const filteredArticles = categoryCache[currentCategory] || [];
       
-      // First, try to show more Vietnamese news if available
-      if (vietnameseNews.length > currentDisplayed) {
-        const moreVietnameseNews = vietnameseNews.slice(currentDisplayed, currentDisplayed + articlesToLoad);
-        moreVietnameseNews.forEach((article, index) => {
-          const newsCard = createNewsCard(article, currentDisplayed + index);
-          gridContainer.appendChild(newsCard);
-        });
-        
-        // Update load more button
-        const loadMoreBtn = document.getElementById('load-more');
-        const newDisplayed = currentDisplayed + articlesToLoad;
-        
-        // Ẩn nút nếu đã đạt 100 bài
-        if (newDisplayed >= 100) {
-          loadMoreBtn.classList.add('hidden');
-        } else {
-          loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${newDisplayed}/100)`;
-        }
-        
+      // Option 1: If we have more articles in current filter, show them
+      if (currentDisplayCount < filteredArticles.length) {
+        console.log(`📄 Hiển thị thêm 10 bài từ cache (${currentDisplayCount}/${filteredArticles.length})`);
+        displayNews(filteredArticles, true); // Append mode
         return;
       }
       
-      // If no more Vietnamese news, load from API (nhưng vẫn giới hạn 100)
-      const currentEnglishDisplayed = currentDisplayed - vietnameseNews.length;
-      const newArticles = allNews.slice(currentEnglishDisplayed, currentEnglishDisplayed + articlesToLoad);
-      
-      newArticles.forEach((article, index) => {
-        if (!article.title || article.title === '[Removed]') return;
+      // Option 2: If no more filtered articles, load more RSS feeds
+      if (window.remainingFeeds && window.remainingFeeds.length > 0) {
+        console.log('📡 Tải thêm RSS feeds...');
         
-        // Check for duplicates with enhanced detection
-        const existingCards = gridContainer.querySelectorAll('.news-card');
-        const articleExists = Array.from(existingCards).some(card => {
-          const existingTitle = card.querySelector('h3').textContent.toLowerCase().trim();
-          const newTitle = article.title.toLowerCase().trim();
+        const hasNewFeeds = await loadMoreFeeds();
+        
+        if (hasNewFeeds) {
+          // Save current display count before clearing cache
+          const previousDisplayCount = currentDisplayCount;
           
-          return existingTitle === newTitle || 
-                 calculateSimilarity(existingTitle, newTitle) > 0.8;
-        });
-        
-        if (!articleExists && gridContainer.children.length < 100) {
-          const newsCard = createNewsCard(article, currentDisplayed + index);
-          gridContainer.appendChild(newsCard);
+          // Clear cache to force re-filter with new data
+          categoryCache[currentCategory] = [];
+          
+          // Re-filter to get updated article list (DON'T display yet)
+          filterAndDisplayNews(true); // skipDisplay = true
+          
+          // Restore display count to continue from where we were
+          currentDisplayCount = previousDisplayCount;
+          
+          // Now display next batch from updated cache (this will append)
+          const filteredArticles = categoryCache[currentCategory] || [];
+          if (currentDisplayCount < filteredArticles.length) {
+            displayNews(filteredArticles, true); // Append mode
+          } else {
+            console.log('⚠️ Không có bài mới sau khi load feeds');
+          }
+          
+          console.log('✅ Đã tải và hiển thị tin mới');
+        } else {
+          console.log('❌ Không còn nguồn RSS');
+          document.getElementById('load-more').classList.add('hidden');
         }
-      });
-      
-      // Update button after loading - CHẶT CHẼ kiểm tra 100 limit
-      const loadMoreBtn = document.getElementById('load-more');
-      const finalDisplayed = gridContainer.children.length;
-      
-      if (finalDisplayed >= 100) {
-        loadMoreBtn.classList.add('hidden');
       } else {
-        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${finalDisplayed}/100)`;
+        console.log('🏁 Đã hết tất cả tin tức');
+        document.getElementById('load-more').classList.add('hidden');
       }
     }
 
@@ -2047,7 +2253,7 @@
       const totalDisplayed = gridContainer.querySelectorAll('.news-card').length;
       if (totalDisplayed < 100) {
         loadMoreBtn.classList.remove('hidden');
-        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed}/100)`;
+        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed})`;
       } else {
         loadMoreBtn.classList.add('hidden');
       }
@@ -2125,19 +2331,130 @@
     // Add to window for console access
     window.testSearch = testSearch;
 
+    // Share Modal Functions
+    let currentShareUrl = '';
+    let currentShareTitle = '';
+
     function shareArticle(url, title) {
-      if (navigator.share) {
-        navigator.share({
-          title: title,
-          url: url
-        });
-      } else {
-        // Fallback: copy to clipboard
-        navigator.clipboard.writeText(url).then(() => {
-          alert('Đã sao chép liên kết vào clipboard!');
-        });
+      currentShareUrl = url;
+      currentShareTitle = title;
+      
+      const shareModal = document.getElementById('share-modal');
+      const shareOptions = document.getElementById('share-options');
+      
+      // Create share options
+      shareOptions.innerHTML = `
+        <!-- Facebook -->
+        <button onclick="shareToFacebook()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Facebook">
+          <div class="w-16 h-16 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-facebook-f text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Facebook</span>
+        </button>
+
+        <!-- Twitter -->
+        <button onclick="shareToTwitter()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Twitter">
+          <div class="w-16 h-16 bg-black hover:bg-gray-800 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-twitter text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Twitter</span>
+        </button>
+
+        <!-- Telegram -->
+        <button onclick="shareToTelegram()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ qua Telegram">
+          <div class="w-16 h-16 bg-blue-400 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-telegram-plane text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Telegram</span>
+        </button>
+
+        <!-- Email -->
+        <button onclick="shareViaEmail()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Gửi qua email">
+          <div class="w-16 h-16 bg-gray-600 hover:bg-gray-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-envelope text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Email</span>
+        </button>
+
+        <!-- Copy Link -->
+        <button onclick="copyShareLink(event)" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Sao chép liên kết">
+          <div class="w-16 h-16 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-copy text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Copy Link</span>
+        </button>
+      `;
+      
+      shareModal.classList.remove('hidden');
+    }
+
+    function closeShareModal(event) {
+      if (!event || event.target.id === 'share-modal') {
+        document.getElementById('share-modal').classList.add('hidden');
       }
     }
+
+    function shareToFacebook() {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentShareUrl)}`;
+      window.open(fbUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTwitter() {
+      const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentShareUrl)}&text=${encodeURIComponent(currentShareTitle)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTelegram() {
+      const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(currentShareUrl)}&text=${encodeURIComponent(currentShareTitle)}`;
+      window.open(telegramUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareViaEmail() {
+      const subject = encodeURIComponent(currentShareTitle);
+      const body = encodeURIComponent(`Xem bài viết này: ${currentShareUrl}`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      closeShareModal();
+    }
+
+    function copyShareLink(event) {
+      if (!currentShareUrl) {
+        alert('Không có link để sao chép!');
+        return;
+      }
+      
+      navigator.clipboard.writeText(currentShareUrl).then(() => {
+        // Show success feedback
+        const btn = event.target.closest('button');
+        if (btn) {
+          const iconDiv = btn.querySelector('div');
+          const label = btn.querySelector('span');
+          
+          if (iconDiv && label) {
+            // Change to success state
+            iconDiv.className = 'w-16 h-16 bg-green-600 rounded-full flex items-center justify-center transition-all shadow-lg';
+            iconDiv.innerHTML = '<i class="fas fa-check text-white text-2xl"></i>';
+            label.textContent = 'Đã copy!';
+          }
+        }
+        
+        setTimeout(() => {
+          closeShareModal();
+        }, 1000);
+      }).catch((err) => {
+        console.error('Copy error:', err);
+        alert('Không thể sao chép. Vui lòng thử lại!');
+      });
+    }
+
+    // Close share modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeShareModal();
+      }
+    });
 
     function showLoading() {
       document.getElementById('loading').classList.remove('hidden');
@@ -2158,6 +2475,208 @@
     function goBack() {
       window.history.back();
     }
+
+    // Article Modal Functions
+    function openArticleModal(article) {
+      console.log('📰 Mở modal cho:', article.title);
+      
+      const modal = document.getElementById('article-modal');
+      const modalImageColumn = document.getElementById('modal-image-column');
+      const modalContent = document.getElementById('modal-content');
+      const modalActionsDesktop = document.getElementById('modal-actions-desktop');
+      const modalActionsMobile = document.getElementById('modal-actions-mobile');
+      
+      const imageUrl = article.urlToImage || 'https://via.placeholder.com/600x800/10b981/ffffff?text=AgriSense+AI';
+      const publishedDate = new Date(article.publishedAt).toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const isVietnamese = vietnameseNews.some(vnNews => vnNews.title === article.title);
+      const displayCategory = getCategoryFromArticle(article);
+      
+      // Clean content - remove HTML tags if any
+      let content = article.content || article.description || 'Nội dung bài viết không có sẵn. Vui lòng nhấn "Đọc bài gốc" để xem đầy đủ.';
+      content = content.replace(/<[^>]*>/g, '');
+      
+      // Left Column - Image with category badge
+      modalImageColumn.innerHTML = `
+        <div class="relative h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+          <img src="${imageUrl}" alt="${article.title}" 
+               class="w-full h-full object-cover" 
+               onerror="this.src='https://via.placeholder.com/600x800/10b981/ffffff?text=AgriSense+AI'">
+          <div class="absolute top-4 left-4">
+            <span class="bg-green-500 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg backdrop-blur-sm bg-opacity-90">
+              ${isVietnamese ? '🇻🇳' : '🌍'} ${displayCategory}
+            </span>
+          </div>
+          ${isVietnamese ? `
+            <div class="absolute top-4 right-4">
+              <span class="bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg">
+                TIN VIỆT
+              </span>
+            </div>
+          ` : ''}
+          <!-- Gradient overlay for better text readability -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
+        </div>
+      `;
+      
+      // Action Buttons - Circular style (subtle gray)
+      const actionButtonsHTML = `
+        <a href="${article.url}" target="_blank" 
+           class="w-10 h-10 bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-800 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all" 
+           title="Đọc bài gốc"
+           onclick="event.stopPropagation()">
+          <i class="fas fa-external-link-alt text-sm"></i>
+        </a>
+        <button onclick="shareArticle('${article.url.replace(/'/g, "\\'")}', '${article.title.replace(/'/g, "\\'")}'); event.stopPropagation();" 
+                class="w-10 h-10 bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-800 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all" 
+                title="Chia sẻ">
+          <i class="fas fa-share-alt text-sm"></i>
+        </button>
+      `;
+      
+      // Set buttons for desktop (below image)
+      modalActionsDesktop.innerHTML = actionButtonsHTML;
+      
+      // Set buttons for mobile (at bottom)
+      modalActionsMobile.innerHTML = `
+        <div class="flex justify-center gap-3">
+          ${actionButtonsHTML}
+        </div>
+      `;
+      
+      // Right Column - Content with enhanced readability
+      modalContent.innerHTML = `
+        <!-- Mobile Image (scrollable with content) -->
+        <div class="md:hidden mb-6 -mx-6 -mt-6">
+          <div class="relative">
+            <img src="${imageUrl}" alt="${article.title}" 
+                 class="w-full h-64 object-cover" 
+                 onerror="this.src='https://via.placeholder.com/600x400/10b981/ffffff?text=AgriSense+AI'">
+            
+            <!-- Category Badge -->
+            ${displayCategory ? `
+              <div class="absolute top-4 left-4">
+                <span class="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg backdrop-blur-sm bg-opacity-90 flex items-center gap-2">
+                  <i class="fas fa-tag"></i>
+                  ${displayCategory}
+                </span>
+              </div>
+            ` : ''}
+            
+            <!-- Vietnamese Badge -->
+            ${isVietnamese ? `
+              <div class="absolute top-4 right-4">
+                <span class="bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm bg-opacity-90">
+                  TIN VIỆT
+                </span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+        
+        <!-- Article Title - Larger, more prominent -->
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+          ${article.title}
+        </h1>
+        
+        <!-- Article Meta Info -->
+        <div class="flex items-center gap-4 text-sm text-gray-500 mb-6 pb-4 border-b border-gray-200 flex-wrap">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-calendar-alt"></i>
+            <span>${publishedDate}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-newspaper"></i>
+            <span class="font-medium">${article.source.name}</span>
+          </div>
+        </div>
+        
+        <!-- Article Description (Highlighted summary) -->
+        ${article.description ? `
+          <div class="bg-blue-50 border-l-4 border-blue-500 p-5 rounded-r mb-6">
+            <p class="text-gray-800 font-semibold leading-relaxed text-lg">
+              ${article.description}
+            </p>
+          </div>
+        ` : ''}
+        
+        <!-- Article Content - Expanded and detailed -->
+        <div class="prose prose-lg max-w-none mb-6">
+          <div class="text-gray-700 leading-relaxed text-base space-y-4">
+            ${content.split('\n').map(para => {
+              const trimmed = para.trim();
+              if (!trimmed) return '';
+              // Check if it's a heading-like sentence (short and likely a section title)
+              if (trimmed.length < 60 && !trimmed.includes('.')) {
+                return `<h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">${trimmed}</h3>`;
+              }
+              return `<p class="mb-4">${trimmed}</p>`;
+            }).join('')}
+          </div>
+          
+          <!-- Additional context section if content is short -->
+          ${content.length < 500 ? `
+            <div class="mt-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border border-green-200">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-info-circle text-green-600"></i>
+                Thông tin thêm về bài viết
+              </h3>
+              <div class="space-y-3 text-gray-700">
+                <p>📰 <strong>Nguồn tin:</strong> ${article.source.name} - Một trong những nguồn tin uy tín hàng đầu tại Việt Nam</p>
+                <p>🕐 <strong>Thời gian:</strong> ${publishedDate}</p>
+                <p>📍 <strong>Danh mục:</strong> ${article.categories && article.categories.length > 0 ? article.categories.join(', ') : 'Tin tức tổng hợp'}</p>
+                <p class="pt-3 border-t border-green-300 text-sm italic">
+                  💡 Nội dung chi tiết và đầy đủ nhất của bài viết được cập nhật liên tục trên website gốc. 
+                  Nhấn nút "Đọc bài gốc" để xem toàn bộ hình ảnh, video và nội dung bổ sung.
+                </p>
+              </div>
+            </div>
+          ` : ''}
+          
+          <!-- Related topics suggestion -->
+          <div class="mt-6 p-4 bg-gray-50 rounded-lg border-l-4 border-green-500">
+            <p class="text-sm text-gray-600">
+              <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+              <strong>Gợi ý:</strong> Bài viết này thuộc lĩnh vực ${article.categories && article.categories[0] ? article.categories[0] : 'tin tức tổng hợp'}. 
+              Bạn có thể tìm thêm các bài viết liên quan bằng cách chọn danh mục tương ứng ở trên.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Source Info Footer -->
+        <div class="mt-8 pt-4 border-t border-gray-200 bg-gray-50 -mx-6 px-6 py-4 rounded">
+          <div class="flex items-center gap-2 text-sm text-gray-600">
+            <i class="fas fa-info-circle"></i>
+            <span>Bài viết đầy đủ và cập nhật nhất tại: <strong class="text-gray-800">${article.source.name}</strong></span>
+          </div>
+        </div>
+      `;
+      
+      // Show modal with animation
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+    }
+    
+    function closeArticleModal(event) {
+      // Close if clicking backdrop or called directly
+      if (!event || event.target.id === 'article-modal') {
+        const modal = document.getElementById('article-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = ''; // Restore scroll
+      }
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeArticleModal();
+      }
+    });
 
     // CSS utility classes
     const style = document.createElement('style');

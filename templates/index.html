@@ -10,7 +10,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="format-detection" content="telephone=no" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta http-equiv="Content-Security-Policy" content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;">
   
   <title>AgriSense AI - Nông nghiệp thông minh</title>
   
@@ -38,6 +37,20 @@
   <!-- Application scripts -->
   <!-- DISABLED: Old chat.js that was overriding appendMessage -->
   <!-- <script src="js/chat.js"></script> -->
+
+  <!-- Debug Script -->
+  <script>
+    // Early error detection for Android WebView
+    console.log('✅ JavaScript is running!');
+    window.addEventListener('error', function(e) {
+      console.error('❌ Global error:', e.message, e.filename, e.lineno);
+      alert('Error: ' + e.message);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('❌ Unhandled rejection:', e.reason);
+      alert('Unhandled rejection: ' + e.reason);
+    });
+  </script>
 
   <!-- Camera Module Scripts -->
   <script type="module">

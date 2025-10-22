@@ -28,8 +28,11 @@ logging.basicConfig(
 HERE = os.path.dirname(os.path.abspath(__file__))
 HTML_FILE = os.path.join(HERE, 'index.html')
 
-# Tạo Flask app
-app = Flask(__name__, template_folder=HERE, static_folder=os.path.join(HERE, 'static'), static_url_path='/static')
+# Tạo Flask app với template_folder đúng
+app = Flask(__name__, 
+            template_folder=os.path.join(HERE, 'templates'),
+            static_folder=os.path.join(HERE, 'static'), 
+            static_url_path='/static')
 
 class Api:
     def __init__(self):

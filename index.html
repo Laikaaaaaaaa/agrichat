@@ -5293,6 +5293,16 @@
       wrapper.appendChild(bubble);
       chatBox.appendChild(wrapper);
 
+      // ✅ SAVE MESSAGE TO CHAT HISTORY
+      if (window.chatHistoryManager && (text || imageUrl)) {
+        const messageType = imageUrl ? 'image' : 'text';
+        const contentToSave = text || '';
+        console.log('💾 Saving message to history:', { sender, contentPreview: contentToSave.substring(0, 30), hasImage: !!imageUrl, messageType });
+        window.chatHistoryManager.addMessage(sender, contentToSave, imageUrl, messageType);
+      } else {
+        console.error('❌ NOT SAVING! ChatHistoryManager:', !!window.chatHistoryManager, 'hasTextOrImage:', !!(text || imageUrl));
+      }
+
       if (!chatBox.dataset.userScrolling) {
         chatBox.scrollTop = chatBox.scrollHeight;
       }

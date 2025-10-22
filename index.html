@@ -296,14 +296,23 @@
         const urlParams = new URLSearchParams(window.location.search);
         const conversationId = urlParams.get('c');
         
+        console.log('🔗 Checking URL for conversation ID...');
+        console.log('   URL:', window.location.href);
+        console.log('   Conversation ID from URL:', conversationId);
+        console.log('   Total conversations available:', this.conversations.length);
+        
         if (conversationId) {
-          console.log('🔗 Found conversation ID in URL:', conversationId);
+          console.log('� Found conversation ID in URL:', conversationId);
           const found = this.conversations.find(conv => conv.id === conversationId);
           
           if (found) {
             this.currentConversation = found;
             sessionStorage.setItem('agrisense_current_conversation_id', conversationId);
-            console.log('🔄 Restored conversation from URL:', conversationId);
+            console.log('✅ Found conversation:', found.title);
+            console.log('   Messages:', found.messages.length);
+            found.messages.forEach((msg, idx) => {
+              console.log(`   ${idx + 1}. ${msg.sender}: ${msg.content ? msg.content.substring(0, 30) : '(no content)'}, image: ${!!msg.imageUrl}`);
+            });
             
             // Khôi phục tin nhắn lên chat box
             setTimeout(() => {
@@ -311,10 +320,12 @@
             }, 500);
             return true;
           } else {
-            console.warn('⚠️ Conversation not found, clearing URL');
+            console.warn('❌ Conversation not found in localStorage, clearing URL');
+            console.log('   Available conversation IDs:', this.conversations.map(c => c.id));
             window.history.replaceState({}, '', window.location.pathname);
           }
         } else {
+          console.log('ℹ️ No conversation ID in URL, checking sessionStorage...');
           // Nếu không có URL param, thử restore từ sessionStorage
           this.restoreCurrentConversation();
         }
@@ -388,7 +399,7 @@
             }
 
             // Handle content
-            if (message.content) {
+            if (message.content && message.content.trim()) {
               if (message.type === 'html') {
                 bubble.innerHTML += message.content;
               } else if (message.sender === 'bot' && window.markdownit) {
@@ -400,8 +411,15 @@
                 });
                 bubble.innerHTML += md.render(message.content);
               } else {
-                bubble.textContent = message.content;
+                const textNode = document.createTextNode(message.content);
+                bubble.appendChild(textNode);
               }
+            }
+            
+            // Skip completely empty messages (no content and no image)
+            if (!message.imageUrl && (!message.content || !message.content.trim())) {
+              console.warn('⚠️ Skipping empty message during restore:', message);
+              return;
             }
 
             wrapper.appendChild(bubble);
@@ -442,7 +460,10 @@
       }
 
       addMessage(sender, content, imageUrl = null, type = 'text') {
+        console.log('🔥 addMessage called with:', { sender, content, imageUrl, type });
+        
         if (!this.currentConversation) {
+          console.log('⚠️ No current conversation, starting new one...');
           this.startNewConversation();
         }
 
@@ -455,11 +476,16 @@
           timestamp: new Date().toISOString()
         };
 
+        console.log('📝 Created message object:', message);
         this.currentConversation.messages.push(message);
         this.currentConversation.lastUpdated = new Date().toISOString();
+        console.log('✅ Message pushed to conversation. Total messages:', this.currentConversation.messages.length);
+
+        console.log('✅ Message pushed to conversation. Total messages:', this.currentConversation.messages.length);
 
         // Update conversation title based on first user message
         if (sender === 'user' && content && content.trim().length > 0 && type !== 'html') {
+          console.log('🏷️ Attempting to update conversation title...');
           // Chỉ cập nhật nếu title vẫn là mặc định (bắt đầu với "Cuộc hội thoại")
           if (this.currentConversation.title.startsWith('Cuộc hội thoại')) {
             let title = content;
@@ -475,6 +501,7 @@
         }
 
         this.saveConversations();
+        console.log('💾 Conversations saved to localStorage');
         console.log('💬 Added message to conversation:', message.id);
 
         return message;
@@ -789,11 +816,24 @@
           chatBox.appendChild(wrapper);
           
           // Save message to chat history - ALWAYS save if there's text or image
+          console.log('🔍 Checking save conditions:', {
+            hasChatHistoryManager: !!window.chatHistoryManager,
+            hasText: !!text,
+            hasImageUrl: !!imageUrl,
+            textValue: text,
+            sender: sender
+          });
+          
           if (window.chatHistoryManager && (text || imageUrl)) {
             const messageType = imageUrl ? 'image' : 'text';
             const contentToSave = text || ''; // Use empty string instead of null
             console.log('💾 Saving message:', { sender, text: contentToSave.substring(0, 50), imageUrl, messageType });
             window.chatHistoryManager.addMessage(sender, contentToSave, imageUrl, messageType);
+          } else {
+            console.error('❌ NOT SAVING MESSAGE! Reasons:', {
+              noChatHistoryManager: !window.chatHistoryManager,
+              noTextOrImage: !(text || imageUrl)
+            });
           }
           
           if (!chatBox.dataset.userScrolling) {

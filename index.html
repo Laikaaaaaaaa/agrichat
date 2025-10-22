@@ -265,6 +265,7 @@
         this.currentConversation = null;
         this.conversations = [];
         this.loadConversations();
+        this.restoreCurrentConversation();
       }
 
       loadConversations() {
@@ -274,6 +275,106 @@
 
       saveConversations() {
         localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+        
+        // Lưu ID của cuộc hội thoại hiện tại để khôi phục sau
+        if (this.currentConversation) {
+          localStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
+        }
+      }
+
+      // Khôi phục cuộc hội thoại đang dở khi quay lại trang
+      restoreCurrentConversation() {
+        const currentId = localStorage.getItem('agrisense_current_conversation_id');
+        if (currentId && this.conversations.length > 0) {
+          // Tìm cuộc hội thoại trong danh sách
+          const found = this.conversations.find(conv => conv.id === currentId);
+          if (found) {
+            this.currentConversation = found;
+            console.log('🔄 Restored current conversation:', currentId);
+            
+            // Khôi phục tin nhắn lên chat box
+            setTimeout(() => {
+              this.restoreMessagesToUI();
+            }, 500);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // Khôi phục tin nhắn lên giao diện chat
+      restoreMessagesToUI() {
+        if (!this.currentConversation || this.currentConversation.messages.length === 0) {
+          return;
+        }
+
+        const chatBox = document.getElementById('chat-box');
+        if (!chatBox) {
+          console.warn('Chat box not found, cannot restore messages');
+          return;
+        }
+
+        console.log(`📋 Restoring ${this.currentConversation.messages.length} messages to UI...`);
+
+        // Clear chat box except welcome message
+        const welcomeMsg = chatBox.querySelector('.bg-green-100');
+        chatBox.innerHTML = '';
+        if (welcomeMsg) {
+          chatBox.appendChild(welcomeMsg);
+        }
+
+        // Restore each message
+        this.currentConversation.messages.forEach((message, index) => {
+          setTimeout(() => {
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${message.sender}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = message.sender === 'user' 
+              ? 'message-bubble user-bubble inline-block bg-blue-500 text-white p-2 md:p-3 rounded-xl shadow text-sm md:text-base max-w-md md:max-w-2xl' 
+              : 'message-bubble bot-bubble inline-block bg-gray-100 p-2 md:p-3 rounded-xl shadow text-gray-800 text-sm md:text-base max-w-md md:max-w-2xl overflow-hidden';
+
+            // Handle image
+            if (message.imageUrl) {
+              const imgContainer = document.createElement('div');
+              imgContainer.className = 'mb-2';
+              const img = document.createElement('img');
+              img.src = message.imageUrl;
+              img.className = 'max-w-full rounded-lg';
+              imgContainer.appendChild(img);
+              bubble.appendChild(imgContainer);
+            }
+
+            // Handle content
+            if (message.content) {
+              if (message.type === 'html') {
+                bubble.innerHTML += message.content;
+              } else if (message.sender === 'bot' && window.markdownit) {
+                const md = window.markdownit({
+                  html: true,
+                  breaks: true,
+                  linkify: true,
+                  typographer: true
+                });
+                bubble.innerHTML += md.render(message.content);
+              } else {
+                bubble.textContent = message.content;
+              }
+            }
+
+            wrapper.appendChild(bubble);
+            chatBox.appendChild(wrapper);
+
+            // Scroll to bottom after last message
+            if (index === this.currentConversation.messages.length - 1) {
+              setTimeout(() => {
+                chatBox.scrollTop = chatBox.scrollHeight;
+              }, 100);
+            }
+          }, index * 50); // Stagger messages slightly for smooth appearance
+        });
+
+        console.log('✅ Messages restored to UI');
       }
 
       startNewConversation() {
@@ -618,9 +719,10 @@
           wrapper.appendChild(bubble);
           chatBox.appendChild(wrapper);
           
-          // Save message to chat history
-          if (window.chatHistoryManager) {
+          // Save message to chat history - ALWAYS save if there's text or image
+          if (window.chatHistoryManager && (text || imageUrl)) {
             const messageType = imageUrl ? 'image' : 'text';
+            console.log('💾 Saving message:', { sender, text: text?.substring(0, 50), imageUrl, messageType });
             window.chatHistoryManager.addMessage(sender, text, imageUrl, messageType);
           }
           
@@ -668,9 +770,9 @@
             chatBox.scrollTop = chatBox.scrollHeight;
           }
           
-          // Lưu vào chat history
-          if (window.chatHistoryManager) {
-            console.log('💾 Saving HTML message to history:', htmlContent.substring(0, 100) + '...');
+          // Lưu vào chat history - ALWAYS save for bot messages
+          if (window.chatHistoryManager && (htmlContent || true)) {
+            console.log('💾 Saving HTML message to history (sender: ' + sender + '):', htmlContent.substring(0, 100) + '...');
             window.chatHistoryManager.addMessage(sender, htmlContent, null, 'html');
           }
           
@@ -725,8 +827,10 @@
             wrapper.appendChild(bubble);
             chatBox.appendChild(wrapper);
 
-            if (window.chatHistoryManager && originalText) {
+            // ALWAYS save user messages
+            if (window.chatHistoryManager) {
               const messageType = imageUrl ? 'image' : 'text';
+              console.log('💾 Saving USER message:', { text: originalText?.substring(0, 50), imageUrl, messageType });
               window.chatHistoryManager.addMessage(sender, originalText, imageUrl, messageType);
             }
 
@@ -810,8 +914,10 @@
                   chatBox.scrollTop = chatBox.scrollHeight;
                 }
 
-                if (window.chatHistoryManager && originalText) {
+                // ALWAYS save bot message after typewriter completes
+                if (window.chatHistoryManager) {
                   const messageType = imageUrl ? 'image' : 'text';
+                  console.log('💾 Saving BOT message after typewriter:', { text: originalText?.substring(0, 50), imageUrl, messageType });
                   window.chatHistoryManager.addMessage(sender, originalText, imageUrl, messageType);
                 }
 
@@ -827,9 +933,11 @@
           wrapper.appendChild(bubble);
           chatBox.appendChild(wrapper);
 
-          if (window.chatHistoryManager && originalText) {
+          // ALWAYS save fallback messages
+          if (window.chatHistoryManager) {
             const messageType = imageUrl ? 'image' : 'text';
-            window.chatHistoryManager.addMessage(sender, originalText, imageUrl, messageType);
+            console.log('💾 Saving FALLBACK message:', { sender, text: originalText?.substring(0, 50), imageUrl, messageType });
+            window.chatHistoryManager.addMessage(sender, originalText || '', imageUrl, messageType);
           }
 
           if (!chatBox.dataset.userScrolling) {
@@ -927,6 +1035,9 @@
           messageInput.value = '';
           messageInput.placeholder = 'Nhập câu hỏi của bạn...';
         }
+        
+        // Clear current conversation ID from localStorage since we're starting fresh
+        localStorage.removeItem('agrisense_current_conversation_id');
         
         console.log('✨ Started new chat conversation');
     };

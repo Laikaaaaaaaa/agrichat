@@ -6492,31 +6492,64 @@
       console.log('📁 File loaded into Data URL:');
       console.log('  - File name:', file.name);
       console.log('  - File size:', file.size, 'bytes');
-      console.log('  - File type:', file.type);
-      console.log('  - Data URL length:', dataUrl.length);
-      console.log('  - Data URL starts with:', dataUrl.substring(0, 50));
-      console.log('  - Data URL header valid?', dataUrl.startsWith('data:image/'));
+      console.log('  - Original Data URL length:', dataUrl.length);
       
-      currentImageData = dataUrl;
-      uploadedImagePreview.src = currentImageData;
-      imageUploadArea.classList.remove('hidden');
-      
-      // Test image loading in preview
-      uploadedImagePreview.onload = () => {
-        console.log('✅ Preview image loaded successfully');
-        console.log('  - Preview dimensions:', uploadedImagePreview.naturalWidth + 'x' + uploadedImagePreview.naturalHeight);
+      // ✅ NÉN ẢNH để giảm dung lượng localStorage
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Giới hạn kích thước tối đa 1024px
+        const maxSize = 1024;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Nén với chất lượng 0.8 (80%)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        
+        console.log('✅ Đã nén ảnh:');
+        console.log('  - Kích thước gốc:', img.width + 'x' + img.height);
+        console.log('  - Kích thước mới:', width + 'x' + height);
+        console.log('  - Dung lượng gốc:', Math.round(dataUrl.length / 1024) + 'KB');
+        console.log('  - Dung lượng mới:', Math.round(compressedDataUrl.length / 1024) + 'KB');
+        console.log('  - Tiết kiệm:', Math.round((1 - compressedDataUrl.length / dataUrl.length) * 100) + '%');
+        
+        currentImageData = compressedDataUrl;
+        uploadedImagePreview.src = currentImageData;
+        imageUploadArea.classList.remove('hidden');
+        
+        // Update placeholder
+        const messageInput = document.getElementById('message-input');
+        if (messageInput && !messageInput.value.trim()) {
+          messageInput.placeholder = "Hình ảnh đã sẵn sàng - nhập tin nhắn và bấm Enter để gửi cho AI";
+          messageInput.focus();
+        }
       };
       
-      uploadedImagePreview.onerror = (error) => {
-        console.error('❌ Preview image failed to load:', error);
+      img.onerror = function() {
+        console.error('❌ Không thể load ảnh để nén');
+        // Fallback: dùng ảnh gốc
+        currentImageData = dataUrl;
+        uploadedImagePreview.src = currentImageData;
+        imageUploadArea.classList.remove('hidden');
       };
       
-      // Update placeholder text to indicate image is ready
-      const messageInput = document.getElementById('message-input');
-      if (messageInput && !messageInput.value.trim()) {
-        messageInput.placeholder = "Hình ảnh đã sẵn sàng - nhập tin nhắn và bấm Enter để gửi cho AI";
-        messageInput.focus();
-      }
+      img.src = dataUrl;
     };
     
     reader.onerror = function(error) {

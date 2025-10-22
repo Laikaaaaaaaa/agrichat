@@ -5684,6 +5684,41 @@
         }
         
         try {
+          // ✅ TẠO PROMPT CHI TIẾT CHO PHÂN TÍCH ẢNH
+          let imagePrompt = msg || '';
+          if (!imagePrompt || imagePrompt.trim() === '') {
+            // Nếu không có câu hỏi, dùng prompt mặc định siêu chi tiết
+            imagePrompt = `Phân tích chi tiết hình ảnh này theo các khía cạnh sau:
+
+🌾 **Nông nghiệp** (nếu có):
+- Loại cây trồng/vật nuôi
+- Tình trạng sức khỏe, bệnh tật
+- Giai đoạn sinh trưởng
+- Đề xuất chăm sóc
+
+🌤️ **Thời tiết & Khí hậu**:
+- Điều kiện thời tiết (nắng, mây, mưa...)
+- Loại mây (tích, tầng, vũ...)
+- Độ ẩm, ánh sáng
+- Dự đoán thời tiết
+- Ảnh hưởng đến nông nghiệp
+
+🌍 **Môi trường**:
+- Địa hình, đất đai
+- Nguồn nước
+- Thực vật xung quanh
+
+⏰ **Thời gian**:
+- Thời điểm trong ngày (sáng/trưa/chiều/tối)
+- Mùa trong năm
+
+💡 **Khuyến nghị**:
+- Hoạt động nông nghiệp phù hợp
+- Lưu ý cần thiết
+
+Hãy trả lời cụ thể, chi tiết và thực tế!`;
+          }
+          
           // Call Flask API for image analysis
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -5691,7 +5726,7 @@
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              message: msg || '',
+              message: imagePrompt,
               image_data: imageData,
               mode: currentMode
             })

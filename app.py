@@ -3968,7 +3968,7 @@ api = Api()
 @app.route('/')
 def index():
     """Trang chủ"""
-    return render_template('index.html')
+    return send_from_directory(HERE, 'index.html')
 
 
 @app.route('/news')

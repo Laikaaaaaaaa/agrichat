@@ -1065,7 +1065,7 @@
 
                 let nextSpeed = Math.max(2, speed);
                 if (char === ' ') {
-                  nextSpeed = Math.max(1, speed * 0.05);
+                  nextSpeed = Math.max(2, speed * 0.3); // Tăng từ 0.05 lên 0.3 để có delay rõ ràng hơn
                 } else if ('.!?'.includes(char)) {
                   nextSpeed = speed * 1.4;
                 } else if (',;:'.includes(char)) {

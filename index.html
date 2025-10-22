@@ -47,6 +47,28 @@
     });
   </script>
   <style>
+    /* Fix mobile viewport with dynamic viewport height */
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+    }
+    
+    /* Support for dvh units (dynamic viewport height) */
+    @supports (height: 100dvh) {
+      body {
+        height: 100dvh;
+      }
+    }
+    
     /* Message styles */
     .message {
       display: inline-block;
@@ -2546,7 +2568,7 @@
     });
   </script>
 </head>
-<body class="bg-green-50 font-sans text-gray-700 h-screen overflow-hidden">
+<body class="bg-green-50 font-sans text-gray-700">
   <!-- Header -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0 h-20 relative">
     <div class="h-full flex justify-between items-center px-4 md:px-6">
@@ -2568,7 +2590,7 @@
     </div>
   </header>
 
-  <div id="main-container" class="flex w-full h-[calc(100vh-80px)]">
+  <div id="main-container" class="flex w-full" style="height: calc(100dvh - 80px); max-height: calc(100dvh - 80px);">
     <!-- Sidebar -->
   <aside id="sidebar" class="flex-none bg-white shadow-lg overflow-y-auto open closed">
       <div class="p-4 md:p-6 space-y-6 md:space-y-8">

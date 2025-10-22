@@ -16,16 +16,239 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-        .conversation-item { transition: all 0.2s ease; cursor: pointer; }
-        .conversation-item:hover { background-color: #f0fdf4; border-color: #6de499; }
-        .conversation-item.active { background-color: #dcfce7; border-color: #5bd889; }
-        .back-button { position: fixed; bottom: 20px; right: 20px; background-color: #6edc9b; color: white; padding: 12px 24px; border-radius: 9999px; text-decoration: none; }
-        .back-button:hover { background-color: #6bd89e; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
         
-        /* CSS cho text truncation */
+        :root {
+            --sidebar-w: 320px;
+            --z-sidebar: 3000;
+            --z-backdrop: 4000;
+        }
+        
+        /* Scrollbar styling */
+        .custom-scrollbar::-webkit-scrollbar { 
+            width: 8px; 
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track { 
+            background: #f1f5f9; 
+            border-radius: 4px; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: linear-gradient(180deg, #10b981, #059669);
+            border-radius: 4px; 
+            transition: background 0.3s;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #059669, #047857);
+        }
+        
+        /* Main container layout */
+        #main-container {
+            display: flex;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 100%;
+            background: white;
+        }
+        
+        /* Sidebar styling */
+        #history-sidebar {
+            width: var(--sidebar-w);
+            height: 100%;
+            background: #fff;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+            transition: transform 0.36s cubic-bezier(0.25,0.46,0.45,0.94);
+            will-change: transform;
+            z-index: var(--z-sidebar);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #conversation-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        /* Chat content area */
+        #chat-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: white;
+        }
+        
+        /* Desktop: sidebar behavior */
+        @media (min-width: 768px) {
+            #history-sidebar {
+                position: relative;
+                transform: translateX(0);
+            }
+            #history-sidebar.closed {
+                transform: translateX(calc(-1 * var(--sidebar-w)));
+            }
+        }
+        
+        /* Mobile: sidebar overlay */
+        @media (max-width: 767px) {
+            #history-sidebar {
+                position: fixed;
+                top: 80px;
+                left: 0;
+                bottom: 0;
+                transform: translateX(calc(-1 * var(--sidebar-w)));
+                transition: transform 0.28s ease;
+                z-index: 4500;
+            }
+            #history-sidebar.open {
+                transform: translateX(0);
+            }
+            
+            /* Backdrop for mobile */
+            #main-container.mobile-sidebar-open::before {
+                content: '';
+                position: fixed;
+                top: 80px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 4000;
+                animation: fadeIn 0.28s ease;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        }
+        
+        /* Toggle button */
+        #sidebar-toggle {
+            position: fixed;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            z-index: 5000;
+            background: transparent;
+            color: #10b981;
+            border: none;
+            width: 32px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            font-size: 28px;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+        
+        #sidebar-toggle:hover {
+            opacity: 1;
+            color: #059669;
+            transform: translateY(-50%) scale(1.2);
+        }
+        
+        #sidebar-toggle::before {
+            content: '»';
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        /* Change arrow when sidebar is open */
+        #main-container.mobile-sidebar-open #sidebar-toggle {
+            left: calc(var(--sidebar-w) + 12px);
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        #main-container.mobile-sidebar-open #sidebar-toggle::before {
+            content: '«';
+        }
+        
+        @media (min-width: 768px) {
+            #sidebar-toggle {
+                display: none;
+            }
+        }
+        
+        /* Conversation item styling */
+        .conversation-item { 
+            transition: all 0.3s ease; 
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .conversation-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(180deg, #10b981, #059669);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        .conversation-item:hover {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #10b981;
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+        }
+        .conversation-item:hover::before {
+            transform: scaleY(1);
+        }
+        .conversation-item.active { 
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            border-color: #059669;
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.25);
+            transform: translateX(4px);
+        }
+        .conversation-item.active::before {
+            transform: scaleY(1);
+        }
+        
+        /* Message bubble styling */
+        .message-bubble {
+            animation: slideIn 0.3s ease;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+        
+        .bot-message {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Text truncation */
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -33,11 +256,11 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-            line-height: 1.4;
-            max-height: 2.8em;
+            line-height: 1.5;
+            max-height: 3em;
         }
         
-        /* CSS cho image galleries trong history */
+        /* Image galleries */
         .image-gallery {
             max-width: 600px !important;
             margin: 15px auto !important;
@@ -65,9 +288,38 @@
         .image-item img:hover {
             transform: scale(1.05) !important;
         }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .message-bubble {
+                max-width: 85% !important;
+            }
+        }
+        
+        /* Button hover effects */
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Empty state animation */
+        .empty-state-icon {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen flex flex-col">
     <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
         <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
             <div class="flex items-center gap-3">
@@ -88,57 +340,60 @@
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="p-4 border-b border-gray-200 bg-gray-50">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+    <div id="main-container" class="w-full flex-1">
+        <!-- Mobile Toggle Button - Tab từ cạnh trái -->
+        <button id="sidebar-toggle" aria-label="Toggle sidebar"></button>
+            
+            <!-- Sidebar: Conversation List -->
+            <aside id="history-sidebar" class="custom-scrollbar">
+                <div class="p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 flex-shrink-0">
+                    <div class="flex items-center justify-between mb-3 md:mb-4">
+                        <h2 class="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-2">
                             <i class="fas fa-comments text-green-600"></i>
-                            Danh sách hội thoại
+                            <span class="hidden sm:inline">Danh sách hội thoại</span>
+                            <span class="sm:hidden">Hội thoại</span>
                         </h2>
                         <div class="flex gap-2">
-                            <button id="fix-titles-btn" class="text-blue-500 hover:text-blue-700 text-sm" title="Sửa tên cuộc hội thoại">
-                                <i class="fas fa-magic"></i>
-                            </button>
-                            <button id="clear-all-btn" class="text-red-500 hover:text-red-700 text-sm" title="Xóa tất cả">
+
+                            <button id="clear-all-btn" class="text-red-500 hover:text-red-700 text-xs md:text-sm p-1 md:p-2 rounded hover:bg-red-50 transition-all btn-hover" title="Xóa tất cả">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
                     <div class="relative">
-                        <input type="text" id="search-conversations" placeholder="Tìm kiếm..." 
-                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm">
-                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="search-conversations" placeholder="Tìm kiếm hội thoại..." 
+                               class="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 border border-gray-300 rounded-lg text-xs md:text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs md:text-sm"></i>
                     </div>
                 </div>
-                <div id="conversation-list" class="overflow-y-auto custom-scrollbar h-full"></div>
-            </div>
+                <div id="conversation-list" class="flex-1 overflow-y-auto custom-scrollbar"></div>
+            </aside>
             
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                <div class="p-4 border-b border-gray-200 bg-gray-50">
+            <!-- Chat Content Area -->
+            <main id="chat-content">
+                <div class="p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 flex-shrink-0">
                     <div id="chat-header" class="flex items-center justify-between">
-                        <div>
-                            <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                        <div class="flex-1 min-w-0">
+                            <h2 class="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-2 truncate">
                                 <i class="fas fa-comment-dots text-green-600"></i>
-                                Chi tiết hội thoại
+                                <span>Chi tiết hội thoại</span>
                             </h2>
-                            <p class="text-sm text-gray-500 mt-1">Chọn một cuộc hội thoại để xem chi tiết</p>
+                            <p class="text-xs md:text-sm text-gray-500 mt-1 hidden sm:block">Chọn một cuộc hội thoại để xem chi tiết</p>
                         </div>
                     </div>
                 </div>
-                <div id="chat-messages" class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                <div id="chat-messages" class="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-4 bg-gradient-to-b from-gray-50 to-white">
                     <div id="empty-state" class="h-full flex items-center justify-center text-gray-500">
-                        <div class="text-center">
-                            <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
-                            <h3 class="text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
-                            <p class="text-sm">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                        <div class="text-center px-4">
+                            <i class="fas fa-comments text-4xl md:text-6xl text-gray-300 mb-3 md:mb-4 empty-state-icon"></i>
+                            <h3 class="text-base md:text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
+                            <p class="text-xs md:text-sm text-gray-400">Chọn một cuộc hội thoại từ danh sách để xem chi tiết</p>
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
-    </main>
+    </div>
 
     <script>
     class ChatHistoryManager {
@@ -274,9 +529,35 @@
                 this.clearAllConversations();
             });
             
-            const fixTitlesBtn = document.getElementById('fix-titles-btn');
-            fixTitlesBtn.addEventListener('click', () => {
-                this.fixAllConversationTitles();
+            // Sidebar toggle functionality
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('history-sidebar');
+            const mainContainer = document.getElementById('main-container');
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Toggle clicked!'); // Debug log
+                    sidebar.classList.toggle('open');
+                    mainContainer.classList.toggle('mobile-sidebar-open');
+                });
+            }
+            
+            // Close sidebar when clicking backdrop on mobile
+            mainContainer.addEventListener('click', (e) => {
+                if (e.target === mainContainer && mainContainer.classList.contains('mobile-sidebar-open')) {
+                    sidebar.classList.remove('open');
+                    mainContainer.classList.remove('mobile-sidebar-open');
+                }
+            });
+            
+            // Close sidebar after selecting conversation on mobile
+            document.addEventListener('conversationSelected', () => {
+                if (window.innerWidth < 768) {
+                    sidebar.classList.remove('open');
+                    mainContainer.classList.remove('mobile-sidebar-open');
+                }
             });
         }
         
@@ -286,10 +567,10 @@
             
             if (conversations.length === 0) {
                 conversationList.innerHTML = `
-                    <div class="p-4 text-center text-gray-500">
-                        <i class="fas fa-comment-slash text-3xl mb-2"></i>
-                        <p>Chưa có cuộc hội thoại nào</p>
-                        <p class="text-sm mt-1">Bắt đầu chat để tạo lịch sử</p>
+                    <div class="p-6 md:p-8 text-center text-gray-500">
+                        <i class="fas fa-comment-slash text-4xl md:text-5xl mb-3 text-gray-300"></i>
+                        <p class="font-medium text-sm md:text-base mb-2">Chưa có cuộc hội thoại nào</p>
+                        <p class="text-xs md:text-sm text-gray-400">Bắt đầu chat để tạo lịch sử</p>
                     </div>
                 `;
                 return;
@@ -298,39 +579,53 @@
             conversationList.innerHTML = conversations.map(conv => {
                 const lastMessage = conv.messages[conv.messages.length - 1];
                 let preview = 'Không có tin nhắn';
+                let previewIcon = '💬';
                 
                 if (lastMessage && lastMessage.content) {
                     if (lastMessage.type === 'html') {
-                        // Cho HTML content (image gallery), hiển thị text mô tả
                         if (lastMessage.content.includes('🖼️')) {
-                            preview = '🖼️ Thư viện ảnh';
+                            preview = 'Thư viện ảnh';
+                            previewIcon = '🖼️';
                         } else {
-                            // Loại bỏ HTML tags để lấy text content
                             const tempDiv = document.createElement('div');
                             tempDiv.innerHTML = lastMessage.content;
                             const textContent = tempDiv.textContent || tempDiv.innerText || '';
-                            preview = textContent.substring(0, 80) + (textContent.length > 80 ? '...' : '');
+                            preview = textContent.substring(0, 60) + (textContent.length > 60 ? '...' : '');
                         }
                     } else {
-                        // Text content thông thường
-                        preview = lastMessage.content.substring(0, 80) + (lastMessage.content.length > 80 ? '...' : '');
+                        preview = lastMessage.content.substring(0, 60) + (lastMessage.content.length > 60 ? '...' : '');
                     }
                 }
                 
+                // Count user and bot messages
+                const userMsgCount = conv.messages.filter(m => m.sender === 'user').length;
+                const botMsgCount = conv.messages.filter(m => m.sender === 'bot').length;
+                
                 return `
-                    <div class="conversation-item border border-gray-200 m-2 p-3 rounded-lg" 
+                    <div class="conversation-item border border-gray-200 m-2 md:m-3 p-3 md:p-4 rounded-lg md:rounded-xl" 
                          data-conversation-id="${conv.id}">
                         <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-medium text-sm text-gray-800 truncate flex-1 mr-2">${conv.title}</h3>
-                            <span class="text-xs text-gray-500 whitespace-nowrap">${this.formatDate(conv.lastUpdated)}</span>
+                            <h3 class="font-semibold text-xs md:text-sm text-gray-800 truncate flex-1 mr-2 leading-tight">${conv.title}</h3>
+                            <span class="text-xs text-gray-500 whitespace-nowrap ml-2">${this.formatDate(conv.lastUpdated)}</span>
                         </div>
-                        <p class="text-xs text-gray-600 mb-2 line-clamp-2">${preview}</p>
-                        <div class="flex justify-between items-center text-xs text-gray-500">
-                            <span>${conv.messages.length} tin nhắn</span>
-                            <button class="delete-conversation text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors" 
+                        <p class="text-xs md:text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">${previewIcon} ${preview}</p>
+                        <div class="flex justify-between items-center text-xs">
+                            <div class="flex gap-3 text-gray-500">
+                                <span class="flex items-center gap-1">
+                                    <i class="fas fa-user text-blue-500"></i>
+                                    <span class="font-medium">${userMsgCount}</span>
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <i class="fas fa-robot text-green-500"></i>
+                                    <span class="font-medium">${botMsgCount}</span>
+                                </span>
+                                <span class="text-gray-400">•</span>
+                                <span class="font-medium text-gray-600">${conv.messages.length} tổng</span>
+                            </div>
+                            <button class="delete-conversation text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-all btn-hover" 
                                     data-conversation-id="${conv.id}"
                                     title="Xóa cuộc hội thoại">
-                                <i class="fas fa-trash"></i>
+                                <i class="fas fa-trash text-xs md:text-sm"></i>
                             </button>
                         </div>
                     </div>
@@ -362,6 +657,9 @@
             document.querySelector(`[data-conversation-id="${conversationId}"]`).classList.add('active');
             
             this.renderChatMessages(conversation);
+            
+            // Trigger event for mobile sidebar close
+            document.dispatchEvent(new CustomEvent('conversationSelected'));
         }
         
         renderChatMessages(conversation) {
@@ -374,8 +672,7 @@
             
             chatMessages.innerHTML = conversation.messages.map(message => {
                 const isBot = message.sender === 'bot';
-                const alignment = isBot ? 'text-left' : 'text-right';
-                const bgColor = isBot ? 'bg-gray-100' : 'bg-green-500 text-white';
+                const alignment = isBot ? 'justify-start' : 'justify-end';
                 
                 // Xử lý nội dung message
                 let contentHtml = '';
@@ -384,7 +681,8 @@
                 if (message.imageUrl) {
                     contentHtml += `<div class="message-image mb-2">
                         <img src="${message.imageUrl}" alt="Uploaded image" 
-                             style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" 
+                             class="max-w-full md:max-w-xs rounded-lg shadow-md cursor-pointer hover:shadow-xl transition-shadow" 
+                             style="max-height: 200px;" 
                              onclick="openImageModal('${message.imageUrl}')">
                     </div>`;
                 }
@@ -395,22 +693,38 @@
                         // Hiển thị HTML content trực tiếp (cho image galleries)
                         contentHtml += message.content;
                     } else {
-                        // Hiển thị text content thông thường
-                        contentHtml += `<div>${message.content}</div>`;
+                        // Hiển thị text content với formatting
+                        contentHtml += `<div class="whitespace-pre-wrap break-words leading-relaxed">${message.content}</div>`;
                     }
                 }
                 
                 return `
-                    <div class="${alignment} mb-4">
-                        <div class="inline-block ${bgColor} p-3 rounded-xl shadow max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl">
-                            ${contentHtml}
-                            <div class="text-xs mt-2 ${isBot ? 'text-gray-500' : 'text-green-100'}">${this.formatTime(message.timestamp)}</div>
+                    <div class="flex ${alignment} mb-3 md:mb-4 message-bubble">
+                        <div class="flex ${isBot ? 'flex-row' : 'flex-row-reverse'} items-end gap-2 max-w-full md:max-w-3xl">
+                            <!-- Avatar -->
+                            <div class="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center ${isBot ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'} shadow-md">
+                                <i class="fas ${isBot ? 'fa-robot' : 'fa-user'} text-white text-xs"></i>
+                            </div>
+                            
+                            <!-- Message bubble -->
+                            <div class="flex-1 min-w-0">
+                                <div class="${isBot ? 'bot-message text-gray-800' : 'user-message text-white'} p-3 md:p-4 rounded-2xl ${isBot ? 'rounded-bl-none' : 'rounded-br-none'} shadow-md">
+                                    ${contentHtml}
+                                </div>
+                                <div class="text-xs text-gray-400 mt-1 px-2 ${isBot ? 'text-left' : 'text-right'}">${this.formatTime(message.timestamp)}</div>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('');
             
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // Scroll to bottom smoothly
+            setTimeout(() => {
+                chatMessages.scrollTo({
+                    top: chatMessages.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
         }
         
         searchConversations(query) {

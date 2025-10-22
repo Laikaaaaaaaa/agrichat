@@ -978,48 +978,13 @@
     }
 
     // Initialize page
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       // Initialize clock
       updateClock();
       setInterval(updateClock, 1000);
       
-      // Add fallback test data if no RSS feeds load
-      setTimeout(() => {
-        if (allNews.length === 0) {
-          console.log('🔄 No real news loaded, adding test content...');
-          allNews = [
-            {
-              title: "Công nghệ nông nghiệp thông minh",
-              description: "Ứng dụng AI trong việc quản lý cây trồng và tăng năng suất",
-              content: "Nông nghiệp thông minh đang phát triển mạnh mẽ với các công nghệ IoT, AI và máy học",
-              category: "agriculture",
-              isVietnamese: true,
-              url: "#test1",
-              pubDate: new Date()
-            },
-            {
-              title: "Chăn nuôi bò sữa hiện đại", 
-              description: "Kỹ thuật chăn nuôi bò sữa công nghệ cao",
-              content: "Chăn nuôi bò sữa với công nghệ mới giúp tăng sản lượng sữa và chất lượng",
-              category: "livestock",
-              isVietnamese: true,
-              url: "#test2",
-              pubDate: new Date()
-            },
-            {
-              title: "Biến đổi khí hậu và nông nghiệp",
-              description: "Tác động của biến đổi khí hậu đến ngành nông nghiệp Việt Nam",
-              content: "Khí hậu thay đổi ảnh hưởng lớn đến sản xuất nông nghiệp",
-              category: "climate",
-              isVietnamese: true,
-              url: "#test3",
-              pubDate: new Date()
-            }
-          ];
-          filterAndDisplayNews();
-          console.log('✅ Test content added, articles available:', allNews.length);
-        }
-      }, 3000);
+      // Setup event listeners first
+      setupEventListeners();
       
       // Get URL parameters
       const urlParams = new URLSearchParams(window.location.search);
@@ -1029,7 +994,14 @@
       // Set initial category if provided
       if (categoryParam && categoryParam !== 'all') {
         currentCategory = categoryParam;
-        selectCategory(categoryParam);
+        // Update active button
+        document.querySelectorAll('.category-button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        const targetButton = document.querySelector(`[data-category="${categoryParam}"]`);
+        if (targetButton) {
+          targetButton.classList.add('active');
+        }
       }
       
       // Update page title if type is provided
@@ -1038,9 +1010,26 @@
         document.title = `${typeParam} - AgriSense AI`;
       }
       
-      loadNews();
-      loadVietnameseNews(); // Load Vietnamese RSS feeds
-      setupEventListeners();
+      // Show loading state
+      showLoading();
+      console.log('🚀 Bắt đầu tải tin tức...');
+      
+      // Load Vietnamese news first and WAIT for it
+      await loadVietnameseNews();
+      console.log(`✅ Đã tải xong ${vietnameseNews.length} tin Việt Nam`);
+      
+      // Only load English news if Vietnamese news is insufficient
+      if (vietnameseNews.length < 50) {
+        console.log('📰 Tải thêm tin tiếng Anh...');
+        await loadNews(true);
+      }
+      
+      // Now display all loaded news
+      console.log('📊 Hiển thị tin tức...');
+      filterAndDisplayNews();
+      hideLoading();
+      
+      console.log(`✅ Sẵn sàng! Tổng: ${vietnameseNews.length} tin VN, ${allNews.length} tin EN`);
     });
 
     // Fetch Vietnamese RSS feeds - prioritize agriculture and maximize content
@@ -1607,12 +1596,6 @@
     }
 
     function selectCategory(category) {
-      // Show loading state immediately for better UX
-      const loadingElement = document.getElementById('loading');
-      if (loadingElement) {
-        loadingElement.classList.remove('hidden');
-      }
-      
       currentCategory = category;
       currentPage = 1;
       
@@ -1626,16 +1609,9 @@
         targetButton.classList.add('active');
       }
       
-      // Use setTimeout to prevent UI blocking and improve perceived performance
-      setTimeout(() => {
-        console.log(`🔄 Chuyển sang danh mục: ${getCategoryDisplayName(category) || category}`);
-        filterAndDisplayNews();
-        
-        // Hide loading state
-        if (loadingElement) {
-          loadingElement.classList.add('hidden');
-        }
-      }, 50); // Small delay to allow UI update
+      // Display immediately from cache/loaded data - no need to reload
+      console.log(`🔄 Chuyển sang danh mục: ${getCategoryDisplayName(category) || category}`);
+      filterAndDisplayNews();
     }
 
     async function loadNews(reset = true) {
@@ -1645,14 +1621,12 @@
         if (reset) {
           allNews = []; // No English news needed
         }
-        filterAndDisplayNews();
-        return;
+        return; // Don't call filterAndDisplayNews here, let caller handle it
       }
       
       if (isLoading) return;
       
       isLoading = true;
-      showLoading();
 
       try {
         const apiKey = newsAPIs[currentAPIIndex];
@@ -1687,29 +1661,18 @@
         hasMoreNews = vietnameseNews.length < 200; // Focus on Vietnamese content expansion
 
         console.log(`📊 Tải ${newsArticles.length} bài tiếng Anh (Tổng Việt: ${vietnameseNews.length}, Anh: ${allNews.length})`);
-        filterAndDisplayNews();
         
       } catch (error) {
         console.error('❌ Lỗi tải tin tiếng Anh:', error);
         
         // Try next API if current one fails
         currentAPIIndex = (currentAPIIndex + 1) % newsAPIs.length;
-        if (currentAPIIndex === 0) {
-          // If all APIs fail, show Vietnamese news only
-          if (vietnameseNews.length > 0) {
-            allNews = vietnameseNews;
-            filterAndDisplayNews();
-          } else {
-            showNoResults();
-          }
-        } else {
-          loadNews(reset);
-          return;
+        if (currentAPIIndex !== 0) {
+          await loadNews(reset); // Try with next API
         }
       }
       
       isLoading = false;
-      hideLoading();
     }
 
     function filterAndDisplayNews() {

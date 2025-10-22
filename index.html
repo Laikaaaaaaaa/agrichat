@@ -2,8 +2,16 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- WebView Optimization -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="Content-Security-Policy" content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;">
+  
   <title>AgriSense AI - Nông nghiệp thông minh</title>
   
   <!-- Favicon -->
@@ -47,10 +55,18 @@
     });
   </script>
   <style>
+    /* WebView Optimization */
+    * {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      -webkit-touch-callout: none;
+    }
+    
     /* Fix mobile viewport with dynamic viewport height */
     html {
       height: 100%;
       overflow: hidden;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
     }
     
     body {
@@ -60,6 +76,8 @@
       width: 100%;
       top: 0;
       left: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     
     /* Support for dvh units (dynamic viewport height) */
@@ -67,6 +85,24 @@
       body {
         height: 100dvh;
       }
+    }
+    
+    /* Smooth scrolling for WebView */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevent image selection in WebView */
+    img {
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    
+    /* Better touch handling */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
     }
     
     /* Message styles */
@@ -3253,19 +3289,26 @@
             <i class="fas fa-camera text-lg"></i>
           </button>
 
-          <!-- Image Input (hidden) -->
+          <!-- Image Inputs (hidden) -->
+          <!-- For gallery (no capture attribute) -->
           <input type="file" 
-                 id="image-input" 
+                 id="image-input-gallery" 
                  accept="image/*" 
-                 class="hidden"
-                 capture>
+                 class="hidden">
+          
+          <!-- For camera (with capture attribute - mobile only) -->
+          <input type="file" 
+                 id="image-input-camera" 
+                 accept="image/*" 
+                 capture="environment"
+                 class="hidden">
 
           <!-- Camera Options Menu -->
           <div id="camera-menu" class="hidden absolute left-3 bottom-full mb-2 bg-white border border-green-200 rounded-xl shadow-lg z-50 w-64">
             <div class="p-3">
               <div class="text-xs text-gray-500 mb-2 font-medium px-2">Chọn phương thức</div>
               
-              <!-- Upload Image Option -->
+              <!-- Upload from Gallery Option -->
               <button id="upload-image-option" class="w-full text-left px-4 py-3 rounded-lg hover:bg-green-50 transition-colors text-sm flex items-center gap-3 mb-2">
                 <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                   <i class="fas fa-image text-green-600"></i>
@@ -3273,6 +3316,17 @@
                 <div class="min-w-0">
                   <div class="font-medium text-gray-800">Chọn từ thư viện</div>
                   <div class="text-xs text-gray-500">Tải ảnh có sẵn lên</div>
+                </div>
+              </button>
+              
+              <!-- Take Photo Option (Mobile only) -->
+              <button id="take-photo-option" class="md:hidden w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-camera text-blue-600"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="font-medium text-gray-800">Chụp ảnh trực tiếp</div>
+                  <div class="text-xs text-gray-500">Mở camera để chụp</div>
                 </div>
               </button>
             </div>
@@ -3781,12 +3835,16 @@
   const cameraBtn = document.getElementById('camera-btn');
   const cameraMenu = document.getElementById('camera-menu');
   const uploadImageOption = document.getElementById('upload-image-option');
-  const captureImageOption = document.getElementById('capture-image-option');
+  const takePhotoOption = document.getElementById('take-photo-option');
+  const imageInputGallery = document.getElementById('image-input-gallery');
+  const imageInputCamera = document.getElementById('image-input-camera');
 
+  // Toggle menu
   cameraBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     cameraMenu.classList.toggle('hidden');
   });
+  
   // Hide menu when click outside
   document.addEventListener('click', (e) => {
     if (!cameraMenu.classList.contains('hidden')) {
@@ -3795,49 +3853,28 @@
       }
     }
   });
+  
+  // Upload from gallery (no capture)
   uploadImageOption.addEventListener('click', () => {
+    console.log('📁 Opening gallery picker...');
     cameraMenu.classList.add('hidden');
-    imageInput.click();
+    imageInputGallery.click();
   });
-  // Xử lý sự kiện khi nhấn nút chụp ảnh
-  if (captureImageOption) {
-    captureImageOption.addEventListener('click', async () => {
-      console.log('📸 Camera capture button clicked');
+  
+  // Take photo directly (mobile only, with capture)
+  if (takePhotoOption) {
+    takePhotoOption.addEventListener('click', () => {
+      console.log('📸 Opening camera to take photo...');
       cameraMenu.classList.add('hidden');
-      
-      if (!navigator.mediaDevices?.getUserMedia) {
-        alert('Camera không được hỗ trợ trên trình duyệt này');
-        return;
-      }
-
-      try {
-        console.log('🔄 Opening camera using cameraHandler...');
-        console.log('🔍 CameraHandler exists?', !!window.cameraHandler);
-        console.log('🔍 CameraHandler type:', typeof window.cameraHandler);
-        console.log('🔍 CameraHandler methods:', window.cameraHandler ? Object.getOwnPropertyNames(Object.getPrototypeOf(window.cameraHandler)) : 'none');
-        
-        if (!window.cameraHandler) {
-          console.error('❌ CameraHandler not initialized!');
-          alert('Camera chưa được khởi tạo. Vui lòng tải lại trang.');
-          return;
-        }
-        
-        // Test if open method exists
-        if (typeof window.cameraHandler.open !== 'function') {
-          console.error('❌ CameraHandler.open is not a function!');
-          alert('Camera handler thiếu method open. Vui lòng kiểm tra lại.');
-          return;
-        }
-        
-        await window.cameraHandler.open();
-        console.log('✅ Camera opened successfully');
-      } catch (error) {
-        console.error('❌ Camera error:', error);
-        console.error('❌ Error stack:', error.stack);
-        alert('Lỗi khi mở camera: ' + error.message);
-      }
+      imageInputCamera.click();
     });
   }
+  
+  // Handle gallery input change
+  imageInputGallery.addEventListener('change', handleImageUpload);
+  
+  // Handle camera input change
+  imageInputCamera.addEventListener('change', handleImageUpload);
 
   // Camera initialization is handled in the earlier DOMContentLoaded event listener
   // Queryable DOM element references (will be initialized when DOM is ready)
@@ -3861,7 +3898,6 @@
     sendBtn = document.getElementById('send-btn');
     connectionStatus = document.getElementById('connection-status');
     clock = document.getElementById('clock');
-    imageInput = document.getElementById('image-input');
     imageUploadArea = document.getElementById('image-upload-area');
     uploadedImagePreview = document.getElementById('uploaded-image-preview');
     removeImageBtn = document.getElementById('remove-image-btn');
@@ -3876,7 +3912,8 @@
     console.log('  chatBox:', !!chatBox);
     console.log('  input:', !!input);
     console.log('  sendBtn:', !!sendBtn);
-  console.log('  imageInput:', !!imageInput);
+    console.log('  imageInputGallery:', !!imageInputGallery);
+    console.log('  imageInputCamera:', !!imageInputCamera);
 
     // Send on Enter (safe attach)
     if (input) {
@@ -3904,14 +3941,7 @@
       console.error('❌ Send button not found!');
     }
 
-    // Image upload
-    if (imageInput) {
-      console.log('✅ Attaching change listener to image input');
-      imageInput.addEventListener('change', handleImageUpload);
-    } else {
-      console.error('❌ Image input not found!');
-    }
-    
+    // Remove image button
     if (removeImageBtn) {
       console.log('✅ Attaching click listener to remove image button');
       removeImageBtn.addEventListener('click', clearImage);
@@ -5635,17 +5665,31 @@
           if (result.success && result.response) {
             await window.appendMessageWithTypewriter('bot', result.response);
           } else {
-            await window.appendMessageWithTypewriter('bot', '❌ Không thể phân tích hình ảnh. Vui lòng thử lại.');
+            // Show detailed error message
+            const errorMsg = result.error || result.message || 'Không thể phân tích hình ảnh';
+            console.error('❌ API returned error:', errorMsg);
+            await window.appendMessageWithTypewriter('bot', `❌ ${errorMsg}\n\n💡 Vui lòng kiểm tra:\n- Hình ảnh có rõ ràng không?\n- Kích thước file có quá lớn không?\n- Định dạng ảnh có hợp lệ không? (JPG, PNG)`);
           }
         } catch (error) {
           console.error('❌ Error calling Flask API:', error);
+          console.error('❌ Error details:', error.message, error.stack);
           
           // Remove typing indicator on error
           if (typingWrapper && typingWrapper.parentNode) {
             typingWrapper.remove();
           }
           
-          await window.appendMessageWithTypewriter('bot', '❌ Lỗi kết nối API. Vui lòng thử lại.');
+          // Show detailed error
+          let errorMessage = '❌ Lỗi kết nối API';
+          if (error.message.includes('Failed to fetch')) {
+            errorMessage += '\n\n⚠️ Không thể kết nối đến server. Vui lòng kiểm tra:\n- Server Flask có đang chạy không?\n- Kết nối mạng có ổn định không?';
+          } else if (error.message.includes('HTTP error')) {
+            errorMessage += `\n\n⚠️ Server trả về lỗi: ${error.message}`;
+          } else {
+            errorMessage += `\n\n⚠️ Chi tiết: ${error.message}`;
+          }
+          
+          await window.appendMessageWithTypewriter('bot', errorMessage);
         }
       } else {
         let typingMessageId = null; // Declare outside try block

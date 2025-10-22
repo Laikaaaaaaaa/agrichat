@@ -2,7 +2,15 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- WebView Optimization -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
   <title>Tin tức Nông nghiệp - AgriSense AI</title>
   
   <!-- Favicon -->
@@ -17,16 +25,44 @@
   <!-- Font Awesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
+    /* WebView Optimization */
+    * {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      -webkit-touch-callout: none;
+    }
+    
     /* Fix mobile viewport issues with Chrome address bar */
     html {
       height: 100%;
       overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
     }
     
     body {
       min-height: 100%;
       overflow-x: hidden;
       position: relative;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Smooth scrolling for WebView */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevent text selection in WebView */
+    img {
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    
+    /* Better touch handling */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
     }
     
     /* Custom animations - matching index.html */

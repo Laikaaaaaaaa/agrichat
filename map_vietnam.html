@@ -2,7 +2,15 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- WebView Optimization -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
     <title>Bản đồ Thời tiết Việt Nam - AgriSense AI</title>
     
     <!-- Favicon -->
@@ -16,10 +24,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
+        /* WebView Optimization */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            -webkit-touch-callout: none;
+            -webkit-overflow-scrolling: touch;
         }
 
         body {
@@ -27,6 +39,23 @@
             background: #b5e4c0;
             color: #fff;
             overflow: hidden;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Prevent image selection in WebView */
+        img {
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        /* Better touch handling */
+        button, a, input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         /* Header - mặc định luôn hiện */

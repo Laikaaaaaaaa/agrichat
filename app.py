@@ -850,11 +850,16 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
     def generate_content_with_fallback(self, content, stream=False):
         """
         Generate content with API priority:
-        1. OpenAI GPT (Primary)
-        2. Gemini (Fallback 1)
-        3. DeepSeek (Fallback 2)
+        1. OpenAI GPT (Primary) - Supports both text and image
+        2. Gemini (Fallback) - Supports both text and image
+        Note: DeepSeek removed as it doesn't support image analysis
         """
         last_exception = None
+        
+        # Check if content contains image (list with PIL Image)
+        has_image = isinstance(content, list) and any(
+            hasattr(item, 'size') and hasattr(item, 'mode') for item in content
+        )
 
         # TRY 1: OpenAI GPT (Primary)
         if self.openai_api_key:
@@ -864,7 +869,12 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
             except Exception as openai_error:
                 last_exception = openai_error
                 logging.warning(f"⚠️ OpenAI thất bại: {openai_error}")
-                logging.info("🔄 Chuyển sang Gemini fallback...")
+                
+                # If has image and OpenAI fails, only try Gemini
+                if has_image:
+                    logging.info("🔄 Có hình ảnh - chuyển sang Gemini (hỗ trợ vision)...")
+                else:
+                    logging.info("🔄 Chuyển sang Gemini fallback...")
 
         # TRY 2: Gemini (Fallback 1)
         max_attempts = 3
@@ -949,11 +959,17 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                 logging.error(f"Lỗi Gemini không xử lý được: {error_message}")
                 raise gen_error
 
-        # TRY 3: DeepSeek (Fallback 2)
-        if self.deepseek_api_key:
-            logging.info("🔄 Gemini thất bại. Đang chuyển sang DeepSeek (Fallback 2)...")
+        # Don't use DeepSeek as it doesn't support image analysis
+        if has_image:
+            raise Exception(f"Cả OpenAI và Gemini đều thất bại khi xử lý hình ảnh. Lỗi cuối: {last_exception}")
+        
+        # TRY 3: DeepSeek (Only for text, not image)
+        if self.deepseek_api_key and not has_image:
+            logging.info("🔄 Gemini thất bại. Đang chuyển sang DeepSeek (chỉ text)...")
             try:
-                return self.generate_with_deepseek(content, stream=stream)
+                # Convert content to string if it's a list
+                text_content = content if isinstance(content, str) else ' '.join(str(c) for c in content if isinstance(c, str))
+                return self.generate_with_deepseek(text_content, stream=stream)
             except Exception as deepseek_error:
                 logging.error(f"❌ DeepSeek fallback cũng thất bại: {deepseek_error}")
                 last_exception = deepseek_error
@@ -3636,11 +3652,26 @@ HƯỚNG DẪN QUAN TRỌNG:
             
             return full_response
             
+        except base64.binascii.Error as e:
+            error_msg = f"Lỗi giải mã hình ảnh: Định dạng base64 không hợp lệ. Vui lòng thử upload lại."
+            logging.error(f"❌ Base64 decode error: {e}")
+            return error_msg
+        except Image.UnidentifiedImageError as e:
+            error_msg = f"Lỗi nhận diện hình ảnh: File không phải là ảnh hợp lệ hoặc định dạng không được hỗ trợ."
+            logging.error(f"❌ Image format error: {e}")
+            return error_msg
         except Exception as e:
             error_msg = f"Lỗi khi phân tích hình ảnh: {str(e)}"
             logging.error(f"❌ Image analysis error: {e}")
             import traceback
             logging.error(f"❌ Stack trace: {traceback.format_exc()}")
+            
+            # Provide more specific error messages
+            if "API" in str(e) or "quota" in str(e).lower():
+                error_msg = "Lỗi kết nối Gemini API. Vui lòng thử lại sau."
+            elif "timeout" in str(e).lower():
+                error_msg = "Thời gian xử lý quá lâu. Vui lòng thử lại với ảnh nhỏ hơn."
+            
             return error_msg
 
     def analyze_data_request(self, query):
@@ -4066,16 +4097,41 @@ def chat():
         if image_data:
             logging.info("🤖 Calling api.analyze_image...")
             response = api.analyze_image(image_data, message, mode)
+            logging.info(f"✅ Image analysis response type: {type(response)}")
+            
+            # Ensure response is a string
+            if not isinstance(response, str):
+                logging.warning(f"⚠️ Response is not string, converting: {type(response)}")
+                response = str(response)
         else:
             logging.info("🤖 Calling api.chat...")
             response = api.chat(message, mode)
+            
+            # Ensure response is a string
+            if not isinstance(response, str):
+                logging.warning(f"⚠️ Response is not string, converting: {type(response)}")
+                response = str(response)
 
+        logging.info(f"✅ Sending response: {response[:100]}...")
         return jsonify({"response": response, "success": True, "type": "text"})
     except Exception as e:
         logging.error(f"❌ Lỗi chat API: {e}")
         import traceback
-        logging.error(f"❌ Stack trace: {traceback.format_exc()}")
-        return jsonify({"response": f"Lỗi: {str(e)}", "success": False}), 500
+        error_trace = traceback.format_exc()
+        logging.error(f"❌ Stack trace: {error_trace}")
+        
+        # Return detailed error message
+        error_detail = str(e)
+        if "PngImageFile" in error_detail or "Image" in error_detail:
+            error_detail = "Lỗi xử lý hình ảnh. Vui lòng thử upload lại hoặc chọn ảnh khác."
+        elif "JSON" in error_detail:
+            error_detail = "Lỗi định dạng dữ liệu. Vui lòng thử lại."
+        
+        return jsonify({
+            "response": f"❌ {error_detail}", 
+            "success": False,
+            "error": error_detail
+        }), 500
 
 
 @app.route('/api/weather', methods=['GET'])

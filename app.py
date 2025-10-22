@@ -961,7 +961,7 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
         raise Exception(f"Tất cả API thất bại. Lỗi cuối: {last_exception}")
 
     def generate_with_openai(self, content, stream=False):
-        """Primary generator sử dụng OpenAI GPT."""
+        """Primary generator sử dụng OpenAI GPT with vision support."""
         if stream:
             raise ValueError("OpenAI fallback hiện chưa hỗ trợ stream=True")
 
@@ -987,15 +987,60 @@ Nếu câu hỏi KHÔNG liên quan đến các chủ đề trên, hãy trả l�
 
 Hãy từ chối lịch sự nhưng kiên quyết. KHÔNG trả lời về: lịch sử không liên quan nông nghiệp, giải trí, thể thao, chính trị, y tế con người, công nghệ không liên quan nông nghiệp, toán học, vật lý tổng quát, v.v."""
 
-        payload = {
-            "model": self.openai_model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": content}
-            ],
-            "temperature": self.openai_temperature,
-            "max_tokens": 2048,
-        }
+        # Handle image analysis (content is a list with text and PIL Image)
+        if isinstance(content, list):
+            logging.info("🖼️ Image analysis request detected for OpenAI")
+            
+            # Extract components
+            prompt_text = ""
+            image_data = None
+            
+            for item in content:
+                if isinstance(item, str):
+                    prompt_text += item + "\n"
+                elif hasattr(item, 'save'):  # PIL Image
+                    # Convert PIL Image to base64
+                    import io
+                    import base64
+                    buffered = io.BytesIO()
+                    item.save(buffered, format="JPEG")
+                    image_data = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                    logging.info(f"✅ Converted PIL Image to base64 ({len(image_data)} chars)")
+            
+            # Build OpenAI vision message
+            user_content = [
+                {"type": "text", "text": prompt_text.strip()}
+            ]
+            
+            if image_data:
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_data}"
+                    }
+                })
+            
+            payload = {
+                "model": "gpt-4o",  # GPT-4 Vision model
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content}
+                ],
+                "temperature": self.openai_temperature,
+                "max_tokens": 2048,
+            }
+            
+        else:
+            # Text-only request
+            payload = {
+                "model": self.openai_model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": content}
+                ],
+                "temperature": self.openai_temperature,
+                "max_tokens": 2048,
+            }
 
         headers = {
             "Authorization": f"Bearer {self.openai_api_key}",

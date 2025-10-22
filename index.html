@@ -265,7 +265,7 @@
         this.currentConversation = null;
         this.conversations = [];
         this.loadConversations();
-        this.restoreCurrentConversation();
+        this.restoreFromURL(); // Ưu tiên URL trước
       }
 
       loadConversations() {
@@ -279,7 +279,46 @@
         // Lưu ID vào sessionStorage (chỉ tồn tại trong phiên làm việc, mất khi đóng tab)
         if (this.currentConversation) {
           sessionStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
+          // Cập nhật URL với conversation ID
+          this.updateURL(this.currentConversation.id);
         }
+      }
+
+      // Cập nhật URL với conversation ID (không reload trang)
+      updateURL(conversationId) {
+        const newUrl = `${window.location.pathname}?c=${conversationId}`;
+        window.history.pushState({ conversationId }, '', newUrl);
+        console.log('🔗 Updated URL:', newUrl);
+      }
+
+      // Khôi phục cuộc hội thoại từ URL
+      restoreFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const conversationId = urlParams.get('c');
+        
+        if (conversationId) {
+          console.log('🔗 Found conversation ID in URL:', conversationId);
+          const found = this.conversations.find(conv => conv.id === conversationId);
+          
+          if (found) {
+            this.currentConversation = found;
+            sessionStorage.setItem('agrisense_current_conversation_id', conversationId);
+            console.log('🔄 Restored conversation from URL:', conversationId);
+            
+            // Khôi phục tin nhắn lên chat box
+            setTimeout(() => {
+              this.restoreMessagesToUI();
+            }, 500);
+            return true;
+          } else {
+            console.warn('⚠️ Conversation not found, clearing URL');
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        } else {
+          // Nếu không có URL param, thử restore từ sessionStorage
+          this.restoreCurrentConversation();
+        }
+        return false;
       }
 
       // Khôi phục cuộc hội thoại đang dở khi quay lại trang (TRONG CÙNG PHIÊN)
@@ -291,6 +330,9 @@
           if (found) {
             this.currentConversation = found;
             console.log('🔄 Restored current conversation:', currentId);
+            
+            // Cập nhật URL
+            this.updateURL(currentId);
             
             // Khôi phục tin nhắn lên chat box
             setTimeout(() => {
@@ -534,6 +576,33 @@
     }
     // Initialize chat history manager
     window.chatHistoryManager = new ChatHistoryManager();
+
+    // Handle browser back/forward button
+    window.addEventListener('popstate', (event) => {
+      console.log('🔙 Browser navigation detected');
+      if (event.state && event.state.conversationId) {
+        // Có conversation ID trong state
+        const conv = window.chatHistoryManager.conversations.find(c => c.id === event.state.conversationId);
+        if (conv) {
+          window.chatHistoryManager.currentConversation = conv;
+          window.chatHistoryManager.restoreMessagesToUI();
+          console.log('🔄 Restored conversation from history state:', event.state.conversationId);
+        }
+      } else {
+        // Không có conversation ID, clear chat
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.get('c')) {
+          // Về trang chủ không có conversation
+          const chatBox = document.getElementById('chat-box');
+          if (chatBox) {
+            const welcomeMsg = chatBox.querySelector('.bg-green-100');
+            chatBox.innerHTML = '';
+            if (welcomeMsg) chatBox.appendChild(welcomeMsg);
+          }
+          console.log('🏠 Returned to home page');
+        }
+      }
+    });
 
     // Debug functions for testing
     window.debugChatHistory = function() {
@@ -1038,6 +1107,9 @@
         
         // Clear current conversation ID from sessionStorage since we're starting fresh
         sessionStorage.removeItem('agrisense_current_conversation_id');
+        
+        // Clear URL parameter
+        window.history.pushState({}, '', window.location.pathname);
         
         console.log('✨ Started new chat conversation');
     };

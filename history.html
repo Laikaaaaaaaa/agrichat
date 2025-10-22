@@ -420,10 +420,15 @@
                         <div class="flex-1 min-w-0">
                             <h2 class="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-2 truncate">
                                 <i class="fas fa-comment-dots text-green-600"></i>
-                                <span>Chi tiết hội thoại</span>
+                                <span id="conversation-title">Chi tiết hội thoại</span>
                             </h2>
                             <p class="text-xs md:text-sm text-gray-500 mt-1 hidden sm:block">Chọn một cuộc hội thoại để xem chi tiết</p>
                         </div>
+                        <button id="continue-chat-btn" class="hidden bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all btn-hover flex items-center gap-2 text-sm">
+                            <i class="fas fa-arrow-right"></i>
+                            <span class="hidden md:inline">Tiếp tục trò chuyện</span>
+                            <span class="md:hidden">Tiếp tục</span>
+                        </button>
                     </div>
                 </div>
                 <div id="chat-messages" class="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-4 bg-gradient-to-b from-gray-50 to-white">
@@ -702,6 +707,22 @@
             
             this.renderChatMessages(conversation);
             
+            // Show "Continue Chat" button với conversation ID
+            const continueChatBtn = document.getElementById('continue-chat-btn');
+            const conversationTitle = document.getElementById('conversation-title');
+            
+            if (continueChatBtn) {
+                continueChatBtn.classList.remove('hidden');
+                continueChatBtn.onclick = () => {
+                    // Navigate to index.html with conversation ID in URL
+                    window.location.href = `index.html?c=${conversationId}`;
+                };
+            }
+            
+            if (conversationTitle) {
+                conversationTitle.textContent = conversation.title || 'Chi tiết hội thoại';
+            }
+            
             // Trigger event for mobile sidebar close
             document.dispatchEvent(new CustomEvent('conversationSelected'));
         }
@@ -713,6 +734,20 @@
             if (emptyState) {
                 emptyState.style.display = 'none';
             }
+            
+            // Debug: Log all messages
+            console.log('🔍 Rendering messages for conversation:', conversation.id);
+            console.log('📊 Total messages:', conversation.messages.length);
+            conversation.messages.forEach((msg, idx) => {
+                console.log(`Message ${idx}:`, {
+                    sender: msg.sender,
+                    hasContent: !!msg.content,
+                    contentLength: msg.content?.length || 0,
+                    hasImageUrl: !!msg.imageUrl,
+                    type: msg.type,
+                    timestamp: msg.timestamp
+                });
+            });
             
             chatMessages.innerHTML = conversation.messages.map(message => {
                 const isBot = message.sender === 'bot';
@@ -740,6 +775,12 @@
                         // Hiển thị text content với formatting
                         contentHtml += `<div class="whitespace-pre-wrap break-words leading-relaxed">${message.content}</div>`;
                     }
+                }
+                
+                // Skip empty messages (no content and no image)
+                if (!contentHtml.trim()) {
+                    console.warn('⚠️ Skipping empty message:', message);
+                    return '';
                 }
                 
                 return `
@@ -962,6 +1003,36 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         new ChatHistoryManager();
+        
+        // Debug helper
+        window.debugChatHistory = function() {
+            const stored = localStorage.getItem('agrisense_chat_history');
+            const conversations = stored ? JSON.parse(stored) : [];
+            
+            console.log('=== CHAT HISTORY DEBUG ===');
+            console.log('Total conversations:', conversations.length);
+            
+            conversations.forEach((conv, idx) => {
+                console.log(`\n📋 Conversation ${idx + 1}:`, conv.title);
+                console.log('   ID:', conv.id);
+                console.log('   Messages:', conv.messages.length);
+                
+                conv.messages.forEach((msg, msgIdx) => {
+                    const senderIcon = msg.sender === 'user' ? '👤' : '🤖';
+                    console.log(`   ${senderIcon} Message ${msgIdx + 1}:`, {
+                        sender: msg.sender,
+                        content: msg.content ? msg.content.substring(0, 50) + '...' : 'null',
+                        imageUrl: msg.imageUrl ? 'Yes (length: ' + msg.imageUrl.length + ')' : 'No',
+                        type: msg.type || 'text',
+                        timestamp: msg.timestamp
+                    });
+                });
+            });
+            
+            return conversations;
+        };
+        
+        console.log('💡 Tip: Run window.debugChatHistory() to see all conversations');
     });
     </script>
 </body>

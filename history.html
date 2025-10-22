@@ -220,12 +220,20 @@
             transform: scaleY(1);
         }
         
-        /* Message bubble styling */
-        .message-bubble {
+        /* Message wrapper styling - giống index.html */
+        .message-wrapper {
+            margin-bottom: 12px;
             animation: slideIn 0.3s ease;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
         }
+        
+        .message-wrapper.user {
+            text-align: right;
+        }
+        
+        .message-wrapper.bot {
+            text-align: left;
+        }
+        
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -237,15 +245,42 @@
             }
         }
         
-        .user-message {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        /* Message bubble styling - giống index.html */
+        .user-bubble {
+            display: inline-block;
+            background: #3b82f6;  /* Blue-500 giống index */
+            color: white;
+            padding: 8px 12px;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            max-width: 448px;  /* max-w-md */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            text-align: left;
         }
         
-        .bot-message {
-            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        .bot-bubble {
+            display: inline-block;
+            background: #f3f4f6;  /* Gray-100 giống index */
+            color: #1f2937;  /* Gray-800 */
+            padding: 8px 12px;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
+            max-width: 448px;  /* max-w-md */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            overflow: hidden;
+        }
+        
+        /* Responsive sizes */
+        @media (min-width: 768px) {
+            .user-bubble, .bot-bubble {
+                padding: 12px;
+                font-size: 16px;
+                max-width: 672px;  /* max-w-2xl */
+            }
         }
         
         /* Text truncation */
@@ -751,7 +786,6 @@
             
             chatMessages.innerHTML = conversation.messages.map(message => {
                 const isBot = message.sender === 'bot';
-                const alignment = isBot ? 'justify-start' : 'justify-end';
                 
                 // Xử lý nội dung message
                 let contentHtml = '';
@@ -760,7 +794,7 @@
                 if (message.imageUrl) {
                     contentHtml += `<div class="message-image mb-2">
                         <img src="${message.imageUrl}" alt="Uploaded image" 
-                             class="max-w-full md:max-w-xs rounded-lg shadow-md cursor-pointer hover:shadow-xl transition-shadow" 
+                             class="max-w-full rounded-lg shadow-md cursor-pointer hover:shadow-xl transition-shadow" 
                              style="max-height: 200px;" 
                              onclick="openImageModal('${message.imageUrl}')">
                     </div>`;
@@ -773,7 +807,7 @@
                         contentHtml += message.content;
                     } else {
                         // Hiển thị text content với formatting
-                        contentHtml += `<div class="whitespace-pre-wrap break-words leading-relaxed">${message.content}</div>`;
+                        contentHtml += message.content;
                     }
                 }
                 
@@ -783,21 +817,11 @@
                     return '';
                 }
                 
+                // Giống index.html - chỉ wrapper + bubble, không có avatar
                 return `
-                    <div class="flex ${alignment} mb-3 md:mb-4 message-bubble">
-                        <div class="flex ${isBot ? 'flex-row' : 'flex-row-reverse'} items-end gap-2 max-w-full md:max-w-3xl">
-                            <!-- Avatar -->
-                            <div class="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center ${isBot ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'} shadow-md">
-                                <i class="fas ${isBot ? 'fa-robot' : 'fa-user'} text-white text-xs"></i>
-                            </div>
-                            
-                            <!-- Message bubble -->
-                            <div class="flex-1 min-w-0">
-                                <div class="${isBot ? 'bot-message text-gray-800' : 'user-message text-white'} p-3 md:p-4 rounded-2xl ${isBot ? 'rounded-bl-none' : 'rounded-br-none'} shadow-md">
-                                    ${contentHtml}
-                                </div>
-                                <div class="text-xs text-gray-400 mt-1 px-2 ${isBot ? 'text-left' : 'text-right'}">${this.formatTime(message.timestamp)}</div>
-                            </div>
+                    <div class="message-wrapper ${isBot ? 'bot' : 'user'}">
+                        <div class="${isBot ? 'bot-bubble' : 'user-bubble'}">
+                            ${contentHtml}
                         </div>
                     </div>
                 `;

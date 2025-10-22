@@ -304,14 +304,15 @@
         
         if (conversationId) {
           console.log('� Found conversation ID in URL:', conversationId);
-          const found = this.conversations.find(conv => conv.id === conversationId);
+          const foundIndex = this.conversations.findIndex(conv => conv.id === conversationId);
           
-          if (found) {
-            this.currentConversation = found;
+          if (foundIndex !== -1) {
+            // IMPORTANT: Use reference to object in array!
+            this.currentConversation = this.conversations[foundIndex];
             sessionStorage.setItem('agrisense_current_conversation_id', conversationId);
-            console.log('✅ Found conversation:', found.title);
-            console.log('   Messages:', found.messages.length);
-            found.messages.forEach((msg, idx) => {
+            console.log('✅ Found conversation:', this.currentConversation.title);
+            console.log('   Messages:', this.currentConversation.messages.length);
+            this.currentConversation.messages.forEach((msg, idx) => {
               console.log(`   ${idx + 1}. ${msg.sender}: ${msg.content ? msg.content.substring(0, 30) : '(no content)'}, image: ${!!msg.imageUrl}`);
             });
             
@@ -338,9 +339,10 @@
         const currentId = sessionStorage.getItem('agrisense_current_conversation_id');
         if (currentId && this.conversations.length > 0) {
           // Tìm cuộc hội thoại trong danh sách
-          const found = this.conversations.find(conv => conv.id === currentId);
-          if (found) {
-            this.currentConversation = found;
+          const foundIndex = this.conversations.findIndex(conv => conv.id === currentId);
+          if (foundIndex !== -1) {
+            // IMPORTANT: Use reference to object in array!
+            this.currentConversation = this.conversations[foundIndex];
             console.log('🔄 Restored current conversation:', currentId);
             
             // Cập nhật URL
@@ -5556,7 +5558,31 @@
       }
 
       if (imageData) {
-        console.log(' Calling Flask API for image analysis...');
+        console.log('📤 Calling Flask API for image analysis...');
+        
+        // ✅ CREATE TYPING INDICATOR FOR IMAGE ANALYSIS
+        const typingWrapper = document.createElement('div');
+        typingWrapper.className = 'text-left message-wrapper bot';
+        const typingMessageId = 'msg-typing-' + Date.now();
+        typingWrapper.id = typingMessageId;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'inline-block bg-gray-100 p-2 md:p-3 rounded-xl shadow text-gray-800 text-sm md:text-base max-w-md md:max-w-2xl overflow-hidden';
+        
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator';
+        typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+        
+        bubble.appendChild(typingIndicator);
+        typingWrapper.appendChild(bubble);
+        
+        const chatBox = document.getElementById('chat-box');
+        if (chatBox) {
+          chatBox.appendChild(typingWrapper);
+          chatBox.scrollTop = chatBox.scrollHeight;
+          console.log('✅ Typing indicator created for image analysis');
+        }
+        
         try {
           // Call Flask API for image analysis
           const response = await fetch('/api/chat', {
@@ -5578,6 +5604,12 @@
           const result = await response.json();
           console.log('✅ Flask API call completed:', result);
           
+          // Remove typing indicator
+          if (typingWrapper && typingWrapper.parentNode) {
+            typingWrapper.remove();
+            console.log('✅ Typing indicator removed');
+          }
+          
           if (result.success && result.response) {
             await window.appendMessageWithTypewriter('bot', result.response);
           } else {
@@ -5585,6 +5617,12 @@
           }
         } catch (error) {
           console.error('❌ Error calling Flask API:', error);
+          
+          // Remove typing indicator on error
+          if (typingWrapper && typingWrapper.parentNode) {
+            typingWrapper.remove();
+          }
+          
           await window.appendMessageWithTypewriter('bot', '❌ Lỗi kết nối API. Vui lòng thử lại.');
         }
       } else {

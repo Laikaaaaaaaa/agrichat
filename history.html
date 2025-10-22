@@ -268,9 +268,11 @@
         .image-item {
             background: white !important;
             border-radius: 12px !important;
-            padding: 15px !important;
+            padding: 12px !important;
             box-shadow: 0 3px 15px rgba(0,0,0,0.12) !important;
             transition: all 0.3s ease !important;
+            min-height: auto !important;
+            max-height: 280px !important;
         }
         .image-item:hover {
             transform: translateY(-5px) !important;
@@ -278,15 +280,57 @@
         }
         .image-item img {
             width: 100% !important;
-            height: 160px !important;
+            height: 140px !important;
             object-fit: cover !important;
             border-radius: 8px !important;
-            margin-bottom: 10px !important;
+            margin-bottom: 8px !important;
             cursor: pointer !important;
             transition: all 0.3s ease !important;
         }
         .image-item img:hover {
             transform: scale(1.05) !important;
+        }
+        .image-item h4 {
+            font-size: 13px !important;
+            line-height: 1.3 !important;
+            min-height: auto !important;
+            max-height: 32px !important;
+            overflow: hidden !important;
+            margin: 6px 0 !important;
+        }
+        .image-item p {
+            font-size: 11px !important;
+            line-height: 1.3 !important;
+            min-height: auto !important;
+            max-height: 28px !important;
+            overflow: hidden !important;
+            margin: 4px 0 !important;
+        }
+        .image-item small {
+            font-size: 10px !important;
+        }
+        
+        /* Mobile optimization for image galleries */
+        @media (max-width: 768px) {
+            .image-gallery {
+                padding: 15px !important;
+                gap: 12px !important;
+            }
+            .image-item {
+                padding: 10px !important;
+                max-height: 240px !important;
+            }
+            .image-item img {
+                height: 120px !important;
+            }
+            .image-item h4 {
+                font-size: 12px !important;
+                max-height: 28px !important;
+            }
+            .image-item p {
+                font-size: 10px !important;
+                max-height: 24px !important;
+            }
         }
         
         /* Mobile responsive */

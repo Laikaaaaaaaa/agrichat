@@ -5536,8 +5536,12 @@
         
       } else {
         console.log('📤 ===== SENDING TEXT MESSAGE =====');
+        console.log('🔍 About to call appendMessage with:', { sender: 'user', msg, hasMsg: !!msg, msgLength: msg?.length });
+        console.log('🔍 window.appendMessage exists?', typeof window.appendMessage);
+        console.log('🔍 window.chatHistoryManager exists?', !!window.chatHistoryManager);
+        
         const textMessage = await window.appendMessage('user', msg);
-        console.log('✅ Text message sent');
+        console.log('✅ Text message sent, returned:', textMessage);
       }
 
       if (imageData) {

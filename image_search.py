@@ -403,7 +403,7 @@ class ImageSearchEngine:
 
     def search_images(self, query, max_images=4):
         """
-        Tìm kiếm ảnh chính - ưu tiên Google Custom Search API để có 4 ảnh khác nhau
+        Tìm kiếm ảnh chính - ưu tiên tuyệt đối Google Custom Search API
         """
         print(f"🔍 Tìm kiếm {max_images} ảnh cho: {query}")
         
@@ -415,33 +415,26 @@ class ImageSearchEngine:
         
         all_images = []
         
-        # Bước 2: INTENSIVE Google Custom Search - lấy nhiều ảnh để có lựa chọn
-        print("🚀 Phase 1: Intensive Google Custom Search...")
+        # Bước 2: MAXIMUM PRIORITY - Google Custom Search
+        print("🚀 Phase 1: INTENSIVE Google Custom Search (PRIMARY SOURCE)...")
         for search_query in expanded_queries:
-            google_images = self.search_google_images(search_query, 8)  # Tăng lên 8 ảnh mỗi query
+            google_images = self.search_google_images(search_query, 10)  # Tăng lên 10 ảnh mỗi query
             all_images.extend(google_images)
             
-            if len(all_images) >= max_images * 4:  # Lấy gấp 4 lần để có lựa chọn
+            if len(all_images) >= max_images * 5:  # Lấy gấp 5 lần để có nhiều lựa chọn
                 break
         
-        # Bước 3: Openverse Creative Commons fallback
-        if len(all_images) < max_images * 3:
-            print("🎨 Phase 2: Openverse Creative Commons search...")
-            for search_query in expanded_queries[:3]:
-                openverse_images = self.search_openverse_images(search_query, 6)
-                all_images.extend(openverse_images)
-                if len(all_images) >= max_images * 4:
-                    break
-
-        # Bước 4: Nếu vẫn chưa đủ, thêm Wikimedia
+        # Bước 3: Openverse Creative Commons fallback (chỉ khi Google không đủ)
         if len(all_images) < max_images * 2:
-            print("📚 Phase 3: Adding Wikimedia as backup...")
-            for search_query in expanded_queries[:3]:  # Tăng lên 3 query
-                wikimedia_images = self.search_wikimedia_commons(search_query, 2)  # Tăng lên 2 ảnh
-                all_images.extend(wikimedia_images)
-                
+            print("🎨 Phase 2: Openverse Creative Commons fallback...")
+            for search_query in expanded_queries[:2]:
+                openverse_images = self.search_openverse_images(search_query, 8)
+                all_images.extend(openverse_images)
                 if len(all_images) >= max_images * 3:
                     break
+
+        # Bước 4: BỎ QUA WIKIMEDIA - không dùng nữa
+        # (Wikimedia đã được loại bỏ theo yêu cầu người dùng)
         
         all_images = self.deduplicate_images(all_images)
         print(f"🌐 Thu thập được (unique): {len(all_images)} ảnh")

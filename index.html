@@ -1454,7 +1454,7 @@
         bottom:0;
         transform:translateX(calc(-1 * var(--sidebar-w)));
         transition:transform 0.28s ease;
-        z-index:var(--z-sidebar);
+        z-index:4500; /* Mobile: sidebar trên backdrop */
       }
       #sidebar.open{ transform:translateX(0); }
       #sidebar.closed{ transform:translateX(calc(-1 * var(--sidebar-w))); }
@@ -1468,7 +1468,7 @@
         right:0;
         bottom:0;
         background:rgba(0,0,0,0.46);
-        z-index:var(--z-overlay);
+        z-index:4000; /* Mobile: backdrop dưới sidebar */
         pointer-events:auto;
         animation:fadeIn 0.28s ease;
       }

@@ -164,23 +164,40 @@
     
     <!-- Profile Info Container -->
     <div class="px-4 md:px-6 pb-4 border-b border-gray-300">
-      <!-- Avatar Row -->
-      <div class="flex items-end justify-between -mt-16 md:-mt-20">
-        <!-- Avatar Only -->
-        <div class="avatar-wrapper">
-          <img id="profile-avatar" src="" alt="Avatar" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
-          <div id="avatar-placeholder" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
-            ?
+      <!-- Avatar and Name Row -->
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between -mt-16 md:-mt-20 gap-4">
+        <!-- Left: Avatar + Name (horizontal) -->
+        <div class="flex items-end gap-4">
+          <!-- Avatar -->
+          <div class="avatar-wrapper flex-shrink-0">
+            <img id="profile-avatar" src="" alt="Avatar" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
+            <div id="avatar-placeholder" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
+              ?
+            </div>
+            <div id="avatar-edit-btn" class="avatar-edit-btn" onclick="showAvatarOptions()" style="display:none;">
+              <i class="fas fa-camera"></i>
+            </div>
           </div>
-          <div id="avatar-edit-btn" class="avatar-edit-btn" onclick="showAvatarOptions()" style="display:none;">
-            <i class="fas fa-camera"></i>
+          
+          <!-- Name and Stats (right of avatar, aligned to bottom) -->
+          <div class="pb-2 flex-1">
+            <h1 id="profile-name" class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Đang tải...</h1>
+            <p id="profile-email" class="text-gray-600 text-sm mb-2">email@example.com</p>
+            <div class="flex gap-2 text-sm text-gray-600">
+              <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
+              <span>•</span>
+              <span><span class="friends-count font-semibold">0</span> bạn bè</span>
+              <span>•</span>
+              <span><span id="photos-count" class="font-semibold">0</span> ảnh</span>
+            </div>
           </div>
         </div>
         
-        <!-- Action Buttons (Owner View) -->
-        <div id="owner-actions" class="pb-2" style="display:none;">
-          <div class="relative">
-            <button onclick="toggleSettingsMenu()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+        <!-- Right: Action Buttons -->
+        <div class="flex gap-2 pb-2">
+          <!-- Action Buttons (Owner View) -->
+          <div id="owner-actions" class="relative" style="display:none;">
+            <button onclick="toggleSettingsMenu()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
               <i class="fas fa-cog"></i>
               <span class="hidden sm:inline">Chỉnh sửa trang cá nhân</span>
               <span class="sm:hidden">Chỉnh sửa</span>
@@ -207,58 +224,46 @@
               </button>
             </div>
           </div>
-        </div>
-        
-        <!-- Action Buttons (Visitor View) -->
-        <div id="visitor-actions" class="pb-2 flex gap-2" style="display:none;">
-          <!-- Add Friend Button -->
-          <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-            <i class="fas fa-user-plus"></i>
-            <span>Thêm bạn bè</span>
-          </button>
           
-          <!-- Friend Request Sent Button -->
-          <button id="request-sent-btn" onclick="cancelFriendRequest()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-            <i class="fas fa-clock"></i>
-            <span>Đã gửi lời mời</span>
-          </button>
-          
-          <!-- Accept/Reject Friend Request Buttons -->
-          <div id="request-received-btns" class="hidden flex gap-2">
-            <button onclick="acceptFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-              <i class="fas fa-check"></i>
-              <span>Chấp nhận</span>
+          <!-- Action Buttons (Visitor View) -->
+          <div id="visitor-actions" class="flex gap-2" style="display:none;">
+            <!-- Add Friend Button -->
+            <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+              <i class="fas fa-user-plus"></i>
+              <span class="hidden sm:inline">Thêm bạn bè</span>
+              <i class="fas fa-user-plus sm:hidden"></i>
             </button>
-            <button onclick="rejectFriendRequest()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-              <i class="fas fa-times"></i>
-              <span>Từ chối</span>
+            
+            <!-- Friend Request Sent Button -->
+            <button id="request-sent-btn" onclick="cancelFriendRequest()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+              <i class="fas fa-clock"></i>
+              <span class="hidden sm:inline">Đã gửi lời mời</span>
+            </button>
+            
+            <!-- Accept/Reject Friend Request Buttons -->
+            <div id="request-received-btns" class="hidden flex gap-2">
+              <button onclick="acceptFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+                <i class="fas fa-check"></i>
+                <span class="hidden sm:inline">Chấp nhận</span>
+              </button>
+              <button onclick="rejectFriendRequest()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+                <i class="fas fa-times"></i>
+                <span class="hidden sm:inline">Từ chối</span>
+              </button>
+            </div>
+            
+            <!-- Already Friends Button -->
+            <button id="friends-btn" onclick="removeFriend()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+              <i class="fas fa-user-check"></i>
+              <span class="hidden sm:inline">Bạn bè</span>
+            </button>
+            
+            <!-- Message Button -->
+            <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+              <i class="fas fa-comment"></i>
+              <span class="hidden sm:inline">Nhắn tin</span>
             </button>
           </div>
-          
-          <!-- Already Friends Button -->
-          <button id="friends-btn" onclick="removeFriend()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-            <i class="fas fa-user-check"></i>
-            <span>Bạn bè</span>
-          </button>
-          
-          <!-- Message Button -->
-          <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-            <i class="fas fa-comment"></i>
-            <span class="hidden sm:inline">Nhắn tin</span>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Name and Stats Section (below cover) -->
-      <div class="mt-4 mb-2">
-        <h1 id="profile-name" class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Đang tải...</h1>
-        <p id="profile-email" class="text-gray-600 text-sm mb-2">email@example.com</p>
-        <div class="flex gap-2 text-sm text-gray-600">
-          <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
-          <span>•</span>
-          <span><span class="friends-count font-semibold">0</span> bạn bè</span>
-          <span>•</span>
-          <span><span id="photos-count" class="font-semibold">0</span> ảnh</span>
         </div>
       </div>
       
@@ -705,6 +710,13 @@
         
         // Get profile user ID from URL or use current user
         profileUserId = getProfileUserId() || currentUserId;
+        
+        // Update URL to always include user ID (for sharing)
+        const currentPath = window.location.pathname;
+        const expectedPath = `/profile/${profileUserId}`;
+        if (currentPath !== expectedPath) {
+          window.history.replaceState(null, '', expectedPath);
+        }
         
         // Fetch profile data
         const profileResponse = await fetch(`/api/profile/user/${profileUserId}`);

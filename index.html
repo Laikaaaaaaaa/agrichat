@@ -2590,11 +2590,11 @@
     /* Slide down animation for forum notification */
     @keyframes slideDown {
       from {
-        transform: translate(-50%, -100%);
+        transform: translateY(-100%);
         opacity: 0;
       }
       to {
-        transform: translate(-50%, 0);
+        transform: translateY(0);
         opacity: 1;
       }
     }
@@ -2602,21 +2602,21 @@
     /* Slide up animation for forum notification exit */
     @keyframes slideUp {
       from {
-        transform: translate(-50%, 0);
+        transform: translateY(0);
         opacity: 1;
       }
       to {
-        transform: translate(-50%, -100%);
+        transform: translateY(-100%);
         opacity: 0;
       }
     }
     
     .animate-slide-down {
-      animation: slideDown 0.5s ease-out;
+      animation: slideDown 0.4s ease-out;
     }
     
     .animate-slide-up {
-      animation: slideUp 0.5s ease-in;
+      animation: slideUp 0.4s ease-in;
     }
     
     /* Clock visibility only - removed force sidebar visibility */
@@ -2683,17 +2683,18 @@
 </head>
 <body class="bg-green-50 font-sans text-gray-700">
   <!-- Forum Notification Banner -->
-  <div id="forum-notification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-lg p-4 max-w-md mx-4 flex items-center justify-between gap-3 animate-slide-down" style="display: none;">
+  <div id="forum-notification" class="fixed top-20 left-0 right-0 z-50 bg-green-600 text-white px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-4 animate-slide-down" style="display: none;">
     <div class="flex items-center gap-3 flex-1">
-      <i class="fas fa-lightbulb text-yellow-300 text-xl flex-shrink-0"></i>
-      <div class="flex-1">
-        <p class="font-semibold text-sm">Chia sẻ kinh nghiệm của bạn!</p>
-        <p class="text-xs text-green-100">Hãy đặt câu hỏi hoặc chia sẻ kinh nghiệm lên diễn đàn</p>
-      </div>
+      <p class="text-sm md:text-base font-medium">Chia sẻ kinh nghiệm hoặc câu hỏi của bạn lên diễn đàn</p>
     </div>
-    <a href="/forum" class="bg-white text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-colors flex-shrink-0">
-      Thử ngay
-    </a>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <a href="/forum" class="bg-white text-green-600 hover:bg-gray-100 px-4 py-2 rounded font-semibold text-sm transition-colors">
+        Thử ngay
+      </a>
+      <button id="close-forum-notification" class="text-white hover:text-gray-200 text-lg leading-none p-1" title="Đóng">
+        ✕
+      </button>
+    </div>
   </div>
 
   <!-- Header -->
@@ -8166,19 +8167,42 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     if (!notificationShown) {
       // Show the notification
       const notification = document.getElementById('forum-notification');
+      const closeBtn = document.getElementById('close-forum-notification');
+      
       if (notification) {
         notification.style.display = 'flex';
         
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
+        let hideTimeout;
+        
+        // Auto-hide after 10 seconds
+        const scheduleHide = () => {
+          hideTimeout = setTimeout(() => {
+            hideNotification();
+          }, 10000);
+        };
+        
+        // Function to hide notification
+        const hideNotification = () => {
+          clearTimeout(hideTimeout);
           notification.classList.remove('animate-slide-down');
           notification.classList.add('animate-slide-up');
           
           // Hide element after animation completes
           setTimeout(() => {
             notification.style.display = 'none';
-          }, 500);
-        }, 5000);
+          }, 400);
+        };
+        
+        // Close button click handler
+        if (closeBtn) {
+          closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideNotification();
+          });
+        }
+        
+        // Start the auto-hide timer
+        scheduleHide();
       }
       
       // Mark notification as shown in this session

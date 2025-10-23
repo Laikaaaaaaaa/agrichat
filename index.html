@@ -3869,6 +3869,9 @@
     
     <!-- User Authentication Script -->
     <script>
+      // Global variable to track login state
+      let isUserLoggedIn = false;
+      
       // Check if user is logged in
       async function checkUserSession() {
         try {
@@ -3877,35 +3880,43 @@
           
           if (data.success && data.user) {
             // User is logged in
+            isUserLoggedIn = true;
             const userName = data.user.name || data.user.email.split('@')[0];
             const userAvatar = document.querySelector('#user-avatar .w-10');
             const userNameEl = document.getElementById('user-name');
             const userStatusEl = document.getElementById('user-status');
             
-            // Update avatar with first letter of name
-            const firstLetter = userName.charAt(0).toUpperCase();
-            userAvatar.innerHTML = firstLetter;
+            // Update avatar - use image if available, else first letter
+            if (data.user.avatar_url) {
+              userAvatar.innerHTML = `<img src="${data.user.avatar_url}" alt="Avatar" class="w-full h-full rounded-full object-cover">`;
+              userAvatar.classList.remove('bg-green-600');
+            } else {
+              const firstLetter = userName.charAt(0).toUpperCase();
+              userAvatar.innerHTML = firstLetter;
+              userAvatar.classList.add('bg-green-600');
+            }
             
             // Update name and status
             userNameEl.textContent = userName;
             userStatusEl.textContent = data.user.email;
+          } else {
+            isUserLoggedIn = false;
           }
         } catch (error) {
           // User not logged in, keep default state
+          isUserLoggedIn = false;
           console.log('User not logged in');
         }
       }
       
       // Handle user avatar click
       function handleUserClick() {
-        // Check if user is logged in by checking the user name text
-        const userNameEl = document.getElementById('user-name');
-        if (userNameEl.textContent === 'Đăng nhập') {
-          // Not logged in, go to login page
-          window.location.href = '/login';
-        } else {
+        if (isUserLoggedIn) {
           // Logged in, go to profile page
           window.location.href = '/profile';
+        } else {
+          // Not logged in, go to login page
+          window.location.href = '/login';
         }
       }
       

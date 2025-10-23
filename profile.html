@@ -49,6 +49,28 @@
       <!-- Alert Message -->
       <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
       
+      <!-- Avatar Section -->
+      <div class="text-center mb-6">
+        <div class="relative inline-block">
+          <img id="profile-avatar" src="" alt="Avatar" class="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-green-100" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
+          <div id="avatar-placeholder" class="w-24 h-24 rounded-full bg-green-600 text-white flex items-center justify-center text-3xl font-bold mx-auto mb-3" style="display:none;">
+            ?
+          </div>
+        </div>
+        
+        <!-- Upload Buttons -->
+        <input type="file" id="avatar-upload" accept="image/*" class="hidden" />
+        <input type="file" id="avatar-camera" accept="image/*" capture="environment" class="hidden" />
+        <div class="flex gap-2 justify-center mt-3">
+          <button type="button" onclick="document.getElementById('avatar-upload').click()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
+            <i class="fas fa-image mr-1"></i>Chọn ảnh
+          </button>
+          <button type="button" onclick="document.getElementById('avatar-camera').click()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm">
+            <i class="fas fa-camera mr-1"></i>Chụp ảnh
+          </button>
+        </div>
+      </div>
+      
       <form id="profile-form" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -179,6 +201,19 @@
           document.getElementById('name').value = data.user.name || '';
           document.getElementById('created-at').textContent = data.user.created_at ? new Date(data.user.created_at).toLocaleDateString('vi-VN') : '';
           document.getElementById('last-login').textContent = data.user.last_login ? new Date(data.user.last_login).toLocaleDateString('vi-VN') : '';
+          
+          // Load avatar
+          if (data.user.avatar_url) {
+            document.getElementById('profile-avatar').src = data.user.avatar_url;
+            document.getElementById('profile-avatar').style.display = 'block';
+            document.getElementById('avatar-placeholder').style.display = 'none';
+          } else {
+            const userName = data.user.name || data.user.email.split('@')[0];
+            const firstLetter = userName.charAt(0).toUpperCase();
+            document.getElementById('avatar-placeholder').textContent = firstLetter;
+            document.getElementById('profile-avatar').style.display = 'none';
+            document.getElementById('avatar-placeholder').style.display = 'flex';
+          }
         } else {
           window.location.href = '/login';
         }
@@ -186,6 +221,72 @@
         window.location.href = '/login';
       }
     }
+    
+    // Handle avatar upload
+    async function handleAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert('Kích thước ảnh không được vượt quá 5MB', 'error');
+        return;
+      }
+      
+      // Compress and convert to base64
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const maxSize = 400;
+        let width = img.width, height = img.height;
+        
+        // Resize if too large
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (height / width) * maxSize;
+            width = maxSize;
+          } else {
+            width = (width / height) * maxSize;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64
+        const avatar_url = canvas.toDataURL('image/jpeg', 0.8);
+        
+        // Upload to server
+        fetch('/api/auth/update-avatar', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ avatar_url })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('profile-avatar').src = avatar_url;
+            document.getElementById('profile-avatar').style.display = 'block';
+            document.getElementById('avatar-placeholder').style.display = 'none';
+            showAlert('Cập nhật avatar thành công!', 'success');
+          } else {
+            showAlert(data.message || 'Cập nhật avatar thất bại', 'error');
+          }
+        })
+        .catch(error => {
+          showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+        });
+      };
+      
+      img.src = URL.createObjectURL(file);
+    }
+    
+    // Attach event listeners for avatar upload
+    document.getElementById('avatar-upload').addEventListener('change', handleAvatarUpload);
+    document.getElementById('avatar-camera').addEventListener('change', handleAvatarUpload);
     
     // Update profile
     document.getElementById('profile-form').addEventListener('submit', async function(e) {

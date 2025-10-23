@@ -31,6 +31,7 @@ def init_db():
             password_hash TEXT,
             name TEXT,
             google_id TEXT UNIQUE,
+            avatar_url TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_login TIMESTAMP,
             is_active INTEGER DEFAULT 1
@@ -293,7 +294,7 @@ def get_user_profile(user_id):
         cursor = conn.cursor()
         
         cursor.execute(
-            'SELECT id, email, name, created_at, last_login FROM users WHERE id = ?',
+            'SELECT id, email, name, avatar_url, created_at, last_login FROM users WHERE id = ?',
             (user_id,)
         )
         user = cursor.fetchone()
@@ -308,15 +309,16 @@ def get_user_profile(user_id):
                 'id': user[0],
                 'email': user[1],
                 'name': user[2],
-                'created_at': user[3],
-                'last_login': user[4]
+                'avatar_url': user[3],
+                'created_at': user[4],
+                'last_login': user[5]
             }
         }
     
     except Exception as e:
         return {'success': False, 'message': f'Lỗi: {str(e)}'}
 
-def update_user_profile(user_id, name=None):
+def update_user_profile(user_id, name=None, avatar_url=None):
     """Update user profile information"""
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -324,6 +326,9 @@ def update_user_profile(user_id, name=None):
         
         if name:
             cursor.execute('UPDATE users SET name = ? WHERE id = ?', (name, user_id))
+        
+        if avatar_url:
+            cursor.execute('UPDATE users SET avatar_url = ? WHERE id = ?', (avatar_url, user_id))
         
         conn.commit()
         conn.close()
@@ -398,6 +403,7 @@ def verify_google_token(credential):
             'google_id': user_info.get('sub'),
             'email': user_info.get('email'),
             'name': user_info.get('name'),
+            'picture': user_info.get('picture'),
             'email_verified': user_info.get('email_verified')
         }
     except Exception as e:
@@ -427,11 +433,11 @@ def google_login(credential):
         user = cursor.fetchone()
         
         if user:
-            # Update Google ID if not set
+            # Update Google ID and avatar if not set
             user_id, email, name = user
             cursor.execute(
-                'UPDATE users SET google_id = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?',
-                (user_info['google_id'], user_id)
+                'UPDATE users SET google_id = ?, avatar_url = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?',
+                (user_info['google_id'], user_info.get('picture'), user_id)
             )
             conn.commit()
             conn.close()
@@ -448,8 +454,8 @@ def google_login(credential):
         else:
             # Create new user
             cursor.execute(
-                'INSERT INTO users (email, google_id, name, password_hash) VALUES (?, ?, ?, ?)',
-                (user_info['email'], user_info['google_id'], user_info['name'], None)
+                'INSERT INTO users (email, google_id, name, avatar_url, password_hash) VALUES (?, ?, ?, ?, ?)',
+                (user_info['email'], user_info['google_id'], user_info['name'], user_info.get('picture'), None)
             )
             conn.commit()
             user_id = cursor.lastrowid

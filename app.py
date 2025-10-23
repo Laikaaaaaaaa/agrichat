@@ -4142,6 +4142,21 @@ def api_update_profile():
     return jsonify(result)
 
 
+@app.route('/api/auth/update-avatar', methods=['POST'])
+@auth.login_required
+def api_update_avatar():
+    """API cập nhật avatar"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    avatar_url = data.get('avatar_url')
+    
+    if not avatar_url:
+        return jsonify({'success': False, 'message': 'Avatar URL là bắt buộc'})
+    
+    result = auth.update_user_profile(user_id, avatar_url=avatar_url)
+    return jsonify(result)
+
+
 @app.route('/api/auth/change-password', methods=['POST'])
 @auth.login_required
 def api_change_password():

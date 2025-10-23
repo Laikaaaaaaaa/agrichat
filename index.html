@@ -3917,8 +3917,13 @@
       function openSidebar(){
         sidebar.classList.add('open');
         sidebar.classList.remove('closed');
+        sidebar.classList.add('animate-on-load');
         setAria(true);
         applyPush(true);
+        // Remove animation class after animation completes
+        setTimeout(() => {
+          sidebar.classList.remove('animate-on-load');
+        }, 600);
       }
 
       function closeSidebar(){
@@ -3963,17 +3968,12 @@
         lastIsMobile = isMobile;
       });
 
-      // initial state: open on desktop, closed on mobile
+      // initial state: closed on all devices, open with animation on desktop when user clicks
       if (lastIsMobile) {
         closeSidebar();
       } else {
-        // Add animation class for desktop on first load
-        sidebar.classList.add('animate-on-load');
-        openSidebar();
-        // Remove animation class after animation completes so it doesn't repeat on toggle
-        setTimeout(() => {
-          sidebar.classList.remove('animate-on-load');
-        }, 600);
+        // Keep sidebar closed on desktop at first, will open with animation when user clicks menu
+        closeSidebar();
       }
     });
     </script>

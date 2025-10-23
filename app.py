@@ -4262,6 +4262,12 @@ def history():
     return send_from_directory(HERE, 'history.html')
 
 
+@app.route('/forum')
+def forum():
+    """Trang diễn đàn nông nghiệp"""
+    return send_from_directory(HERE, 'forum.html')
+
+
 @app.route('/map_vietnam')
 def map_vietnam():
     """Trang bản đồ Việt Nam"""
@@ -4442,6 +4448,314 @@ def weather():
     except Exception as e:
         logging.error(f"Lỗi weather API: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+# ==================== FORUM API ====================
+
+@app.route('/api/forum/posts', methods=['GET'])
+def get_forum_posts():
+    """Get all forum posts"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all posts with user info and counts
+        cursor.execute('''
+            SELECT 
+                p.id,
+                p.user_id,
+                p.title,
+                p.content,
+                p.image_url,
+                p.tags,
+                p.created_at,
+                u.name as user_name,
+                u.email as user_email,
+                u.avatar_url as user_avatar,
+                (SELECT COUNT(*) FROM forum_likes WHERE post_id = p.id) as likes_count,
+                (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) as comments_count
+            FROM forum_posts p
+            LEFT JOIN users u ON p.user_id = u.id
+            ORDER BY p.created_at DESC
+        ''')
+        
+        posts = []
+        for row in cursor.fetchall():
+            post = {
+                'id': row[0],
+                'user_id': row[1],
+                'title': row[2],
+                'content': row[3],
+                'image_url': row[4],
+                'tags': json.loads(row[5]) if row[5] else [],
+                'created_at': row[6],
+                'user_name': row[7],
+                'user_email': row[8],
+                'user_avatar': row[9],
+                'likes_count': row[10],
+                'comments_count': row[11],
+                'user_liked': False
+            }
+            
+            # Check if current user liked this post
+            if 'user_id' in session:
+                cursor.execute('''
+                    SELECT id FROM forum_likes 
+                    WHERE post_id = ? AND user_id = ?
+                ''', (post['id'], session['user_id']))
+                post['user_liked'] = cursor.fetchone() is not None
+            
+            posts.append(post)
+        
+        # Get total users count
+        cursor.execute('SELECT COUNT(*) FROM users')
+        total_users = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'posts': posts,
+            'total_users': total_users
+        })
+    except Exception as e:
+        logging.error(f"Error getting forum posts: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/posts', methods=['POST'])
+def create_forum_post():
+    """Create a new forum post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        image_url = data.get('image_url')
+        tags = data.get('tags', [])
+        
+        if not content:
+            return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO forum_posts (user_id, title, content, image_url, tags, created_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+        ''', (session['user_id'], title, content, image_url, json.dumps(tags)))
+        
+        post_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'post_id': post_id})
+    except Exception as e:
+        logging.error(f"Error creating forum post: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/posts/<int:post_id>', methods=['DELETE'])
+def delete_forum_post(post_id):
+    """Delete a forum post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if user owns this post
+        cursor.execute('SELECT user_id FROM forum_posts WHERE id = ?', (post_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'success': False, 'message': 'Bài viết không tồn tại'}), 404
+        
+        if row[0] != session['user_id']:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bài viết này'}), 403
+        
+        # Delete post and related data
+        cursor.execute('DELETE FROM forum_comments WHERE post_id = ?', (post_id,))
+        cursor.execute('DELETE FROM forum_likes WHERE post_id = ?', (post_id,))
+        cursor.execute('DELETE FROM forum_posts WHERE id = ?', (post_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Error deleting forum post: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/posts/<int:post_id>/like', methods=['POST'])
+def toggle_forum_like(post_id):
+    """Toggle like on a post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if already liked
+        cursor.execute('''
+            SELECT id FROM forum_likes 
+            WHERE post_id = ? AND user_id = ?
+        ''', (post_id, session['user_id']))
+        
+        existing_like = cursor.fetchone()
+        
+        if existing_like:
+            # Unlike
+            cursor.execute('DELETE FROM forum_likes WHERE id = ?', (existing_like[0],))
+            action = 'unliked'
+        else:
+            # Like
+            cursor.execute('''
+                INSERT INTO forum_likes (post_id, user_id, created_at)
+                VALUES (?, ?, datetime('now'))
+            ''', (post_id, session['user_id']))
+            action = 'liked'
+        
+        # Get updated like count
+        cursor.execute('SELECT COUNT(*) FROM forum_likes WHERE post_id = ?', (post_id,))
+        likes_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'action': action,
+            'likes_count': likes_count
+        })
+    except Exception as e:
+        logging.error(f"Error toggling like: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/posts/<int:post_id>/comments', methods=['GET'])
+def get_forum_comments(post_id):
+    """Get comments for a post"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                c.id,
+                c.user_id,
+                c.content,
+                c.created_at,
+                u.name as user_name,
+                u.email as user_email,
+                u.avatar_url as user_avatar
+            FROM forum_comments c
+            LEFT JOIN users u ON c.user_id = u.id
+            WHERE c.post_id = ?
+            ORDER BY c.created_at ASC
+        ''', (post_id,))
+        
+        comments = []
+        for row in cursor.fetchall():
+            comments.append({
+                'id': row[0],
+                'user_id': row[1],
+                'content': row[2],
+                'created_at': row[3],
+                'user_name': row[4],
+                'user_email': row[5],
+                'user_avatar': row[6]
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'comments': comments})
+    except Exception as e:
+        logging.error(f"Error getting comments: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/posts/<int:post_id>/comments', methods=['POST'])
+def create_forum_comment(post_id):
+    """Create a comment on a post"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO forum_comments (post_id, user_id, content, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+        ''', (post_id, session['user_id'], content))
+        
+        comment_id = cursor.lastrowid
+        
+        # Get updated comment count
+        cursor.execute('SELECT COUNT(*) FROM forum_comments WHERE post_id = ?', (post_id,))
+        comments_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'comment_id': comment_id,
+            'comments_count': comments_count
+        })
+    except Exception as e:
+        logging.error(f"Error creating comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/posts/<int:post_id>/comments/<int:comment_id>', methods=['DELETE'])
+def delete_forum_comment(post_id, comment_id):
+    """Delete a comment"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if user owns this comment
+        cursor.execute('SELECT user_id FROM forum_comments WHERE id = ?', (comment_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
+        
+        if row[0] != session['user_id']:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bình luận này'}), 403
+        
+        cursor.execute('DELETE FROM forum_comments WHERE id = ?', (comment_id,))
+        
+        # Get updated comment count
+        cursor.execute('SELECT COUNT(*) FROM forum_comments WHERE post_id = ?', (post_id,))
+        comments_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'comments_count': comments_count
+        })
+    except Exception as e:
+        logging.error(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 def should_enable_debug() -> bool:

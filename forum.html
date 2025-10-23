@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- WebView Optimization -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  <title>Diễn đàn Nông nghiệp - AgriSense AI</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <style>
+    /* WebView Optimization */
+    * {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      -webkit-touch-callout: none;
+    }
+    
+    html {
+      height: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    
+    body {
+      min-height: 100%;
+      overflow-x: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #f0fdf4;
+    }
+    
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    img {
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    
+    .post-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .post-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .create-post-textarea {
+      resize: none;
+      transition: all 0.3s;
+    }
+    
+    .create-post-textarea:focus {
+      outline: none;
+      border-color: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+    }
+    
+    .like-btn.liked {
+      color: #16a34a;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.2s;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in-up {
+      animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #10b981;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-green-50 font-sans text-gray-700">
+  
+  <!-- Header - matching news.html style -->
+  <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
+    <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
+      <div class="flex items-center gap-3">
+        <!-- Back button -->
+        <button onclick="goBack()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <!-- Logo -->
+        <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="h-12 md:h-14 w-auto object-contain">
+      </div>
+      <span class="text-xs md:text-sm text-gray-500 hidden md:block">Diễn đàn nông nghiệp cộng đồng</span>
+      <div class="flex items-center gap-2 md:gap-4">
+        <!-- User Avatar -->
+        <div id="user-section" class="cursor-pointer" onclick="handleUserClick()">
+          <div id="user-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold shadow-lg hover:shadow-xl transition-shadow">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="max-w-4xl mx-auto px-4 py-6">
+    
+    <!-- Create Post Card -->
+    <div class="bg-white rounded-2xl shadow-md p-4 mb-6">
+      <div class="flex gap-3">
+        <div id="create-post-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+          <i class="fas fa-user"></i>
+        </div>
+        <button onclick="openCreatePostModal()" class="flex-1 text-left px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
+          Bạn đang nghĩ gì về nông nghiệp?
+        </button>
+      </div>
+      
+      <div class="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+        <button onclick="openCreatePostModal('image')" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+          <i class="fas fa-image text-green-600"></i>
+          <span class="font-medium">Ảnh</span>
+        </button>
+        <button onclick="openCreatePostModal('poll')" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+          <i class="fas fa-poll text-blue-600"></i>
+          <span class="font-medium">Khảo sát</span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Filter Tabs -->
+    <div class="bg-white rounded-2xl shadow-md mb-6 p-2 flex gap-2">
+      <button class="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg font-medium">
+        <i class="fas fa-fire mr-2"></i>Mới nhất
+      </button>
+      <button class="flex-1 py-2 px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600">
+        <i class="fas fa-star mr-2"></i>Phổ biến
+      </button>
+      <button class="flex-1 py-2 px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600">
+        <i class="fas fa-question-circle mr-2"></i>Câu hỏi
+      </button>
+    </div>
+    
+    <!-- Posts List -->
+    <div id="posts-container">
+      <!-- Loading spinner -->
+      <div class="flex justify-center py-8">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    
+    <!-- Load More -->
+    <div class="text-center py-4">
+      <button class="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full shadow-md font-medium transition-colors">
+        Xem thêm bài viết
+      </button>
+    </div>
+    
+  </div>
+  
+  <!-- Create Post Modal -->
+  <div id="create-post-modal" class="modal">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h2 class="text-xl font-bold text-gray-800">Tạo bài viết</h2>
+        <button onclick="closeCreatePostModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-4">
+        <!-- User Info -->
+        <div class="flex items-center gap-3 mb-4">
+          <div id="modal-user-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+            <i class="fas fa-user"></i>
+          </div>
+          <div>
+            <h3 id="modal-user-name" class="font-semibold text-gray-800">Đang tải...</h3>
+          </div>
+        </div>
+        
+        <!-- Post Title -->
+        <div class="mb-3">
+          <input 
+            type="text" 
+            id="post-title" 
+            placeholder="Tiêu đề bài viết (tùy chọn)"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600"
+          />
+        </div>
+        
+        <!-- Post Content -->
+        <textarea 
+          id="post-content" 
+          rows="6" 
+          placeholder="Chia sẻ suy nghĩ của bạn về nông nghiệp..."
+          class="create-post-textarea w-full px-4 py-3 border border-gray-300 rounded-lg"
+        ></textarea>
+        
+        <!-- Image Upload Preview -->
+        <div id="image-preview-container" class="hidden mb-3">
+          <div class="relative">
+            <img id="image-preview" src="" alt="Preview" class="w-full rounded-lg max-h-96 object-cover" />
+            <button onclick="removeImage()" class="absolute top-2 right-2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100">
+              <i class="fas fa-times text-gray-600"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Tags Input -->
+        <div class="mb-3">
+          <input 
+            type="text" 
+            id="post-tags" 
+            placeholder="Thêm thẻ (cách nhau bằng dấu phẩy). VD: lúa, trồng trọt, sâu bệnh"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm"
+          />
+        </div>
+        
+        <!-- Add to Post -->
+        <div class="border border-gray-300 rounded-lg p-3 mb-4">
+          <p class="text-sm font-medium text-gray-700 mb-2">Thêm vào bài viết</p>
+          <div class="flex gap-2">
+            <button onclick="selectPostImage()" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <i class="fas fa-image text-green-600"></i>
+              <span class="text-sm">Ảnh</span>
+            </button>
+            <button class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <i class="fas fa-poll text-blue-600"></i>
+              <span class="text-sm">Khảo sát</span>
+            </button>
+            <button class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <i class="fas fa-map-marker-alt text-red-600"></i>
+              <span class="text-sm">Vị trí</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Submit Button -->
+        <button onclick="submitPost()" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors">
+          Đăng bài
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Hidden File Input -->
+  <input type="file" id="post-image-input" accept="image/*" class="hidden" />
+  
+  <script>
+    let isUserLoggedIn = false;
+    let currentUser = null;
+    let selectedImage = null;
+    let allPosts = [];
+    let currentFilter = 'latest';
+    
+    // Back button
+    function goBack() {
+      window.history.back();
+    }
+    
+    // Check user session
+    async function checkUserSession() {
+      try {
+        const response = await fetch('/api/auth/profile');
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+          isUserLoggedIn = true;
+          currentUser = data.user;
+          const userName = data.user.name || data.user.email.split('@')[0];
+          
+          // Update avatars
+          const updateAvatar = (element, user) => {
+            if (!element) return;
+            if (user.avatar_url) {
+              element.innerHTML = `<img src="${user.avatar_url}" class="w-full h-full rounded-full object-cover" />`;
+            } else {
+              const firstLetter = userName.charAt(0).toUpperCase();
+              element.textContent = firstLetter;
+            }
+          };
+          
+          updateAvatar(document.getElementById('user-avatar'), data.user);
+          updateAvatar(document.getElementById('create-post-avatar'), data.user);
+          updateAvatar(document.getElementById('modal-user-avatar'), data.user);
+          
+          const nameEl = document.getElementById('modal-user-name');
+          if (nameEl) nameEl.textContent = userName;
+        }
+      } catch (error) {
+        console.log('User not logged in');
+      }
+    }
+    
+    function handleUserClick() {
+      if (isUserLoggedIn) {
+        window.location.href = '/profile';
+      } else {
+        window.location.href = '/login';
+      }
+    }
+    
+    // Load all posts
+    async function loadPosts() {
+      try {
+        const response = await fetch('/api/forum/posts');
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts;
+          renderPosts(allPosts);
+          updateOnlineCount(data.total_users || 0);
+        }
+      } catch (error) {
+        console.error('Error loading posts:', error);
+        document.getElementById('posts-container').innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <i class="fas fa-exclamation-triangle text-red-600 text-2xl mb-2"></i>
+            <p class="text-red-800">Không thể tải bài viết. Vui lòng thử lại sau.</p>
+          </div>
+        `;
+      }
+    }
+    
+    // Render posts
+    function renderPosts(posts) {
+      const container = document.getElementById('posts-container');
+      
+      if (!posts || posts.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl shadow-md p-8 text-center">
+            <i class="fas fa-inbox text-gray-300 text-5xl mb-4"></i>
+            <p class="text-gray-500 text-lg">Chưa có bài viết nào</p>
+            <p class="text-gray-400 text-sm mt-2">Hãy là người đầu tiên chia sẻ!</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = posts.map(post => createPostHTML(post)).join('');
+    }
+    
+    // Create post HTML
+    function createPostHTML(post) {
+      const userName = post.user_name || post.user_email?.split('@')[0] || 'Người dùng';
+      const userAvatar = post.user_avatar 
+        ? `<img src="${post.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+        : `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+      
+      const timeAgo = getTimeAgo(post.created_at);
+      const isLiked = post.user_liked ? 'liked' : '';
+      const likeIconClass = post.user_liked ? 'fas' : 'far';
+      
+      const imageHTML = post.image_url 
+        ? `<img src="${post.image_url}" alt="Post image" class="w-full rounded-xl object-cover max-h-96 mb-3 pointer-events-auto" />`
+        : '';
+      
+      const tagsHTML = post.tags && post.tags.length > 0
+        ? `<div class="flex gap-2 mb-3 flex-wrap">
+            ${post.tags.map(tag => `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">#${tag}</span>`).join('')}
+           </div>`
+        : '';
+      
+      const titleHTML = post.title 
+        ? `<h2 class="text-lg font-semibold text-gray-800 mb-2">${escapeHtml(post.title)}</h2>`
+        : '';
+      
+      return `
+        <div class="post-card bg-white rounded-2xl shadow-md p-4 mb-4 fade-in-up" data-post-id="${post.id}">
+          <!-- Post Header -->
+          <div class="flex items-center gap-3 mb-3">
+            ${userAvatar}
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-800">${escapeHtml(userName)}</h3>
+              <p class="text-xs text-gray-500">
+                <i class="far fa-clock mr-1"></i>${timeAgo}
+              </p>
+            </div>
+            ${currentUser && currentUser.id === post.user_id ? `
+              <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors">
+                <i class="fas fa-trash"></i>
+              </button>
+            ` : ''}
+          </div>
+          
+          <!-- Post Content -->
+          <div class="mb-3">
+            ${titleHTML}
+            <p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+          </div>
+          
+          ${imageHTML}
+          ${tagsHTML}
+          
+          <!-- Post Stats -->
+          <div class="flex items-center gap-4 text-sm text-gray-500 py-2 border-y border-gray-200 mb-2">
+            <span><i class="fas fa-thumbs-up text-green-600"></i> ${post.likes_count || 0} thích</span>
+            <span><i class="fas fa-comment"></i> ${post.comments_count || 0} bình luận</span>
+          </div>
+          
+          <!-- Post Actions -->
+          <div class="flex gap-2">
+            <button onclick="toggleLike(${post.id})" class="like-btn ${isLiked} flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+              <i class="${likeIconClass} fa-thumbs-up"></i>
+              <span class="font-medium">Thích</span>
+            </button>
+            <button onclick="toggleComments(${post.id})" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+              <i class="far fa-comment"></i>
+              <span class="font-medium">Bình luận</span>
+            </button>
+          </div>
+          
+          <!-- Comments Section -->
+          <div id="comments-${post.id}" class="comments-section hidden mt-4 pt-4 border-t border-gray-200">
+            <div class="comments-list mb-3" id="comments-list-${post.id}">
+              <!-- Comments will be loaded here -->
+            </div>
+            ${isUserLoggedIn ? `
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  id="comment-input-${post.id}"
+                  placeholder="Viết bình luận..." 
+                  class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-green-600"
+                  onkeypress="if(event.key==='Enter') submitComment(${post.id})"
+                />
+                <button onclick="submitComment(${post.id})" class="px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            ` : `
+              <p class="text-center text-gray-500 text-sm">
+                <a href="/login" class="text-green-600 hover:underline">Đăng nhập</a> để bình luận
+              </p>
+            `}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Get time ago
+    function getTimeAgo(dateString) {
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+      
+      if (seconds < 60) return 'Vừa xong';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} phút trước`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} giờ trước`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return `${days} ngày trước`;
+      const months = Math.floor(days / 30);
+      if (months < 12) return `${months} tháng trước`;
+      const years = Math.floor(months / 12);
+      return `${years} năm trước`;
+    }
+    
+    // Update online count
+    function updateOnlineCount(count) {
+      const el = document.getElementById('online-count');
+      if (el) el.textContent = count;
+    }
+    
+    // Create Post Modal
+    function openCreatePostModal(type) {
+      if (!isUserLoggedIn) {
+        alert('Vui lòng đăng nhập để đăng bài');
+        window.location.href = '/login';
+        return;
+      }
+      document.getElementById('create-post-modal').classList.add('active');
+      if (type === 'image') {
+        selectPostImage();
+      }
+    }
+    
+    function closeCreatePostModal() {
+      document.getElementById('create-post-modal').classList.remove('active');
+      // Reset form
+      document.getElementById('post-title').value = '';
+      document.getElementById('post-content').value = '';
+      document.getElementById('post-tags').value = '';
+      removeImage();
+    }
+    
+    function selectPostImage() {
+      document.getElementById('post-image-input').click();
+    }
+    
+    // Handle image selection
+    document.getElementById('post-image-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        selectedImage = event.target.result;
+        document.getElementById('image-preview').src = selectedImage;
+        document.getElementById('image-preview-container').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    function removeImage() {
+      selectedImage = null;
+      document.getElementById('image-preview').src = '';
+      document.getElementById('image-preview-container').classList.add('hidden');
+      document.getElementById('post-image-input').value = '';
+    }
+    
+    // Submit post
+    async function submitPost() {
+      const title = document.getElementById('post-title').value.trim();
+      const content = document.getElementById('post-content').value.trim();
+      const tags = document.getElementById('post-tags').value.trim();
+      
+      if (!content) {
+        alert('Vui lòng nhập nội dung bài viết');
+        return;
+      }
+      
+      const postData = {
+        title,
+        content,
+        tags: tags.split(',').map(t => t.trim()).filter(t => t),
+        image_url: selectedImage
+      };
+      
+      try {
+        const response = await fetch('/api/forum/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          closeCreatePostModal();
+          loadPosts(); // Reload posts
+          showAlert('Đăng bài thành công!', 'success');
+        } else {
+          showAlert(data.message || 'Đăng bài thất bại', 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting post:', error);
+        showAlert('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
+      }
+    }
+    
+    // Toggle like
+    async function toggleLike(postId) {
+      if (!isUserLoggedIn) {
+        alert('Vui lòng đăng nhập để thích bài viết');
+        window.location.href = '/login';
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/like`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Update UI
+          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+          const likeBtn = postCard.querySelector('.like-btn');
+          const likeIcon = likeBtn.querySelector('i');
+          const likesCount = postCard.querySelector('.fa-thumbs-up').parentElement;
+          
+          if (data.action === 'liked') {
+            likeBtn.classList.add('liked');
+            likeIcon.classList.remove('far');
+            likeIcon.classList.add('fas');
+          } else {
+            likeBtn.classList.remove('liked');
+            likeIcon.classList.remove('fas');
+            likeIcon.classList.add('far');
+          }
+          
+          likesCount.innerHTML = `<i class="fas fa-thumbs-up text-green-600"></i> ${data.likes_count} thích`;
+        }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+      }
+    }
+    
+    // Toggle comments section
+    async function toggleComments(postId) {
+      const commentsSection = document.getElementById(`comments-${postId}`);
+      
+      if (commentsSection.classList.contains('hidden')) {
+        commentsSection.classList.remove('hidden');
+        loadComments(postId);
+      } else {
+        commentsSection.classList.add('hidden');
+      }
+    }
+    
+    // Load comments
+    async function loadComments(postId) {
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const commentsList = document.getElementById(`comments-list-${postId}`);
+          
+          if (data.comments.length === 0) {
+            commentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">Chưa có bình luận nào</p>';
+          } else {
+            commentsList.innerHTML = data.comments.map(comment => createCommentHTML(comment, postId)).join('');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading comments:', error);
+      }
+    }
+    
+    // Create comment HTML
+    function createCommentHTML(comment, postId) {
+      const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+      const userAvatar = comment.user_avatar
+        ? `<img src="${comment.user_avatar}" class="w-8 h-8 rounded-full object-cover" />`
+        : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+      
+      const timeAgo = getTimeAgo(comment.created_at);
+      
+      return `
+        <div class="flex gap-2 mb-3">
+          ${userAvatar}
+          <div class="flex-1">
+            <div class="bg-gray-100 rounded-2xl px-4 py-2">
+              <p class="font-semibold text-sm text-gray-800">${escapeHtml(userName)}</p>
+              <p class="text-gray-700">${escapeHtml(comment.content)}</p>
+            </div>
+            <div class="flex gap-3 text-xs text-gray-500 mt-1 ml-4">
+              <span>${timeAgo}</span>
+              ${currentUser && currentUser.id === comment.user_id ? `
+                <button onclick="deleteComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Submit comment
+    async function submitComment(postId) {
+      const input = document.getElementById(`comment-input-${postId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          loadComments(postId);
+          
+          // Update comment count
+          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+          const commentCount = postCard.querySelector('.fa-comment').parentElement;
+          commentCount.innerHTML = `<i class="fas fa-comment"></i> ${data.comments_count} bình luận`;
+        }
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+      }
+    }
+    
+    // Delete post
+    async function deletePost(postId) {
+      if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadPosts();
+          showAlert('Đã xóa bài viết', 'success');
+        }
+      } catch (error) {
+        console.error('Error deleting post:', error);
+      }
+    }
+    
+    // Delete comment
+    async function deleteComment(postId, commentId) {
+      if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments/${commentId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadComments(postId);
+          
+          // Update comment count
+          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+          const commentCount = postCard.querySelector('.fa-comment').parentElement;
+          commentCount.innerHTML = `<i class="fas fa-comment"></i> ${data.comments_count} bình luận`;
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+      }
+    }
+    
+    // Show alert
+    function showAlert(message, type = 'success') {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+      } text-white`;
+      alertDiv.textContent = message;
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => alertDiv.remove(), 3000);
+    }
+    
+    // Close modal on background click
+    document.getElementById('create-post-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeCreatePostModal();
+    });
+    
+    // Initialize
+    checkUserSession().then(() => {
+      loadPosts();
+    });
+  </script>
+  
+</body>
+</html>

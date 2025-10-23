@@ -1776,6 +1776,10 @@
 
     /* Desktop: transform-based push/pull (no width or margin changes) */
     @media (min-width:768px){
+      #main-container {
+        position: relative;
+        overflow: hidden;
+      }
       #sidebar{ 
         position:absolute; 
         top:0; 
@@ -1783,7 +1787,7 @@
         left:0; 
         transform:translateX(0);
         transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        clip-path: inset(0 0 0 0);
+        max-width: var(--sidebar-w);
       }
       #sidebar.closed{ transform:translateX(calc(-1 * var(--sidebar-w))); }
       #sidebar.open{ transform:translateX(0); }
@@ -1817,22 +1821,6 @@
         animation:fadeIn 0.28s ease;
       }
       @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
-    }
-
-    /* Sidebar opening animation on page load */
-    @keyframes sidebarSlideIn {
-      from {
-        transform: translateX(calc(-1 * var(--sidebar-w)));
-      }
-      to {
-        transform: translateX(0);
-      }
-    }
-
-    #sidebar.open.animate-on-load {
-      animation: sidebarSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-      overflow: hidden;
-      clip-path: inset(0 0 0 0);
     }
 
     /* Chat area */
@@ -3880,7 +3868,6 @@
       const mainContainer = document.getElementById('main-container');
   const MOBILE_BP = 768;
   let lastIsMobile = window.innerWidth < MOBILE_BP;
-  let isInitialLoad = true;  // Track if this is the first load
 
       if (!menuToggle || !sidebar || !mainContainer) {
         console.error('Sidebar init failed - missing elements', {menuToggle:!!menuToggle, sidebar:!!sidebar, mainContainer:!!mainContainer});
@@ -3920,21 +3907,8 @@
       function openSidebar(){
         sidebar.classList.add('open');
         sidebar.classList.remove('closed');
-        // Only add animation class on initial load, not on toggle
-        if (isInitialLoad) {
-          sidebar.classList.add('animate-on-load');
-        }
         setAria(true);
         applyPush(true);
-        // Remove animation class after animation completes
-        if (isInitialLoad) {
-          setTimeout(() => {
-            sidebar.classList.remove('animate-on-load');
-            isInitialLoad = false;
-          }, 600);
-        } else {
-          isInitialLoad = false;
-        }
       }
 
       function closeSidebar(){
@@ -3983,8 +3957,7 @@
       if (lastIsMobile) {
         closeSidebar();
       } else {
-        // Open sidebar with animation on desktop at first load
-        sidebar.classList.add('animate-on-load');
+        // Open sidebar on desktop
         openSidebar();
       }
     });

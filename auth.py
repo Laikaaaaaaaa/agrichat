@@ -137,7 +137,7 @@ def register_user_init(email, password, name=None):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO otp_codes (email, code, expires_at) VALUES (?, ?, datetime("now", "+10 minutes"))',
+            'INSERT INTO otp_codes (email, otp_code, expires_at) VALUES (?, ?, datetime("now", "+10 minutes"))',
             (email, otp_code)
         )
         conn.commit()
@@ -237,7 +237,7 @@ def login_user_init(email, password):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO otp_codes (email, code, expires_at) VALUES (?, ?, datetime("now", "+10 minutes"))',
+            'INSERT INTO otp_codes (email, otp_code, expires_at) VALUES (?, ?, datetime("now", "+10 minutes"))',
             (email, otp_code)
         )
         conn.commit()

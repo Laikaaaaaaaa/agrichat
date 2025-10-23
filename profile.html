@@ -2107,8 +2107,20 @@
       photosGrid.innerHTML = '<div class="col-span-full flex justify-center py-8"><div class="loading-spinner"></div></div>';
       
       try {
-        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}&t=${Date.now()}`);
+        console.log('loadAllPhotos called');
+        console.log('profileUserId at loadAllPhotos:', profileUserId);
+        console.log('currentUserId:', currentUserId);
+        
+        const url = `/api/profile/photos?user_id=${profileUserId}&t=${Date.now()}`;
+        console.log('loadAllPhotos API URL:', url);
+        
+        const response = await fetch(url);
         const data = await response.json();
+        
+        console.log('loadAllPhotos response:', data);
+        if (data.photos && data.photos.length > 0) {
+          console.log('Photo user IDs from API:', data.photos.map(p => p.user_id));
+        }
         
         if (data.success && data.photos && data.photos.length > 0) {
           photosGrid.innerHTML = data.photos.map(photo => `

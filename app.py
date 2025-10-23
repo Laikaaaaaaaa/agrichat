@@ -4721,7 +4721,10 @@ def get_forum_posts():
                 'comments_count': row[11],
                 'poll': json.loads(row[12]) if row[12] else None,
                 'location': json.loads(row[13]) if row[13] else None,
-                'user_liked': False
+                'user_liked': False,
+                'user_voted': False,
+                'user_voted_option': None,
+                'poll_vote_counts': []
             }
             
             # Check if current user liked this post
@@ -4731,6 +4734,42 @@ def get_forum_posts():
                     WHERE post_id = ? AND user_id = ?
                 ''', (post['id'], session['user_id']))
                 post['user_liked'] = cursor.fetchone() is not None
+                
+                # Check if user voted on poll
+                if post['poll']:
+                    cursor.execute('''
+                        SELECT option_index FROM forum_poll_votes 
+                        WHERE post_id = ? AND user_id = ?
+                    ''', (post['id'], session['user_id']))
+                    vote_row = cursor.fetchone()
+                    if vote_row:
+                        post['user_voted'] = True
+                        post['user_voted_option'] = vote_row[0]
+            
+            # Get poll vote counts
+            if post['poll']:
+                cursor.execute('''
+                    SELECT option_index, COUNT(*) as count FROM forum_poll_votes 
+                    WHERE post_id = ?
+                    GROUP BY option_index
+                ''', (post['id'],))
+                
+                vote_counts = {}
+                total_votes = 0
+                for vote_row in cursor.fetchall():
+                    vote_counts[vote_row[0]] = vote_row[1]
+                    total_votes += vote_row[1]
+                
+                # Create vote count list with percentages
+                post['poll_vote_counts'] = []
+                for i in range(len(post['poll']['options'])):
+                    count = vote_counts.get(i, 0)
+                    percentage = (count / total_votes * 100) if total_votes > 0 else 0
+                    post['poll_vote_counts'].append({
+                        'count': count,
+                        'percentage': round(percentage, 1)
+                    })
+                post['total_poll_votes'] = total_votes
             
             posts.append(post)
         

@@ -93,16 +93,16 @@ function displayPhotoModal(photo) {
   const likeButtonClass = photo.user_liked ? 'text-red-600' : 'text-gray-600';
   
   modal.innerHTML = `
-    <div class="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onclick="if(event.target === this) closePhotoModal()">
-      <div class="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row" onclick="event.stopPropagation()">
+    <div class="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2" onclick="if(event.target === this) closePhotoModal()">
+      <div class="bg-white rounded-xl w-[95vw] h-[95vh] overflow-hidden flex flex-col lg:flex-row" onclick="event.stopPropagation()">
         
         <!-- Left: Image -->
-        <div class="md:w-2/3 bg-black flex items-center justify-center p-4">
-          <img src="${photo.photo_url}" alt="${photo.caption || 'Photo'}" class="max-w-full max-h-[80vh] object-contain">
+        <div class="lg:w-[65%] bg-black flex items-center justify-center p-4">
+          <img src="${photo.photo_url}" alt="${photo.caption || 'Photo'}" class="max-w-full max-h-full object-contain">
         </div>
         
         <!-- Right: Info & Comments -->
-        <div class="md:w-1/3 flex flex-col max-h-[90vh]">
+        <div class="lg:w-[35%] flex flex-col h-full">
           <!-- Header -->
           <div class="p-4 border-b border-gray-200 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -201,6 +201,12 @@ async function loadPhotoComments(photoId) {
 function displayPhotoComments(comments, photoId) {
   const container = document.getElementById('photo-comments-section');
   if (!container) return;
+  
+  // Update comments count in header
+  const countElement = document.getElementById('photo-comments-count');
+  if (countElement) {
+    countElement.textContent = comments.length;
+  }
   
   if (comments.length === 0) {
     container.innerHTML = '<p class="text-gray-500 text-center text-sm">Chưa có bình luận nào</p>';

@@ -893,6 +893,23 @@
       </div>
     </div>
   </div>
+
+  <!-- Share Options Modal -->
+  <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onclick="closeShareModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 text-center">
+        <h3 class="text-lg font-semibold text-white">Chia sẻ bài viết</h3>
+      </div>
+      
+      <!-- Share Options -->
+      <div class="p-8">
+        <div id="share-options" class="flex justify-center items-center gap-4 flex-wrap">
+          <!-- Options will be inserted by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
   
   <script>
     let cropper = null;
@@ -1363,26 +1380,53 @@
       
       container.innerHTML = notifications.map(notif => {
         const avatar = notif.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notif.user.name)}&background=16a34a&color=fff&size=40`;
-        const timeAgo = getTimeAgo(notif.created_at); // Don't wrap in new Date()
+        const timeAgo = getTimeAgo(notif.created_at);
+        
+        let message = '';
+        let actionButtons = '';
+        let isClickable = true;
+        
+        if (notif.type === 'friend_request') {
+          message = `<span class="font-semibold">${notif.user.name}</span><span class="text-gray-600"> đã gửi lời mời kết bạn</span>`;
+          actionButtons = `
+            <div class="flex gap-2 mt-2">
+              <button onclick="event.stopPropagation(); acceptFriendRequestFromNotif(${notif.id})" class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                Chấp nhận
+              </button>
+              <button onclick="event.stopPropagation(); rejectFriendRequestFromNotif(${notif.id})" class="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300">
+                Từ chối
+              </button>
+            </div>
+          `;
+        } else if (notif.type === 'friend_accept') {
+          message = `<span class="font-semibold">${notif.user.name}</span><span class="text-gray-600"> đã chấp nhận lời mời kết bạn của bạn</span>`;
+          isClickable = true;
+        } else if (notif.type === 'post_like') {
+          message = `<span class="font-semibold">${notif.user.name}</span><span class="text-gray-600"> đã thích bài viết của bạn</span>`;
+          isClickable = true;
+        } else if (notif.type === 'post_comment') {
+          message = `<span class="font-semibold">${notif.user.name}</span><span class="text-gray-600"> đã bình luận bài viết của bạn</span>`;
+          isClickable = true;
+        } else if (notif.type === 'photo_like') {
+          message = `<span class="font-semibold">${notif.user.name}</span><span class="text-gray-600"> đã thích ảnh của bạn</span>`;
+          isClickable = true;
+        } else if (notif.type === 'photo_comment') {
+          message = `<span class="font-semibold">${notif.user.name}</span><span class="text-gray-600"> đã bình luận ảnh của bạn</span>`;
+          isClickable = true;
+        } else {
+          message = `<span class="font-semibold">${notif.user.name}</span><span class="text-gray-600"> ${notif.message || 'có hoạt động'}</span>`;
+        }
         
         return `
-          <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer" onclick="viewUserProfile(${notif.user.id})">
+          <div class="p-4 hover:bg-gray-50 border-b border-gray-100 ${isClickable ? 'cursor-pointer' : ''}" ${isClickable ? `onclick="viewUserProfile(${notif.user.id})"` : ''}>
             <div class="flex gap-3">
               <img src="${avatar}" alt="${notif.user.name}" class="w-10 h-10 rounded-full flex-shrink-0">
               <div class="flex-1 min-w-0">
                 <p class="text-sm">
-                  <span class="font-semibold">${notif.user.name}</span>
-                  <span class="text-gray-600"> đã gửi lời mời kết bạn</span>
+                  ${message}
                 </p>
                 <p class="text-xs text-gray-500 mt-1">${timeAgo}</p>
-                <div class="flex gap-2 mt-2">
-                  <button onclick="event.stopPropagation(); acceptFriendRequestFromNotif(${notif.id})" class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
-                    Chấp nhận
-                  </button>
-                  <button onclick="event.stopPropagation(); rejectFriendRequestFromNotif(${notif.id})" class="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300">
-                    Từ chối
-                  </button>
-                </div>
+                ${actionButtons}
               </div>
             </div>
           </div>
@@ -1489,6 +1533,16 @@
       }
     }
     
+    // Generate post URL with username and post ID
+    function getPostUrl(post) {
+      // Format: /forum/post/{username_slug}/{posttype}.{postid}
+      // Post type is always 'post' for forum posts
+      if (post.username_slug && post.id) {
+        return `/forum/post/${post.username_slug}/post.${post.id}`;
+      }
+      return '#';
+    }
+    
     // Create post card
     function createPostCard(post) {
       const userName = post.user_name || post.user_email?.split('@')[0] || 'Người dùng';
@@ -1575,6 +1629,9 @@
           <div class="px-4 pb-3">
             ${titleHTML}
             <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${processContent(post.content)}</p>
+            <a href="${getPostUrl(post)}" class="inline-block mt-2 text-sm text-green-600 hover:text-green-700 font-semibold">
+              Xem chi tiết <i class="fas fa-arrow-right ml-1"></i>
+            </a>
           </div>
           
           ${imageHTML ? `<div class="px-0 mb-3">${imageHTML}</div>` : ''}
@@ -1608,18 +1665,30 @@
           
           <!-- Post Actions -->
           <div class="px-2 pb-2 flex gap-1 border-t border-gray-100 pt-1">
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium">
-              <i class="far fa-thumbs-up text-lg"></i>
-              <span class="text-sm">Thích</span>
-            </a>
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium">
+            <button 
+              onclick="toggleForumLike(${post.id}, this)" 
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium like-btn-${post.id} ${post.user_liked ? 'liked' : ''}"
+              title="${post.user_liked ? 'Bỏ thích' : 'Thích bài viết'}"
+            >
+              <i class="${post.user_liked ? 'fas' : 'far'} fa-thumbs-up text-lg"></i>
+              <span class="text-sm">${post.user_liked ? 'Đã thích' : 'Thích'}</span>
+            </button>
+            <button 
+              onclick="toggleComments(${post.id})" 
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium"
+              title="Bình luận bài viết"
+            >
               <i class="far fa-comment text-lg"></i>
               <span class="text-sm">Bình luận</span>
-            </a>
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium">
+            </button>
+            <button 
+              onclick="shareForumPost(${post.id}, '${escapeHtml(post.content).substring(0, 50)}...')" 
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium"
+              title="Chia sẻ bài viết"
+            >
               <i class="far fa-share-square text-lg"></i>
               <span class="text-sm">Chia sẻ</span>
-            </a>
+            </button>
           </div>
           
           <!-- Comments Section (Hidden by default) -->
@@ -1631,11 +1700,15 @@
                 </div>
                 <div class="flex-1">
                   <textarea 
+                    id="comment-input-${post.id}"
                     placeholder="Viết bình luận..." 
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                     rows="2"
                   ></textarea>
-                  <button class="mt-2 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                  <button 
+                    onclick="submitForumComment(${post.id})" 
+                    class="mt-2 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
                     Gửi
                   </button>
                 </div>
@@ -1745,6 +1818,244 @@
         console.error('Error deleting post:', error);
       }
     }
+    
+    // Toggle like on forum post from profile
+    async function toggleForumLike(postId, button) {
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Update button state
+          const btn = button.closest('button');
+          const icon = btn.querySelector('i');
+          const text = btn.querySelector('span');
+          
+          if (data.liked) {
+            btn.classList.add('text-green-600');
+            icon.classList.remove('far');
+            icon.classList.add('fas');
+            text.textContent = 'Đã thích';
+          } else {
+            btn.classList.remove('text-green-600');
+            icon.classList.add('far');
+            icon.classList.remove('fas');
+            text.textContent = 'Thích';
+          }
+          
+          // Reload posts to update like count
+          setTimeout(() => loadUserPosts(currentUserId), 300);
+        } else {
+          showAlert(data.message || 'Lỗi khi thích bài viết', 'error');
+        }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
+    }
+    
+    // Submit comment on forum post from profile
+    async function submitForumComment(postId) {
+      const textarea = document.getElementById(`comment-input-${postId}`);
+      const content = textarea.value.trim();
+      
+      if (!content) {
+        showAlert('Vui lòng nhập nội dung bình luận', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          textarea.value = '';
+          showAlert('Bình luận thành công!', 'success');
+          
+          // Reload comments
+          const commentsSection = document.getElementById(`comments-${postId}`);
+          if (!commentsSection.classList.contains('hidden')) {
+            // Reload the comments list
+            try {
+              const commentsResponse = await fetch(`/api/forum/posts/${postId}/comments`);
+              const commentsData = await commentsResponse.json();
+              
+              if (commentsData.success && commentsData.comments) {
+                const commentsList = document.getElementById(`comments-list-${postId}`);
+                commentsList.innerHTML = commentsData.comments.map(comment => {
+                  const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+                  const userAvatar = comment.user_avatar
+                    ? `<img src="${comment.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+                    : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                        ${userName.charAt(0).toUpperCase()}
+                      </div>`;
+                  
+                  return `
+                    <div class="flex items-start gap-3">
+                      <a href="/profile/${comment.username_slug || comment.user_id}" class="flex-shrink-0">
+                        ${userAvatar}
+                      </a>
+                      <div class="flex-1">
+                        <div class="bg-white rounded-2xl px-4 py-2.5 inline-block">
+                          <a href="/profile/${comment.username_slug || comment.user_id}" class="font-semibold text-gray-900 hover:underline text-sm">
+                            ${userName}
+                          </a>
+                          <p class="text-gray-800 mt-1 text-sm">${escapeHtml(comment.content)}</p>
+                        </div>
+                        <div class="flex items-center gap-4 mt-1 px-4 text-xs text-gray-500">
+                          <span>${getTimeAgo(comment.created_at)}</span>
+                          <button class="hover:underline">Thích</button>
+                          <button class="hover:underline">Trả lời</button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('');
+              }
+            } catch (error) {
+              console.error('Error reloading comments:', error);
+            }
+          }
+          
+          // Reload posts to update comment count
+          setTimeout(() => loadUserPosts(currentUserId), 500);
+        } else {
+          showAlert(data.message || 'Lỗi khi gửi bình luận', 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
+    }
+    
+    // Share forum post from profile
+    function shareForumPost(postId, postContent) {
+      const shareUrl = `${window.location.origin}/forum/post/${profileUserSlug}/${postId}`;
+      const shareTitle = postContent || 'Bài viết từ AgriSense AI';
+      
+      const shareModal = document.getElementById('share-modal');
+      const shareOptions = document.getElementById('share-options');
+      
+      window.currentShareUrl = shareUrl;
+      window.currentShareTitle = shareTitle;
+      
+      shareOptions.innerHTML = `
+        <!-- Facebook -->
+        <button onclick="shareToFacebook()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Facebook">
+          <div class="w-16 h-16 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-facebook-f text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Facebook</span>
+        </button>
+
+        <!-- Twitter -->
+        <button onclick="shareToTwitter()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Twitter">
+          <div class="w-16 h-16 bg-black hover:bg-gray-800 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-twitter text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Twitter</span>
+        </button>
+
+        <!-- Telegram -->
+        <button onclick="shareToTelegram()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ qua Telegram">
+          <div class="w-16 h-16 bg-blue-400 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-telegram-plane text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Telegram</span>
+        </button>
+
+        <!-- Email -->
+        <button onclick="shareViaEmail()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Gửi qua email">
+          <div class="w-16 h-16 bg-gray-600 hover:bg-gray-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-envelope text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Email</span>
+        </button>
+
+        <!-- Copy Link -->
+        <button onclick="copyShareLink(event)" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Sao chép liên kết">
+          <div class="w-16 h-16 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-copy text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Copy Link</span>
+        </button>
+      `;
+      
+      shareModal.classList.remove('hidden');
+    }
+
+    function closeShareModal(event) {
+      if (!event || event.target.id === 'share-modal') {
+        document.getElementById('share-modal').classList.add('hidden');
+      }
+    }
+
+    function shareToFacebook() {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.currentShareUrl)}`;
+      window.open(fbUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTwitter() {
+      const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(window.currentShareUrl)}&text=${encodeURIComponent(window.currentShareTitle)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTelegram() {
+      const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(window.currentShareUrl)}&text=${encodeURIComponent(window.currentShareTitle)}`;
+      window.open(telegramUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareViaEmail() {
+      const subject = encodeURIComponent(window.currentShareTitle);
+      const body = encodeURIComponent(`Xem bài viết này: ${window.currentShareUrl}`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      closeShareModal();
+    }
+
+    function copyShareLink(event) {
+      if (!window.currentShareUrl) {
+        console.error('Không có link để sao chép!');
+        return;
+      }
+      
+      navigator.clipboard.writeText(window.currentShareUrl).then(() => {
+        const btn = event.target.closest('button');
+        if (btn) {
+          const iconDiv = btn.querySelector('div');
+          const label = btn.querySelector('span');
+          
+          if (iconDiv && label) {
+            iconDiv.className = 'w-16 h-16 bg-green-600 rounded-full flex items-center justify-center transition-all shadow-lg';
+            iconDiv.innerHTML = '<i class="fas fa-check text-white text-2xl"></i>';
+            label.textContent = 'Đã copy!';
+          }
+        }
+        
+        setTimeout(() => {
+          closeShareModal();
+        }, 1000);
+      }).catch((err) => {
+        console.error('Copy error:', err);
+      });
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeShareModal();
+      }
+    });
     
     // Submit poll vote
     async function submitPollVote(postId) {

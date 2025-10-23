@@ -4170,13 +4170,15 @@ def get_user_profile(identifier):
 
 @app.route('/api/profile/notifications', methods=['GET'])
 def get_notifications():
-    """Get friend request notifications for current user"""
+    """Get all notifications (friend requests, likes, comments, friend acceptances)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
     
     try:
         conn = auth.get_db_connection()
         cursor = conn.cursor()
+        
+        notifications = []
         
         # Get pending friend requests
         cursor.execute('''
@@ -4189,7 +4191,6 @@ def get_notifications():
             ORDER BY f.created_at DESC
         ''', (session['user_id'],))
         
-        notifications = []
         for row in cursor.fetchall():
             notifications.append({
                 'id': row[0],
@@ -4201,6 +4202,49 @@ def get_notifications():
                     'email': row[4],
                     'avatar_url': row[5]
                 }
+            })
+        
+        # Get likes, comments, and friend acceptances notifications
+        cursor.execute('''
+            SELECT 
+                n.id, n.created_at, n.type,
+                u.id as user_id, u.name, u.email, u.avatar_url,
+                n.post_id, n.photo_id, n.content
+            FROM notifications n
+            JOIN users u ON n.sender_id = u.id
+            WHERE n.recipient_id = ?
+            ORDER BY n.created_at DESC
+            LIMIT 50
+        ''', (session['user_id'],))
+        
+        for row in cursor.fetchall():
+            notif_type = row[2]  # 'post_like', 'post_comment', 'photo_like', 'photo_comment', 'friend_accept'
+            message = ''
+            
+            if notif_type == 'post_like':
+                message = f"{row[4]} đã thích bài viết của bạn"
+            elif notif_type == 'post_comment':
+                message = f"{row[4]} đã bình luận bài viết của bạn"
+            elif notif_type == 'photo_like':
+                message = f"{row[4]} đã thích ảnh của bạn"
+            elif notif_type == 'photo_comment':
+                message = f"{row[4]} đã bình luận ảnh của bạn: {row[9]}"
+            elif notif_type == 'friend_accept':
+                message = f"{row[4]} đã chấp nhận lời mời kết bạn của bạn"
+            
+            notifications.append({
+                'id': row[0],
+                'type': notif_type,
+                'created_at': row[1],
+                'message': message,
+                'user': {
+                    'id': row[3],
+                    'name': row[4],
+                    'email': row[5],
+                    'avatar_url': row[6]
+                },
+                'post_id': row[7],
+                'photo_id': row[8]
             })
         
         conn.close()
@@ -4488,6 +4532,95 @@ def forum():
     return send_from_directory(HERE, 'forum.html')
 
 
+@app.route('/forum/post/<username_slug>/<post_identifier>')
+def view_forum_post(username_slug, post_identifier):
+    """Xem bài viết cụ thể dựa trên URL slug"""
+    try:
+        # Parse post_identifier: format "posttype.postid"
+        if '.' not in post_identifier:
+            return "Post not found", 404
+        
+        post_type, post_id_str = post_identifier.rsplit('.', 1)
+        
+        try:
+            post_id = int(post_id_str)
+        except ValueError:
+            return "Invalid post ID", 404
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get post with user info
+        cursor.execute('''
+            SELECT 
+                p.id, p.user_id, p.title, p.content, p.image_url, p.tags,
+                p.created_at, p.poll_data,
+                u.id, u.name, u.email, u.avatar_url, u.username_slug
+            FROM forum_posts p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.id = ?
+        ''', (post_id,))
+        
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return "Post not found", 404
+        
+        # Verify username_slug matches
+        if row[12] != username_slug:
+            conn.close()
+            return "Post not found", 404
+        
+        # Get likes and comments count
+        cursor.execute('SELECT COUNT(*) FROM forum_likes WHERE post_id = ?', (post_id,))
+        likes_count = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM forum_comments WHERE post_id = ?', (post_id,))
+        comments_count = cursor.fetchone()[0]
+        
+        # Get user liked status
+        user_liked = False
+        if 'user_id' in session:
+            cursor.execute('''
+                SELECT id FROM forum_likes 
+                WHERE post_id = ? AND user_id = ?
+            ''', (post_id, session['user_id']))
+            user_liked = cursor.fetchone() is not None
+        
+        conn.close()
+        
+        # Build post data
+        created_at = row[6]
+        if created_at and len(created_at) == 19:
+            created_at = f"{created_at}Z"
+        
+        post_data = {
+            'id': row[0],
+            'user_id': row[1],
+            'title': row[2],
+            'content': row[3],
+            'image_url': row[4],
+            'tags': json.loads(row[5]) if row[5] else [],
+            'created_at': created_at,
+            'poll_data': json.loads(row[7]) if row[7] else None,
+            'user_id': row[8],
+            'user_name': row[9],
+            'user_email': row[10],
+            'user_avatar': row[11],
+            'username_slug': row[12],
+            'likes_count': likes_count,
+            'comments_count': comments_count,
+            'user_liked': user_liked,
+            'post_type': post_type
+        }
+        
+        return render_template('forum_post_view.html', post=post_data)
+    
+    except Exception as e:
+        logging.error(f"Error viewing forum post: {e}")
+        return "Error loading post", 500
+
+
 @app.route('/map_vietnam')
 def map_vietnam():
     """Trang bản đồ Việt Nam"""
@@ -4685,7 +4818,7 @@ def get_forum_posts():
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        # Base query
+        # Base query - include username_slug
         query = '''
             SELECT 
                 p.id,
@@ -4698,6 +4831,7 @@ def get_forum_posts():
                 u.name as user_name,
                 u.email as user_email,
                 u.avatar_url as user_avatar,
+                u.username_slug,
                 (SELECT COUNT(*) FROM forum_likes WHERE post_id = p.id) as likes_count,
                 (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) as comments_count,
                 p.poll_data
@@ -4751,9 +4885,10 @@ def get_forum_posts():
                 'user_name': row[7],
                 'user_email': row[8],
                 'user_avatar': row[9],
-                'likes_count': row[10],
-                'comments_count': row[11],
-                'poll': json.loads(row[12]) if row[12] else None,
+                'username_slug': row[10],
+                'likes_count': row[11],
+                'comments_count': row[12],
+                'poll': json.loads(row[13]) if row[13] else None,
                 'user_liked': False,
                 'user_voted': False,
                 'user_voted_option': None,
@@ -4909,6 +5044,15 @@ def toggle_forum_like(post_id):
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
+        # Get post owner
+        cursor.execute('SELECT user_id FROM forum_posts WHERE id = ?', (post_id,))
+        post = cursor.fetchone()
+        if not post:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Bài viết không tồn tại'}), 404
+        
+        post_owner_id = post[0]
+        
         # Check if already liked
         cursor.execute('''
             SELECT id FROM forum_likes 
@@ -4920,6 +5064,11 @@ def toggle_forum_like(post_id):
         if existing_like:
             # Unlike
             cursor.execute('DELETE FROM forum_likes WHERE id = ?', (existing_like[0],))
+            # Delete notification
+            cursor.execute('''
+                DELETE FROM notifications 
+                WHERE recipient_id = ? AND sender_id = ? AND post_id = ? AND type = 'post_like'
+            ''', (post_owner_id, session['user_id'], post_id))
             action = 'unliked'
         else:
             # Like
@@ -4928,6 +5077,13 @@ def toggle_forum_like(post_id):
                 VALUES (?, ?, datetime('now'))
             ''', (post_id, session['user_id']))
             action = 'liked'
+            
+            # Create notification if not liking own post
+            if post_owner_id != session['user_id']:
+                cursor.execute('''
+                    INSERT INTO notifications (recipient_id, sender_id, type, post_id, created_at)
+                    VALUES (?, ?, 'post_like', ?, datetime('now'))
+                ''', (post_owner_id, session['user_id'], post_id))
         
         # Get updated like count
         cursor.execute('SELECT COUNT(*) FROM forum_likes WHERE post_id = ?', (post_id,))
@@ -5117,12 +5273,28 @@ def create_forum_comment(post_id):
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
+        # Get post owner
+        cursor.execute('SELECT user_id FROM forum_posts WHERE id = ?', (post_id,))
+        post = cursor.fetchone()
+        if not post:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Bài viết không tồn tại'}), 404
+        
+        post_owner_id = post[0]
+        
         cursor.execute('''
             INSERT INTO forum_comments (post_id, user_id, content, created_at)
             VALUES (?, ?, ?, datetime('now'))
         ''', (post_id, session['user_id'], content))
         
         comment_id = cursor.lastrowid
+        
+        # Create notification if not commenting on own post
+        if post_owner_id != session['user_id']:
+            cursor.execute('''
+                INSERT INTO notifications (recipient_id, sender_id, type, post_id, comment_id, content, created_at)
+                VALUES (?, ?, 'post_comment', ?, ?, ?, datetime('now'))
+            ''', (post_owner_id, session['user_id'], post_id, comment_id, content))
         
         # Get updated comment count
         cursor.execute('SELECT COUNT(*) FROM forum_comments WHERE post_id = ?', (post_id,))
@@ -5463,6 +5635,15 @@ def toggle_photo_like(photo_id):
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
+        # Get photo owner
+        cursor.execute('SELECT user_id FROM user_photos WHERE id = ?', (photo_id,))
+        photo = cursor.fetchone()
+        if not photo:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Ảnh không tồn tại'}), 404
+        
+        photo_owner_id = photo[0]
+        
         cursor.execute('''
             SELECT id FROM photo_likes 
             WHERE photo_id = ? AND user_id = ?
@@ -5475,6 +5656,11 @@ def toggle_photo_like(photo_id):
                 DELETE FROM photo_likes 
                 WHERE photo_id = ? AND user_id = ?
             ''', (photo_id, session['user_id']))
+            # Delete notification
+            cursor.execute('''
+                DELETE FROM notifications 
+                WHERE recipient_id = ? AND sender_id = ? AND photo_id = ? AND type = 'photo_like'
+            ''', (photo_owner_id, session['user_id'], photo_id))
             action = 'unliked'
         else:
             cursor.execute('''
@@ -5482,6 +5668,13 @@ def toggle_photo_like(photo_id):
                 VALUES (?, ?, datetime('now'))
             ''', (photo_id, session['user_id']))
             action = 'liked'
+            
+            # Create notification if not liking own photo
+            if photo_owner_id != session['user_id']:
+                cursor.execute('''
+                    INSERT INTO notifications (recipient_id, sender_id, type, photo_id, created_at)
+                    VALUES (?, ?, 'photo_like', ?, datetime('now'))
+                ''', (photo_owner_id, session['user_id'], photo_id))
         
         cursor.execute('SELECT COUNT(*) FROM photo_likes WHERE photo_id = ?', (photo_id,))
         likes_count = cursor.fetchone()[0]
@@ -5552,12 +5745,28 @@ def create_photo_comment(photo_id):
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
+        # Get photo owner
+        cursor.execute('SELECT user_id FROM user_photos WHERE id = ?', (photo_id,))
+        photo = cursor.fetchone()
+        if not photo:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Ảnh không tồn tại'}), 404
+        
+        photo_owner_id = photo[0]
+        
         cursor.execute('''
             INSERT INTO photo_comments (photo_id, user_id, content, created_at)
             VALUES (?, ?, ?, datetime('now'))
         ''', (photo_id, session['user_id'], content))
         
         comment_id = cursor.lastrowid
+        
+        # Create notification if not commenting on own photo
+        if photo_owner_id != session['user_id']:
+            cursor.execute('''
+                INSERT INTO notifications (recipient_id, sender_id, type, photo_id, comment_id, content, created_at)
+                VALUES (?, ?, 'photo_comment', ?, ?, ?, datetime('now'))
+            ''', (photo_owner_id, session['user_id'], photo_id, comment_id, content))
         
         cursor.execute('SELECT COUNT(*) FROM photo_comments WHERE photo_id = ?', (photo_id,))
         comments_count = cursor.fetchone()[0]
@@ -5769,11 +5978,20 @@ def accept_friend_request(request_id):
         
         row = cursor.fetchone()
         if not row:
+            conn.close()
             return jsonify({'success': False, 'message': 'Không tìm thấy lời mời'}), 404
+        
+        sender_id = row[0]  # User who sent the friend request
         
         cursor.execute('''
             UPDATE friendships SET status = 'accepted' WHERE id = ?
         ''', (request_id,))
+        
+        # Create notification for the sender (who sent the friend request)
+        cursor.execute('''
+            INSERT INTO notifications (recipient_id, sender_id, type, created_at)
+            VALUES (?, ?, 'friend_accept', datetime('now'))
+        ''', (sender_id, session['user_id']))
         
         conn.commit()
         conn.close()

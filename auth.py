@@ -230,6 +230,27 @@ def init_db():
         )
     ''')
     
+    # Notifications table for likes/comments
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipient_id INTEGER NOT NULL,
+            sender_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            post_id INTEGER,
+            photo_id INTEGER,
+            comment_id INTEGER,
+            content TEXT,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (recipient_id) REFERENCES users (id),
+            FOREIGN KEY (sender_id) REFERENCES users (id),
+            FOREIGN KEY (post_id) REFERENCES forum_posts (id),
+            FOREIGN KEY (photo_id) REFERENCES user_photos (id),
+            FOREIGN KEY (comment_id) REFERENCES forum_comments (id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 

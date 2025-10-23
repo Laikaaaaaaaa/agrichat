@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- WebView Optimization -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  <title>{{ post.title if post.title else 'Bài viết' }} - AgriSense AI</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <style>
+    /* WebView Optimization */
+    * {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      -webkit-touch-callout: none;
+    }
+    
+    html {
+      height: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    
+    body {
+      min-height: 100%;
+      overflow-x: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #f0fdf4;
+    }
+    
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    img {
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    
+    .post-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .post-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.2s;
+    }
+    
+    .modal.hidden {
+      display: none !important;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #10b981;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-green-50 font-sans text-gray-700">
+  
+  <!-- Header -->
+  <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
+    <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
+      <div class="flex items-center gap-3">
+        <!-- Back button -->
+        <button onclick="history.back()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <!-- Logo -->
+        <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="h-12 md:h-14 w-auto object-contain">
+      </div>
+      <span class="text-xs md:text-sm text-gray-500 hidden md:block">Diễn đàn nông nghiệp cộng đồng</span>
+      <div class="flex items-center gap-2 md:gap-4">
+        <!-- User Avatar -->
+        <div id="user-section" class="cursor-pointer">
+          <div id="user-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold shadow-lg hover:shadow-xl transition-shadow">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="min-h-screen bg-green-50">
+    <div class="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      
+      <!-- Post Card -->
+      <div class="bg-white rounded-xl sm:rounded-2xl shadow-md post-card mb-4">
+        
+        <!-- Post Header -->
+        <div class="p-3 sm:p-4 border-b border-gray-200">
+          <div class="flex items-center gap-3 mb-3">
+            <img 
+              src="{{ post.user_avatar or 'https://ui-avatars.com/api/?name=' + (post.user_name or 'User') + '&background=16a34a&color=fff' }}" 
+              alt="{{ post.user_name }}"
+              class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
+            />
+            <div class="flex-1">
+              <a href="/profile/{{ post.username_slug or post.user_id }}" class="font-semibold text-gray-900 hover:text-green-600 text-sm sm:text-base">
+                {{ post.user_name }}
+              </a>
+              <p class="text-xs sm:text-sm text-gray-500">
+                <i class="far fa-clock mr-1"></i>
+                <span id="post-time">{{ post.created_at }}</span>
+              </p>
+            </div>
+          </div>
+          
+          {% if post.title %}
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{{ post.title }}</h1>
+          {% endif %}
+        </div>
+
+        <!-- Post Image -->
+        {% if post.image_url %}
+        <div class="w-full max-h-96 overflow-hidden bg-gray-100">
+          <img src="{{ post.image_url }}" alt="Post image" class="w-full h-full object-cover">
+        </div>
+        {% endif %}
+
+        <!-- Post Content -->
+        <div class="p-3 sm:p-4">
+          <p class="text-gray-800 whitespace-pre-wrap leading-relaxed mb-3 text-sm sm:text-base">{{ post.content }}</p>
+          
+          <!-- Tags -->
+          {% if post.tags %}
+          <div class="mb-4 flex flex-wrap gap-2">
+            {% for tag in post.tags %}
+            <a href="/forum?tag={{ tag }}" class="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 font-semibold transition-colors">#{{ tag }}</a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Post Stats -->
+        <div class="px-3 sm:px-4 py-2 sm:py-3 border-t border-gray-100 bg-gray-50">
+          <div class="flex items-center justify-between text-xs sm:text-sm">
+            <button 
+              id="likes-count-btn"
+              class="flex items-center gap-1.5 text-gray-600 hover:text-green-600 cursor-pointer"
+              onclick="showLikesList()"
+            >
+              {% if post.likes_count > 0 %}
+              <i class="fas fa-thumbs-up text-green-600"></i>
+              <span id="likes-display" class="font-medium">{{ post.likes_count }}</span>
+              {% else %}
+              <span class="text-gray-500">Chưa có lượt thích</span>
+              {% endif %}
+            </button>
+            <span id="comments-count" class="text-gray-600">
+              {{ post.comments_count }} bình luận
+            </span>
+          </div>
+        </div>
+
+        <!-- Post Actions -->
+        <div class="px-2 pb-2 flex gap-1 border-t border-gray-100 pt-1">
+          <button 
+            onclick="toggleLike()" 
+            id="like-btn"
+            class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium text-xs sm:text-sm {% if post.user_liked %}text-green-600{% endif %}"
+          >
+            <i class="{% if post.user_liked %}fas{% else %}far{% endif %} fa-thumbs-up text-base sm:text-lg"></i>
+            <span class="hidden sm:inline">{% if post.user_liked %}Đã thích{% else %}Thích{% endif %}</span>
+          </button>
+          <button 
+            onclick="scrollToComments()" 
+            class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium text-xs sm:text-sm"
+          >
+            <i class="far fa-comment text-base sm:text-lg"></i>
+            <span class="hidden sm:inline">Bình luận</span>
+          </button>
+          <button 
+            onclick="sharePost()" 
+            class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium text-xs sm:text-sm"
+          >
+            <i class="far fa-share-square text-base sm:text-lg"></i>
+            <span class="hidden sm:inline">Chia sẻ</span>
+          </button>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="border-t border-gray-100 bg-gray-50">
+          <div class="p-3 sm:p-4">
+            <!-- Comment Input -->
+            <div class="flex items-start gap-2 sm:gap-3 mb-4 sm:mb-6" id="comment-section">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                U
+              </div>
+              <div class="flex-1">
+                <textarea 
+                  id="comment-input"
+                  placeholder="Viết bình luận..." 
+                  class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  rows="2"
+                ></textarea>
+                <button 
+                  onclick="submitComment()" 
+                  class="mt-2 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium"
+                >
+                  Gửi
+                </button>
+              </div>
+            </div>
+
+            <!-- Comments List -->
+            <div id="comments-list" class="space-y-3 sm:space-y-4">
+              <p class="text-center text-gray-500 text-sm py-4">Đang tải bình luận...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Likes Modal -->
+  <div id="likes-modal" class="modal hidden">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full mx-3 sm:mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h3 class="text-base sm:text-lg font-bold text-gray-800">Người đã thích</h3>
+        <button onclick="closeLikesModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-lg sm:text-xl"></i>
+        </button>
+      </div>
+      <div id="likes-list-content" class="overflow-y-auto p-3 sm:p-4 flex-1">
+        <p class="text-center text-gray-500 text-sm">Đang tải...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Options Modal -->
+  <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onclick="closeShareModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 text-center">
+        <h3 class="text-lg font-semibold text-white">Chia sẻ bài viết</h3>
+      </div>
+      
+      <!-- Share Options -->
+      <div class="p-8">
+        <div id="share-options" class="flex justify-center items-center gap-4 flex-wrap">
+          <!-- Options will be inserted by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert -->
+  <div id="alert-message" class="hidden fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 text-sm"></div>
+
+  <script>
+    const postId = parseInt('{{ post.id }}');
+    const postTitle = '{{ post.title }}';
+    const postCreatedAt = '{{ post.created_at }}';
+    let likesCount = {{ post.likes_count | tojson }};
+    let commentsCount = {{ post.comments_count | tojson }};
+    let userLiked = {{ post.user_liked | tojson }};
+    let currentUserId = null;
+
+    // Get time ago
+    function getTimeAgo(dateString) {
+      let date;
+      if (dateString instanceof Date) {
+        date = dateString;
+      } else {
+        const dateStr = dateString.includes('Z') || dateString.includes('+') 
+          ? dateString 
+          : dateString + 'Z';
+        date = new Date(dateStr);
+      }
+      
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+      
+      if (seconds < 60) return 'Vừa xong';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return minutes + ' phút trước';
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return hours + ' giờ trước';
+      const days = Math.floor(hours / 24);
+      if (days < 30) return days + ' ngày trước';
+      const months = Math.floor(days / 30);
+      if (months < 12) return months + ' tháng trước';
+      const years = Math.floor(months / 12);
+      return years + ' năm trước';
+    }
+
+    // Format time on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const timeEl = document.getElementById('post-time');
+      timeEl.textContent = getTimeAgo(postCreatedAt);
+      
+      // Get current user
+      getCurrentUser();
+      
+      // Load comments
+      loadComments();
+      
+      // Check if user is logged in
+      if (!currentUserId) {
+        document.getElementById('comment-section').style.display = 'none';
+      }
+    });
+
+    // Get current user
+    async function getCurrentUser() {
+      try {
+        const response = await fetch('/api/auth/current-user');
+        const data = await response.json();
+        if (data.success) {
+          currentUserId = data.user.id;
+        }
+      } catch (error) {
+        console.error('Error getting current user:', error);
+      }
+    }
+
+    // Show alert
+    function showAlert(message, type = 'error') {
+      const alertDiv = document.getElementById('alert-message');
+      alertDiv.className = `p-4 rounded-lg text-sm font-medium ${
+        type === 'success' 
+          ? 'bg-green-50 text-green-700 border border-green-200'
+          : 'bg-red-50 text-red-700 border border-red-200'
+      }`;
+      alertDiv.textContent = message;
+      alertDiv.classList.remove('hidden');
+      
+      if (type === 'success') {
+        setTimeout(() => alertDiv.classList.add('hidden'), 3000);
+      }
+    }
+
+    // Toggle like
+    async function toggleLike() {
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const btn = document.getElementById('like-btn');
+          const icon = btn.querySelector('i');
+          
+          if (data.liked) {
+            btn.classList.add('text-green-600');
+            icon.classList.remove('far');
+            icon.classList.add('fas');
+            likesCount++;
+          } else {
+            btn.classList.remove('text-green-600');
+            icon.classList.add('far');
+            icon.classList.remove('fas');
+            likesCount--;
+          }
+          
+          // Update likes display
+          updateLikesDisplay();
+        } else {
+          showAlert(data.message || 'Lỗi khi thích bài viết', 'error');
+        }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
+    }
+
+    function updateLikesDisplay() {
+      const likesCountBtn = document.getElementById('likes-count-btn');
+      if (likesCount > 0) {
+        likesCountBtn.innerHTML = `
+          <i class="fas fa-thumbs-up text-green-600"></i>
+          <span id="likes-display" class="font-medium">${likesCount}</span>
+        `;
+      } else {
+        likesCountBtn.innerHTML = '<span class="text-gray-500">Chưa có lượt thích</span>';
+      }
+    }
+
+    // Load comments
+    async function loadComments() {
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`);
+        const data = await response.json();
+        
+        const commentsList = document.getElementById('comments-list');
+        
+        if (data.success && data.comments && data.comments.length > 0) {
+          commentsCount = data.comments.length;
+          commentsList.innerHTML = data.comments.map(comment => {
+            const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+            const userAvatar = comment.user_avatar
+              ? `<img src="${comment.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+              : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                  ${userName.charAt(0).toUpperCase()}
+                </div>`;
+            
+            return `
+              <div class="flex items-start gap-2 sm:gap-3">
+                <a href="/profile/${comment.username_slug || comment.user_id}" class="flex-shrink-0">
+                  ${userAvatar}
+                </a>
+                <div class="flex-1">
+                  <div class="bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 inline-block border border-gray-200">
+                    <a href="/profile/${comment.username_slug || comment.user_id}" class="font-semibold text-gray-900 hover:underline text-xs sm:text-sm">
+                      ${userName}
+                    </a>
+                    <p class="text-gray-800 mt-1 text-xs sm:text-sm">${escapeHtml(comment.content)}</p>
+                  </div>
+                  <div class="flex items-center gap-4 mt-1 px-4 text-xs text-gray-500">
+                    <span>${getTimeAgo(comment.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+          
+          document.getElementById('comments-count').textContent = `${commentsCount} bình luận`;
+        } else {
+          commentsList.innerHTML = `
+            <div class="text-center py-8">
+              <i class="far fa-comment text-gray-300 text-4xl mb-2"></i>
+              <p class="text-gray-500 text-sm">Chưa có bình luận nào</p>
+              <p class="text-gray-400 text-xs mt-1">Hãy là người đầu tiên bình luận!</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        document.getElementById('comments-list').innerHTML = `
+          <div class="text-center py-4">
+            <p class="text-red-500 text-sm">Không thể tải bình luận</p>
+          </div>
+        `;
+      }
+    }
+
+    // Submit comment
+    async function submitComment() {
+      const textarea = document.getElementById('comment-input');
+      const content = textarea.value.trim();
+      
+      if (!content) {
+        showAlert('Vui lòng nhập nội dung bình luận', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          textarea.value = '';
+          showAlert('Bình luận thành công!', 'success');
+          loadComments();
+        } else {
+          showAlert(data.message || 'Lỗi khi gửi bình luận', 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
+    }
+
+    // Show likes list
+    async function showLikesList() {
+      const modal = document.getElementById('likes-modal');
+      const content = document.getElementById('likes-list-content');
+      
+      modal.classList.remove('hidden');
+      content.innerHTML = '<div class="flex justify-center py-8"><div class="loading-spinner"></div></div>';
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/likes`);
+        const data = await response.json();
+        
+        if (data.success && data.likes && data.likes.length > 0) {
+          content.innerHTML = data.likes.map(like => {
+            const userName = like.user_name || like.user_email?.split('@')[0] || 'Người dùng';
+            const userAvatar = like.user_avatar 
+              ? `<img src="${like.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+              : `<div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-semibold text-lg">
+                  ${userName.charAt(0).toUpperCase()}
+                </div>`;
+            
+            return `
+              <a href="/profile/${like.username_slug || like.user_id}" class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <div class="w-10 h-10 flex-shrink-0">
+                  ${userAvatar}
+                </div>
+                <div class="flex-1">
+                  <p class="font-semibold text-gray-900 text-sm">${userName}</p>
+                  <p class="text-xs text-gray-500">${like.user_email || ''}</p>
+                </div>
+              </a>
+            `;
+          }).join('');
+        } else {
+          content.innerHTML = `
+            <div class="text-center py-8">
+              <i class="far fa-thumbs-up text-gray-300 text-5xl mb-3"></i>
+              <p class="text-gray-500">Chưa có ai thích bài viết này</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading likes:', error);
+        content.innerHTML = `
+          <div class="text-center py-8">
+            <p class="text-red-500">Không thể tải danh sách</p>
+          </div>
+        `;
+      }
+    }
+
+    function closeLikesModal() {
+      document.getElementById('likes-modal').classList.add('hidden');
+    }
+
+    // Scroll to comments
+    function scrollToComments() {
+      const commentSection = document.getElementById('comment-section');
+      if (commentSection && commentSection.style.display !== 'none') {
+        commentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        showAlert('Vui lòng đăng nhập để bình luận', 'error');
+      }
+    }
+
+    // Share post
+    function sharePost() {
+      const url = window.location.href;
+      const title = postTitle || 'Bài viết từ AgriSense AI';
+      
+      const shareModal = document.getElementById('share-modal');
+      const shareOptions = document.getElementById('share-options');
+      
+      // Store current share data
+      window.currentShareUrl = url;
+      window.currentShareTitle = title;
+      
+      // Create share options
+      shareOptions.innerHTML = `
+        <!-- Facebook -->
+        <button onclick="shareToFacebook()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Facebook">
+          <div class="w-16 h-16 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-facebook-f text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Facebook</span>
+        </button>
+
+        <!-- Twitter -->
+        <button onclick="shareToTwitter()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Twitter">
+          <div class="w-16 h-16 bg-black hover:bg-gray-800 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-twitter text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Twitter</span>
+        </button>
+
+        <!-- Telegram -->
+        <button onclick="shareToTelegram()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ qua Telegram">
+          <div class="w-16 h-16 bg-blue-400 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-telegram-plane text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Telegram</span>
+        </button>
+
+        <!-- Email -->
+        <button onclick="shareViaEmail()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Gửi qua email">
+          <div class="w-16 h-16 bg-gray-600 hover:bg-gray-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-envelope text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Email</span>
+        </button>
+
+        <!-- Copy Link -->
+        <button onclick="copyShareLink(event)" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Sao chép liên kết">
+          <div class="w-16 h-16 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-copy text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Copy Link</span>
+        </button>
+      `;
+      
+      shareModal.classList.remove('hidden');
+    }
+
+    function closeShareModal(event) {
+      if (!event || event.target.id === 'share-modal') {
+        document.getElementById('share-modal').classList.add('hidden');
+      }
+    }
+
+    function shareToFacebook() {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.currentShareUrl)}`;
+      window.open(fbUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTwitter() {
+      const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(window.currentShareUrl)}&text=${encodeURIComponent(window.currentShareTitle)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTelegram() {
+      const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(window.currentShareUrl)}&text=${encodeURIComponent(window.currentShareTitle)}`;
+      window.open(telegramUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareViaEmail() {
+      const subject = encodeURIComponent(window.currentShareTitle);
+      const body = encodeURIComponent(`Xem bài viết này: ${window.currentShareUrl}`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      closeShareModal();
+    }
+
+    function copyShareLink(event) {
+      if (!window.currentShareUrl) {
+        showAlert('Không có link để sao chép!', 'error');
+        return;
+      }
+      
+      navigator.clipboard.writeText(window.currentShareUrl).then(() => {
+        const btn = event.target.closest('button');
+        if (btn) {
+          const iconDiv = btn.querySelector('div');
+          const label = btn.querySelector('span');
+          
+          if (iconDiv && label) {
+            iconDiv.className = 'w-16 h-16 bg-green-600 rounded-full flex items-center justify-center transition-all shadow-lg';
+            iconDiv.innerHTML = '<i class="fas fa-check text-white text-2xl"></i>';
+            label.textContent = 'Đã copy!';
+          }
+        }
+        
+        setTimeout(() => {
+          closeShareModal();
+        }, 1000);
+      }).catch((err) => {
+        console.error('Copy error:', err);
+        showAlert('Không thể sao chép. Vui lòng thử lại!', 'error');
+      });
+    }
+
+    // Close share modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeShareModal();
+      }
+    });
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+  </script>
+</body>
+</html>

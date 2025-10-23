@@ -2412,8 +2412,9 @@
 
     // Share profile link
     function shareProfile() {
-      // Build profile URL with user ID
-      const profileUrl = `/profile/${profileUserId || currentUserId}`;
+      // Build profile URL with username.userid format
+      const identifier = profileUserSlug ? `${profileUserSlug}.${profileUserId}` : profileUserId;
+      const profileUrl = `/profile/${identifier}`;
       const fullUrl = `${window.location.origin}${profileUrl}`;
       
       // Try using native share API first (mobile friendly)

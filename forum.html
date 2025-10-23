@@ -797,9 +797,16 @@
               <a href="/profile/${post.user_id}" class="hover:underline">
                 <h3 class="font-semibold text-gray-800 text-sm sm:text-base truncate">${escapeHtml(userName)}</h3>
               </a>
-              <p class="text-xs text-gray-500">
-                <i class="far fa-clock mr-1"></i>${timeAgo}
-              </p>
+              <div class="flex flex-col gap-1">
+                <p class="text-xs text-gray-500">
+                  <i class="far fa-clock mr-1"></i>${timeAgo}
+                </p>
+                ${post.location ? `
+                <p class="text-xs text-green-600">
+                  <i class="fas fa-map-marker-alt mr-1"></i>${escapeHtml(post.location.address || `${post.location.latitude?.toFixed(4)}, ${post.location.longitude?.toFixed(4)}`)}
+                </p>
+                ` : ''}
+              </div>
             </div>
             ${currentUser && currentUser.id === post.user_id ? `
               <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0">
@@ -814,7 +821,6 @@
             <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${processContent(post.content)}</p>
           </div>
           
-          ${locationHTML}
           ${imageHTML}
           ${pollHTML}
           ${tagsHTML}
@@ -1169,6 +1175,11 @@
     
     async function useCurrentLocation() {
       if (navigator.geolocation) {
+        // Show loading spinner
+        const locationList = document.getElementById('location-list');
+        locationList.innerHTML = `<div class="p-3 text-center"><div class="inline-block"><div class="animate-spin rounded-full h-6 w-6 border-2 border-green-300 border-t-green-600"></div></div><p class="text-xs sm:text-sm text-gray-600 mt-2">Đang lấy vị trí...</p></div>`;
+        document.getElementById('location-confirm-btn').disabled = true;
+        
         navigator.geolocation.getCurrentPosition(async position => {
           const { latitude, longitude } = position.coords;
           
@@ -1206,16 +1217,22 @@
             selectedLocation = { latitude, longitude, address: locationName };
             document.getElementById('location-confirm-btn').disabled = false;
             
-            const locationList = document.getElementById('location-list');
-            locationList.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700">✓ Vị trí hiện tại: ${selectedLocation.address}</div>`;
+            const locationListElement = document.getElementById('location-list');
+            locationListElement.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700"><i class="fas fa-check-circle mr-2"></i>Vị trí hiện tại: ${selectedLocation.address}</div>`;
           } catch (error) {
             console.error('Reverse geocoding error:', error);
             // Fallback: use coordinates if geocoding fails
             selectedLocation = { latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` };
             document.getElementById('location-confirm-btn').disabled = false;
-            const locationList = document.getElementById('location-list');
-            locationList.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700">✓ Vị trí hiện tại: ${selectedLocation.address}</div>`;
+            const locationListElement = document.getElementById('location-list');
+            locationListElement.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700"><i class="fas fa-check-circle mr-2"></i>Vị trí hiện tại: ${selectedLocation.address}</div>`;
           }
+        }, (error) => {
+          // Handle geolocation error
+          console.error('Geolocation error:', error);
+          const locationListElement = document.getElementById('location-list');
+          locationListElement.innerHTML = `<div class="p-2 bg-red-50 rounded-lg text-xs sm:text-sm text-red-700"><i class="fas fa-exclamation-circle mr-2"></i>Không thể lấy vị trí. Vui lòng kiểm tra quyền định vị.</div>`;
+          document.getElementById('location-confirm-btn').disabled = true;
         });
       } else {
         alert('Trình duyệt không hỗ trợ định vị địa chỉ');

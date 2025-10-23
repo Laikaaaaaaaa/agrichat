@@ -68,6 +68,9 @@ def init_db():
             content TEXT NOT NULL,
             image_url TEXT,
             tags TEXT,
+            poll_data TEXT,
+            location TEXT,
+            mentioned_users TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
@@ -158,6 +161,36 @@ def init_db():
             user_id INTEGER PRIMARY KEY,
             bio TEXT,
             cover_photo_url TEXT,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Migration: Add missing columns to forum_posts if they don't exist
+    try:
+        cursor.execute('ALTER TABLE forum_posts ADD COLUMN poll_data TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE forum_posts ADD COLUMN location TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE forum_posts ADD COLUMN mentioned_users TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    # Create poll votes table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forum_poll_votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            option_index INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(post_id, user_id),
+            FOREIGN KEY (post_id) REFERENCES forum_posts (id),
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')

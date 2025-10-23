@@ -4772,35 +4772,16 @@ def create_forum_post():
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        # Try to insert with new columns (poll, location, mentioned_users)
-        # If they don't exist, they'll be stored as metadata
-        try:
-            cursor.execute('''
-                INSERT INTO forum_posts (user_id, title, content, image_url, tags, poll_data, location, mentioned_users, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            ''', (session['user_id'], title, content, image_url, json.dumps(tags), 
-                  json.dumps(poll) if poll else None, 
-                  json.dumps(location) if location else None,
-                  json.dumps(mentioned_users)))
-        except:
-            # Fallback: store poll/location in tags or as separate entry
-            cursor.execute('''
-                INSERT INTO forum_posts (user_id, title, content, image_url, tags, created_at)
-                VALUES (?, ?, ?, ?, ?, datetime('now'))
-            ''', (session['user_id'], title, content, image_url, json.dumps(tags)))
+        # Insert with all columns (including poll_data, location, mentioned_users)
+        cursor.execute('''
+            INSERT INTO forum_posts (user_id, title, content, image_url, tags, poll_data, location, mentioned_users, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ''', (session['user_id'], title, content, image_url, json.dumps(tags), 
+              json.dumps(poll) if poll else None, 
+              json.dumps(location) if location else None,
+              json.dumps(mentioned_users)))
         
         post_id = cursor.lastrowid
-        
-        # If poll exists, store poll votes in separate table
-        if poll:
-            for idx, option in enumerate(poll.get('options', [])):
-                try:
-                    cursor.execute('''
-                        INSERT INTO forum_poll_options (post_id, option_text, votes)
-                        VALUES (?, ?, 0)
-                    ''', (post_id, option))
-                except:
-                    pass
         
         conn.commit()
         conn.close()

@@ -2663,7 +2663,7 @@
       <div class="p-4 md:p-6 space-y-6 md:space-y-8">
       
       <!-- User Profile Section -->
-      <div id="user-section" class="pb-4 border-b border-gray-200">
+      <div id="user-section" class="pb-4 border-b border-gray-200" style="opacity: 0; transition: opacity 0.3s;">
         <div id="user-avatar" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors" onclick="handleUserClick()">
           <div class="w-10 h-10 flex-shrink-0 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold overflow-hidden">
             <i class="fas fa-user"></i>
@@ -3914,6 +3914,12 @@
           // User not logged in, keep default state
           isUserLoggedIn = false;
           console.log('User not logged in');
+        } finally {
+          // Show user section after loading (prevent flashing)
+          const userSection = document.getElementById('user-section');
+          if (userSection) {
+            userSection.style.opacity = '1';
+          }
         }
       }
       

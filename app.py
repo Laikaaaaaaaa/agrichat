@@ -5278,37 +5278,49 @@ def get_friends():
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        # Get friends where user is either user_id or friend_id
+        # Get friends where current user is user_id in friendship
         cursor.execute('''
             SELECT 
                 u.id, u.name, u.email, u.avatar_url, u.username_slug,
                 f.status, f.created_at
             FROM friendships f
-            JOIN users u ON (
-                CASE 
-                    WHEN f.user_id = ? THEN u.id = f.friend_id
-                    WHEN f.friend_id = ? THEN u.id = f.user_id
-                END
-            )
-            WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted'
-            ORDER BY u.name ASC
-        ''', (user_id, user_id, user_id, user_id))
+            JOIN users u ON u.id = f.friend_id
+            WHERE f.user_id = ? AND f.status = 'accepted'
+        ''', (user_id,))
         
-        friends = []
-        for row in cursor.fetchall():
-            friends.append({
-                'id': row[0],
-                'name': row[1],
-                'email': row[2],
-                'avatar_url': row[3],
-                'username_slug': row[4],
-                'status': row[5],
-                'friend_since': row[6]
-            })
+        friends = list(cursor.fetchall())
+        
+        # Get friends where current user is friend_id in friendship
+        cursor.execute('''
+            SELECT 
+                u.id, u.name, u.email, u.avatar_url, u.username_slug,
+                f.status, f.created_at
+            FROM friendships f
+            JOIN users u ON u.id = f.user_id
+            WHERE f.friend_id = ? AND f.status = 'accepted'
+        ''', (user_id,))
+        
+        friends.extend(cursor.fetchall())
+        
+        # Convert to dict and remove duplicates
+        friends_dict = {}
+        for row in friends:
+            if row[0] not in friends_dict:
+                friends_dict[row[0]] = {
+                    'id': row[0],
+                    'name': row[1],
+                    'email': row[2],
+                    'avatar_url': row[3],
+                    'username_slug': row[4],
+                    'status': row[5],
+                    'friend_since': row[6]
+                }
+        
+        friends_list = sorted(friends_dict.values(), key=lambda x: x['name'])
         
         conn.close()
         
-        return jsonify({'success': True, 'friends': friends, 'count': len(friends)})
+        return jsonify({'success': True, 'friends': friends_list, 'count': len(friends_list)})
     except Exception as e:
         logging.error(f"Error getting friends: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500

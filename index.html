@@ -3953,6 +3953,7 @@
     <script>
       // Global variable to track login state
       let isUserLoggedIn = false;
+      let currentUserData = null; // Store current user data for profile link
       
       // Check if user is logged in
       async function checkUserSession() {
@@ -3963,6 +3964,7 @@
           if (data.success && data.user) {
             // User is logged in
             isUserLoggedIn = true;
+            currentUserData = data.user; // Store user data
             const userName = data.user.name || data.user.email.split('@')[0];
             const userAvatar = document.querySelector('#user-avatar .w-10');
             const userNameEl = document.getElementById('user-name');
@@ -3985,10 +3987,12 @@
             userStatusEl.textContent = data.user.email;
           } else {
             isUserLoggedIn = false;
+            currentUserData = null;
           }
         } catch (error) {
           // User not logged in, keep default state
           isUserLoggedIn = false;
+          currentUserData = null;
           console.log('User not logged in');
         } finally {
           // Show user section after loading (prevent flashing)
@@ -4002,9 +4006,15 @@
       
       // Handle user avatar click
       function handleUserClick() {
-        if (isUserLoggedIn) {
-          // Logged in, go to profile page
-          window.location.href = '/profile';
+        if (isUserLoggedIn && currentUserData) {
+          // Build profile URL with username.userid format
+          const identifier = currentUserData.username_slug 
+            ? `${currentUserData.username_slug}.${currentUserData.id}`
+            : currentUserData.id;
+          window.location.href = `/profile/${identifier}`;
+        } else if (isUserLoggedIn) {
+          // Fallback if no username_slug
+          window.location.href = `/profile`;
         } else {
           // Not logged in, go to login page
           window.location.href = '/login';

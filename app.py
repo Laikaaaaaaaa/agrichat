@@ -91,23 +91,10 @@ class Api:
 
         # Log initial setup
         if self.gemini_api_keys:
-            logging.info("🔑 Gemini API keys đã sẵn sàng (Fallback 1)...")
+            logging.info("🔑 Gemini API keys đã sẵn sàng (Fallback)...")
             self.initialize_gemini_model()
         else:
             self.model = None
-
-        # FALLBACK API 2: DeepSeek
-        self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "").strip() or None
-        deepseek_model_env = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
-        self.deepseek_model = deepseek_model_env or "deepseek-chat"
-        deepseek_base_env = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com").strip()
-        self.deepseek_api_base = deepseek_base_env.rstrip("/") or "https://api.deepseek.com"
-        self.deepseek_timeout = self._safe_float(os.getenv("DEEPSEEK_TIMEOUT", 20)) or 20
-
-        if self.deepseek_api_key:
-            logging.info("🛡️  DeepSeek fallback đã được bật (Fallback 2).")
-        else:
-            logging.info("ℹ️  DeepSeek fallback chưa bật vì thiếu DEEPSEEK_API_KEY.")
 
         self.geography_prompt = """
 Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh và thân thiện của Việt Nam.
@@ -877,7 +864,6 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
         Generate content with API priority:
         1. OpenAI GPT (Primary) - Supports both text and image
         2. Gemini (Fallback) - Supports both text and image
-        Note: DeepSeek removed as it doesn't support image analysis
         """
         last_exception = None
         
@@ -901,7 +887,7 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                 else:
                     logging.info("🔄 Chuyển sang Gemini fallback...")
 
-        # TRY 2: Gemini (Fallback 1)
+        # TRY 2: Gemini (Fallback)
         max_attempts = 3
         retry_delay = 0
         base_delay = 3
@@ -974,7 +960,7 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                     if attempt < max_attempts - 1:
                         continue
                     else:
-                        logging.warning("⚠️ Tất cả Gemini keys đã hết quota. Chuyển sang DeepSeek...")
+                        logging.warning("⚠️ Tất cả Gemini keys đã hết quota.")
                         break
 
                 if "dangerous_content" in error_message or "danger" in error_message:
@@ -984,21 +970,7 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
                 logging.error(f"Lỗi Gemini không xử lý được: {error_message}")
                 raise gen_error
 
-        # Don't use DeepSeek as it doesn't support image analysis
-        if has_image:
-            raise Exception(f"Cả OpenAI và Gemini đều thất bại khi xử lý hình ảnh. Lỗi cuối: {last_exception}")
-        
-        # TRY 3: DeepSeek (Only for text, not image)
-        if self.deepseek_api_key and not has_image:
-            logging.info("🔄 Gemini thất bại. Đang chuyển sang DeepSeek (chỉ text)...")
-            try:
-                # Convert content to string if it's a list
-                text_content = content if isinstance(content, str) else ' '.join(str(c) for c in content if isinstance(c, str))
-                return self.generate_with_deepseek(text_content, stream=stream)
-            except Exception as deepseek_error:
-                logging.error(f"❌ DeepSeek fallback cũng thất bại: {deepseek_error}")
-                last_exception = deepseek_error
-
+        # If both OpenAI and Gemini fail
         raise Exception(f"Tất cả API thất bại. Lỗi cuối: {last_exception}")
 
     def generate_with_openai(self, content, stream=False):
@@ -1032,6 +1004,23 @@ Bạn trả lời các câu hỏi liên quan đến:
 ✅ Công nghệ nông nghiệp: Máy móc, IoT, AI
 
 ✅ Sức khỏe sinh vật: Bệnh cây trồng, vật nuôi, thủy sản
+
+XỬ LÝ NGỮ CẢNH & FOLLOW-UP:
+1. ĐỌC KỸ LỊCH SỬ HỘI THOẠI nếu có (được cung cấp trong prompt người dùng)
+2. Nếu người dùng yêu cầu "thêm thông tin", "chi tiết hơn", "nói rõ hơn":
+   - ĐỪNG hỏi lại họ muốn biết gì!
+   - Hãy PHÂN TÍCH câu trả lời trước đó của bạn
+   - TÌM CHỦ ĐỀ CHÍNH (ví dụ: "cá trê ăn sâu")
+   - CUNG CẤP THÊM: Chi tiết kỹ thuật, số liệu cụ thể, ví dụ thực tế
+3. Nếu người dùng nói "nó", "cái đó" → Tìm trong lịch sử xem đang nói về gì
+4. Luôn kết nối thông tin với ngữ cảnh trước đó nếu có liên quan
+
+VÍ DỤ XỬ LÝ FOLLOW-UP:
+- User: "Cá nào ăn sâu nhiều nhất?"
+  Bot: "Cá trê, cá basa ăn sâu nhiều..."
+- User: "Cho thông tin nhiều hơn đi"
+  Bot: ✅ "Về cá trê ăn sâu, chi tiết hơn thì... [cung cấp thêm: lượng sâu/ngày, loại sâu, kỹ thuật cho ăn...]"
+  Bot: ❌ "Bạn muốn biết thêm về gì?" (ĐỪNG hỏi lại!)
 
 KHI NHẬN CÂU HỎI NGOÀI PHẠM VI:
 Chỉ từ chối nếu câu hỏi HOÀN TOÀN không liên quan (giải trí, thể thao, chính trị, lập trình, toán thuần túy...).
@@ -1127,64 +1116,6 @@ Ví dụ: "Cá Việt Nam" → Trả lời về các loài cá nuôi, cá bản 
         except Exception as exc:
             raise Exception(f"OpenAI lỗi: {exc}") from exc
 
-    def generate_with_deepseek(self, content, stream=False):
-        """Fallback generator sử dụng DeepSeek chat completions."""
-        if stream:
-            raise ValueError("DeepSeek fallback hiện chưa hỗ trợ stream=True")
-
-        if not self.deepseek_api_key:
-            raise ValueError("Chưa cấu hình DEEPSEEK_API_KEY")
-
-        url = f"{self.deepseek_api_base}/v1/chat/completions"
-        system_prompt = os.getenv(
-            "DEEPSEEK_SYSTEM_PROMPT",
-            """Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp của Việt Nam. 
-CHỈ trả lời câu hỏi về nông nghiệp, địa lý, thời tiết và lĩnh vực liên quan. 
-Từ chối lịch sự các câu hỏi ngoài phạm vi: "Xin lỗi, tôi chỉ có thể trả lời về nông nghiệp và các lĩnh vực liên quan." """
-        ).strip()
-
-        payload = {
-            "model": self.deepseek_model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": content}
-            ],
-            "temperature": self._safe_float(os.getenv("DEEPSEEK_TEMPERATURE", 0.7)) or 0.7,
-            "max_tokens": int(self._safe_float(os.getenv("DEEPSEEK_MAX_TOKENS", 2048)) or 2048),
-        }
-
-        headers = {
-            "Authorization": f"Bearer {self.deepseek_api_key}",
-            "Content-Type": "application/json"
-        }
-
-        try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=self.deepseek_timeout
-            )
-            response.raise_for_status()
-            data = response.json()
-
-            choices = data.get("choices") or []
-            if not choices:
-                raise ValueError("DeepSeek trả về response không có choices")
-
-            message = choices[0].get("message") or {}
-            content_text = message.get("content")
-            if not content_text:
-                raise ValueError("DeepSeek không trả về nội dung hợp lệ")
-
-            return SimpleNamespace(
-                text=content_text,
-                provider="deepseek",
-                raw=data
-            )
-        except Exception as exc:
-            raise Exception(f"DeepSeek lỗi: {exc}") from exc
-
     def chat(self, message, mode='normal'):
         """
         Exposed method to receive a user message from the web UI.
@@ -1208,7 +1139,7 @@ Từ chối lịch sự các câu hỏi ngoài phạm vi: "Xin lỗi, tôi chỉ
             # Phát hiện câu hỏi yêu cầu thêm thông tin về chủ đề trước
             follow_up_keywords = ['thông tin thêm', 'chi tiết hơn', 'nói rõ hơn', 'thêm', 'nhiều hơn', 
                                  'cụ thể hơn', 'rõ ràng hơn', 'giải thích thêm', 'thông tin nhiều hơn',
-                                 'cho thêm', 'bổ sung', 'mở rộng']
+                                 'cho thêm', 'bổ sung', 'mở rộng', 'nói rõ', 'cho biết thêm']
             message_lower = message.lower().strip()
             is_follow_up = any(keyword in message_lower for keyword in follow_up_keywords)
             
@@ -1217,14 +1148,23 @@ Từ chối lịch sự các câu hỏi ngoài phạm vi: "Xin lỗi, tôi chỉ
             if is_follow_up and len(self.conversation_history) > 0:
                 last_exchange = self.conversation_history[-1]
                 additional_context = f"""
-===== NGỮ CẢNH QUAN TRỌNG =====
-Người dùng vừa yêu cầu THÊM THÔNG TIN về chủ đề trong câu trả lời cuối:
+🔔 ĐÂY LÀ CÂU HỎI FOLLOW-UP! 🔔
 
-Câu hỏi trước: {last_exchange['user_query']}
-Trả lời trước: {last_exchange['ai_response'][:500]}...
+Người dùng vừa nói: "{message}"
+➡️ Đây là yêu cầu THÊM THÔNG TIN về câu trả lời cuối cùng của bạn!
 
-➡️ HÃY CUNG CẤP THÊM CHI TIẾT, VÍ DỤ CỤ THỂ, SỐ LIỆU, HOẶC THÔNG TIN BỔ SUNG về chủ đề này!
-➡️ KHÔNG HỎI LẠI người dùng muốn biết gì!
+Câu hỏi gốc: {last_exchange['user_message']}
+Bạn đã trả lời: {last_exchange['ai_response']}
+
+📌 NHIỆM VỤ CỦA BẠN:
+- HÃY PHÂN TÍCH lại câu trả lời trên
+- TÌM CHỦ ĐỀ CHÍNH (ví dụ: cá trê ăn sâu, kỹ thuật trồng lúa, etc.)
+- CUNG CẤP THÊM: chi tiết kỹ thuật, số liệu cụ thể, ví dụ thực tế, kinh nghiệm thực địa
+- TUYỆT ĐỐI KHÔNG HỎI LẠI người dùng muốn biết gì!
+
+VÍ DỤ:
+- Nếu vừa nói về "cá trê ăn sâu" → Hãy nói thêm về: lượng sâu cần thiết/ngày, loại sâu tốt nhất, cách cho ăn, ảnh hưởng đến tăng trưởng
+- Nếu vừa nói về "trồng lúa" → Hãy nói thêm về: giống lúa cụ thể, quy trình từng giai đoạn, lượng phân bón, thời điểm thu hoạch
 """
 
             # Lấy system prompt theo chế độ hiện tại để thay đổi phong cách trả lời

@@ -327,19 +327,19 @@
       <!-- Navigation Tabs -->
       <div class="mt-3 sm:mt-4">
         <div class="flex gap-0.5 sm:gap-1 border-t border-gray-300 -mb-px overflow-x-auto">
-          <button onclick="switchTab('posts', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('posts', event)" data-tab="posts" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-newspaper sm:hidden"></i>
             <span class="hidden sm:inline">Bài viết</span>
           </button>
-          <button onclick="switchTab('intro', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('intro', event)" data-tab="intro" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-info-circle sm:hidden"></i>
             <span class="hidden sm:inline">Giới thiệu</span>
           </button>
-          <button onclick="switchTab('friends', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('friends', event)" data-tab="friends" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-user-friends sm:hidden"></i>
             <span class="hidden sm:inline">Bạn bè</span>
           </button>
-          <button onclick="switchTab('photos', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('photos', event)" data-tab="photos" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-images sm:hidden"></i>
             <span class="hidden sm:inline">Ảnh</span>
           </button>
@@ -2089,22 +2089,8 @@
         tab.classList.add('text-gray-600', 'hover:bg-gray-100');
       });
       
-      // Highlight active tab - find by event.currentTarget or by position
-      let activeTab = null;
-      if (event && event.currentTarget && event.currentTarget.classList.contains('profile-tab')) {
-        activeTab = event.currentTarget;
-      } else {
-        // Find tab by tabName - check onclick attribute
-        const tabs = document.querySelectorAll('.profile-tab');
-        for (let tab of tabs) {
-          const onclick = tab.getAttribute('onclick') || '';
-          if (onclick.includes(`switchTab('${tabName}'`)) {
-            activeTab = tab;
-            break;
-          }
-        }
-      }
-      
+      // Highlight active tab using data-tab attribute
+      const activeTab = document.querySelector(`.profile-tab[data-tab="${tabName}"]`);
       if (activeTab) {
         activeTab.classList.add('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
         activeTab.classList.remove('text-gray-600', 'hover:bg-gray-100');

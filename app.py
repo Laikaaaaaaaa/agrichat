@@ -5335,12 +5335,13 @@ def sync_user_photos(user_id, cursor):
                 ''', (user_id, avatar_url))
                 logging.info(f"sync_user_photos: Added avatar for user_id={user_id}")
         
-        # Get images from forum posts
+        # Get images from forum posts - LIMIT 20 for performance
         cursor.execute('''
             SELECT id, image_urls, content, created_at 
             FROM forum_posts 
             WHERE user_id = ? AND image_urls IS NOT NULL AND image_urls != ""
             ORDER BY created_at DESC
+            LIMIT 20
         ''', (user_id,))
         
         posts = cursor.fetchall()
@@ -5351,7 +5352,7 @@ def sync_user_photos(user_id, cursor):
             if image_urls:
                 try:
                     urls = json.loads(image_urls) if isinstance(image_urls, str) else image_urls
-                    if isinstance(urls, list):
+                    if isinstance(urls, list) and len(urls) <= 5:  # Skip posts with too many images
                         for img_url in urls:
                             # Check if image already exists
                             cursor.execute('SELECT id FROM user_photos WHERE user_id = ? AND photo_url = ?', 

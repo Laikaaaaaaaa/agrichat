@@ -1762,7 +1762,6 @@
       background:#fff;
       box-shadow:2px 0 12px rgba(0,0,0,0.08);
       overflow-y:auto;
-      overflow-x:hidden;
       transition:transform 0.36s cubic-bezier(0.25,0.46,0.45,0.94);
       will-change:transform;
       z-index:var(--z-sidebar);
@@ -1776,19 +1775,7 @@
 
     /* Desktop: transform-based push/pull (no width or margin changes) */
     @media (min-width:768px){
-      #main-container {
-        position: relative;
-        overflow: hidden;
-      }
-      #sidebar{ 
-        position:absolute; 
-        top:0; 
-        bottom:0; 
-        left:0; 
-        transform:translateX(0);
-        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        max-width: var(--sidebar-w);
-      }
+      #sidebar{ position:absolute; top:0; bottom:0; left:0; transform:translateX(0); }
       #sidebar.closed{ transform:translateX(calc(-1 * var(--sidebar-w))); }
       #sidebar.open{ transform:translateX(0); }
     }
@@ -2737,7 +2724,7 @@
       <div class="p-4 md:p-6 space-y-6 md:space-y-8">
       
       <!-- User Profile Section -->
-      <div id="user-section" class="pb-4 border-b border-gray-200" style="opacity: 0; pointer-events: none; transition: opacity 0.3s;">
+      <div id="user-section" class="pb-4 border-b border-gray-200" style="opacity: 0; transition: opacity 0.3s;">
         <div id="user-avatar" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors" onclick="handleUserClick()">
           <div class="w-10 h-10 flex-shrink-0 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold overflow-hidden">
             <i class="fas fa-user"></i>
@@ -3953,11 +3940,10 @@
         lastIsMobile = isMobile;
       });
 
-      // initial state: closed on all devices, open with animation on desktop when user clicks
+      // initial state: open on desktop, closed on mobile
       if (lastIsMobile) {
         closeSidebar();
       } else {
-        // Open sidebar on desktop
         openSidebar();
       }
     });
@@ -4009,7 +3995,6 @@
           const userSection = document.getElementById('user-section');
           if (userSection) {
             userSection.style.opacity = '1';
-            userSection.style.pointerEvents = 'auto';
           }
         }
       }
@@ -4322,10 +4307,6 @@
       });
       console.log('✅ Chat box scroll listener attached');
     }
-
-    // Load weather info on page load - will request geolocation permission
-    console.log('🌦️ Starting weather info fetch on page load...');
-    getWeatherInfo();
   });
 
   // Data analysis keywords for different categories - Enhanced with more specific detection

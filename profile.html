@@ -215,37 +215,37 @@
   <div class="max-w-7xl mx-auto bg-white">
     
     <!-- Cover Background -->
-    <div id="cover-photo" class="h-40 sm:h-48 md:h-64 relative" style="background-size: cover; background-position: center; background-repeat: no-repeat; background-color: #4ade80;">
+    <div id="cover-photo" class="h-32 sm:h-48 md:h-64 relative" style="background-size: cover; background-position: center; background-repeat: no-repeat; background-color: #4ade80;">
       <!-- Removed edit cover button -->
     </div>
     
     <!-- Profile Info Container -->
-    <div class="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 border-b border-gray-300">
+    <div class="px-2 sm:px-4 md:px-6 pb-2 sm:pb-4 border-b border-gray-200">
       <!-- Avatar and Name Row -->
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-10 sm:-mt-12 md:-mt-16 gap-3 sm:gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-8 sm:-mt-12 md:-mt-16 gap-2 sm:gap-4">
         <!-- Left: Avatar + Name (horizontal) -->
-        <div class="flex items-end gap-3 sm:gap-4">
+        <div class="flex items-end gap-2 sm:gap-4 min-w-0">
           <!-- Avatar -->
           <div class="avatar-wrapper flex-shrink-0 relative">
-            <img id="profile-avatar" src="" alt="Avatar" class="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
-            <div id="avatar-placeholder" class="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
+            <img id="profile-avatar" src="" alt="Avatar" class="w-20 h-20 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full object-cover border-3 sm:border-4 border-white shadow-lg" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
+            <div id="avatar-placeholder" class="w-20 h-20 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-2xl sm:text-4xl md:text-5xl font-bold border-3 sm:border-4 border-white shadow-lg" style="display:none;">
               ?
             </div>
             <div id="avatar-edit-btn" class="avatar-edit-btn" onclick="showAvatarOptions()" style="display:none;">
-              <i class="fas fa-camera"></i>
+              <i class="fas fa-camera text-sm"></i>
             </div>
           </div>
           
           <!-- Name and Stats (right of avatar, aligned to bottom) -->
-          <div class="pb-1 sm:pb-2 flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              <h1 id="profile-name" class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Đang tải...</h1>
+          <div class="pb-0.5 sm:pb-2 flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5 sm:mb-1 flex-wrap">
+              <h1 id="profile-name" class="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Đang tải...</h1>
             </div>
-            <p id="profile-email" class="text-gray-600 text-xs sm:text-sm mb-2 truncate">email@example.com</p>
-            <div class="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
-              <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
+            <p id="profile-email" class="text-gray-600 text-xs sm:text-sm mb-1 sm:mb-2 truncate line-clamp-1">email@example.com</p>
+            <div class="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
+              <span><span id="posts-count" class="font-semibold">0</span> bài</span>
               <span>•</span>
-              <span><span class="friends-count font-semibold">0</span> bạn bè</span>
+              <span><span class="friends-count font-semibold">0</span> bạn</span>
               <span>•</span>
               <span><span id="photos-count" class="font-semibold">0</span> ảnh</span>
             </div>
@@ -253,79 +253,77 @@
         </div>
         
         <!-- Right: Action Buttons -->
-        <div class="flex gap-2 pb-2 flex-shrink-0">
+        <div class="flex gap-1 pb-1 sm:pb-2 flex-shrink-0 w-full sm:w-auto overflow-x-auto">
           <!-- Share Button (for all users) -->
-          <button onclick="shareProfile()" class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm" title="Chia sẻ hồ sơ">
-            <i class="fas fa-share-alt"></i>
+          <button onclick="shareProfile()" class="px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs sm:text-sm transition-colors flex items-center gap-1 flex-shrink-0" title="Chia sẻ hồ sơ">
+            <i class="fas fa-share-alt text-xs"></i>
             <span class="hidden sm:inline">Chia sẻ</span>
           </button>
           
           <!-- Action Buttons (Owner View) -->
           <div id="owner-actions" class="relative" style="display:none;">
-            <button onclick="toggleSettingsMenu()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
-              <i class="fas fa-cog"></i>
-              <span class="hidden sm:inline">Chỉnh sửa trang cá nhân</span>
-              <span class="sm:hidden">Chỉnh sửa</span>
+            <button onclick="toggleSettingsMenu()" class="px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-200 hover:bg-gray-300 rounded text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 flex-shrink-0">
+              <i class="fas fa-cog text-xs"></i>
+              <span class="hidden sm:inline">Chỉnh sửa</span>
             </button>
             
             <!-- Settings Dropdown Menu -->
-            <div id="settings-menu" class="hidden absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
-              <button onclick="openEditProfileModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-                <i class="fas fa-user text-green-600"></i>
+            <div id="settings-menu" class="hidden absolute top-full right-0 mt-2 w-48 sm:w-56 bg-white rounded-lg sm:rounded-xl shadow-lg border border-gray-200 py-1.5 z-50">
+              <button onclick="openEditProfileModal()" class="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 flex items-center gap-2 transition-colors text-xs sm:text-sm">
+                <i class="fas fa-user text-green-600 text-xs"></i>
                 <span class="text-gray-700">Chỉnh sửa thông tin</span>
               </button>
-              <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-                <i class="fas fa-key text-blue-600"></i>
+              <button onclick="openChangePasswordModal()" class="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 flex items-center gap-2 transition-colors text-xs sm:text-sm">
+                <i class="fas fa-key text-blue-600 text-xs"></i>
                 <span class="text-gray-700">Đổi mật khẩu</span>
               </button>
-              <button onclick="togglePrivacy()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-                <i class="fas fa-lock text-purple-600"></i>
+              <button onclick="togglePrivacy()" class="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 flex items-center gap-2 transition-colors text-xs sm:text-sm">
+                <i class="fas fa-lock text-purple-600 text-xs"></i>
                 <span class="text-gray-700">Quyền riêng tư</span>
               </button>
-              <hr class="my-2">
-              <button onclick="logout()" class="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3 transition-colors text-red-600">
-                <i class="fas fa-sign-out-alt"></i>
+              <hr class="my-1 sm:my-2">
+              <button onclick="logout()" class="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-red-50 flex items-center gap-2 transition-colors text-red-600 text-xs sm:text-sm">
+                <i class="fas fa-sign-out-alt text-xs"></i>
                 <span>Đăng xuất</span>
               </button>
             </div>
           </div>
           
           <!-- Action Buttons (Visitor View) -->
-          <div id="visitor-actions" class="flex gap-2" style="display:none;">
+          <div id="visitor-actions" class="flex gap-1 flex-wrap" style="display:none;">
             <!-- Add Friend Button -->
-            <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
-              <i class="fas fa-user-plus"></i>
-              <span class="hidden sm:inline">Thêm bạn bè</span>
-              <i class="fas fa-user-plus sm:hidden"></i>
+            <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-2 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0">
+              <i class="fas fa-user-plus text-xs"></i>
+              <span class="hidden sm:inline">Thêm bạn</span>
             </button>
             
             <!-- Friend Request Sent Button -->
-            <button id="request-sent-btn" onclick="cancelFriendRequest()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
-              <i class="fas fa-clock"></i>
-              <span class="hidden sm:inline">Đã gửi lời mời</span>
+            <button id="request-sent-btn" onclick="cancelFriendRequest()" class="hidden px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0">
+              <i class="fas fa-clock text-xs"></i>
+              <span class="hidden sm:inline">Đã gửi</span>
             </button>
             
             <!-- Accept/Reject Friend Request Buttons -->
-            <div id="request-received-btns" class="hidden flex gap-2">
-              <button onclick="acceptFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
-                <i class="fas fa-check"></i>
+            <div id="request-received-btns" class="hidden flex gap-1">
+              <button onclick="acceptFriendRequest()" class="px-2 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0">
+                <i class="fas fa-check text-xs"></i>
                 <span class="hidden sm:inline">Chấp nhận</span>
               </button>
-              <button onclick="rejectFriendRequest()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
-                <i class="fas fa-times"></i>
+              <button onclick="rejectFriendRequest()" class="px-2 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0">
+                <i class="fas fa-times text-xs"></i>
                 <span class="hidden sm:inline">Từ chối</span>
               </button>
             </div>
             
             <!-- Already Friends Button -->
-            <button id="friends-btn" onclick="removeFriend()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
-              <i class="fas fa-user-check"></i>
+            <button id="friends-btn" onclick="removeFriend()" class="hidden px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0">
+              <i class="fas fa-user-check text-xs"></i>
               <span class="hidden sm:inline">Bạn bè</span>
             </button>
             
             <!-- Message Button -->
-            <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
-              <i class="fas fa-comment"></i>
+            <button class="px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 flex-shrink-0">
+              <i class="fas fa-comment text-xs"></i>
               <span class="hidden sm:inline">Nhắn tin</span>
             </button>
           </div>
@@ -333,36 +331,36 @@
       </div>
       
       <!-- Navigation Tabs -->
-      <div class="mt-3 sm:mt-4">
-        <div class="flex gap-0.5 sm:gap-1 border-t border-gray-300 -mb-px overflow-x-auto">
-          <button onclick="switchTab('posts', event)" data-tab="posts" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
-            <i class="fas fa-newspaper sm:hidden"></i>
+      <div class="mt-2 sm:mt-4">
+        <div class="flex gap-0 sm:gap-1 border-t border-gray-200 -mb-px overflow-x-auto">
+          <button onclick="switchTab('posts', event)" data-tab="posts" class="profile-tab px-2.5 sm:px-4 py-2 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-xs sm:text-base whitespace-nowrap border-b-2 border-transparent">
+            <i class="fas fa-newspaper sm:hidden text-xs"></i>
             <span class="hidden sm:inline">Bài viết</span>
           </button>
-          <button onclick="switchTab('intro', event)" data-tab="intro" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
-            <i class="fas fa-info-circle sm:hidden"></i>
+          <button onclick="switchTab('intro', event)" data-tab="intro" class="profile-tab px-2.5 sm:px-4 py-2 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-xs sm:text-base whitespace-nowrap border-b-2 border-transparent">
+            <i class="fas fa-info-circle sm:hidden text-xs"></i>
             <span class="hidden sm:inline">Giới thiệu</span>
           </button>
-          <button onclick="switchTab('friends', event)" data-tab="friends" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
-            <i class="fas fa-user-friends sm:hidden"></i>
+          <button onclick="switchTab('friends', event)" data-tab="friends" class="profile-tab px-2.5 sm:px-4 py-2 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-xs sm:text-base whitespace-nowrap border-b-2 border-transparent">
+            <i class="fas fa-user-friends sm:hidden text-xs"></i>
             <span class="hidden sm:inline">Bạn bè</span>
           </button>
-          <button onclick="switchTab('photos', event)" data-tab="photos" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
-            <i class="fas fa-images sm:hidden"></i>
+          <button onclick="switchTab('photos', event)" data-tab="photos" class="profile-tab px-2.5 sm:px-4 py-2 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-xs sm:text-base whitespace-nowrap border-b-2 border-transparent">
+            <i class="fas fa-images sm:hidden text-xs"></i>
             <span class="hidden sm:inline">Ảnh</span>
           </button>
         </div>
       </div>
     </div>
     <!-- Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 bg-gray-50">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4 md:p-6 bg-gray-50">
       
       <!-- Left Sidebar - Hidden on mobile by default, shown when switching to intro tab -->
-      <div class="hidden lg:block lg:col-span-5 xl:col-span-4 space-y-3 sm:space-y-4">
+      <div class="hidden lg:block lg:col-span-5 xl:col-span-4 space-y-2 sm:space-y-4">
         
         <!-- Intro Card -->
         <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
-          <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Giới thiệu</h2>
+          <h2 class="text-base sm:text-lg font-bold text-gray-900 mb-2 sm:mb-3">Giới thiệu</h2>
           
           <div id="alert-message" class="hidden mb-3 sm:mb-4 p-3 rounded text-sm"></div>
           
@@ -430,21 +428,21 @@
               <div id="small-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0 text-sm">
                 <i class="fas fa-user"></i>
               </div>
-              <button onclick="openCreatePostModal()" class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-left text-sm sm:text-base">
+              <button onclick="openCreatePostModal()" class="flex-1 px-2 sm:px-4 py-2 sm:py-2.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-left text-xs sm:text-sm">
                 Bạn đang nghĩ gì?
               </button>
             </div>
-            <div class="flex gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-gray-200">
-              <button onclick="openCreatePostModal('image')" class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-                <i class="fas fa-image text-green-600 text-sm sm:text-base"></i>
-                <span class="font-medium text-xs sm:text-sm">Ảnh/Video</span>
+            <div class="flex gap-1 sm:gap-2 pt-2 sm:pt-2.5 border-t border-gray-200">
+              <button onclick="openCreatePostModal('image')" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded transition-colors text-gray-600 text-xs sm:text-sm">
+                <i class="fas fa-image text-green-600 text-xs sm:text-base"></i>
+                <span class="font-medium hidden sm:inline">Ảnh/Video</span>
               </button>
             </div>
           </div>
           
           <!-- Posts List -->
           <div id="user-posts-container">
-            <div class="flex justify-center py-8">
+            <div class="flex justify-center py-6 sm:py-8">
               <div class="loading-spinner"></div>
             </div>
           </div>
@@ -452,12 +450,12 @@
         
         <!-- Photos Section (hidden by default) -->
         <div id="photos-section" class="hidden">
-          <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
-            <div class="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Ảnh</h2>
+          <div class="bg-white rounded-lg sm:rounded-xl shadow p-2.5 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-4 gap-2">
+              <h2 class="text-base sm:text-2xl font-bold text-gray-900">Ảnh</h2>
             </div>
-            <div id="photos-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-3">
-              <div class="col-span-full flex justify-center py-8">
+            <div id="photos-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-1.5 sm:gap-3">
+              <div class="col-span-full flex justify-center py-6 sm:py-8">
                 <div class="loading-spinner"></div>
               </div>
             </div>
@@ -466,10 +464,10 @@
         
         <!-- Friends Section (hidden by default) -->
         <div id="friends-section" class="hidden">
-          <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
-            <div class="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Bạn bè (<span class="friends-count">0</span>)</h2>
-              <button class="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-xs sm:text-sm">
+          <div class="bg-white rounded-lg sm:rounded-xl shadow p-2.5 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-4 gap-2">
+              <h2 class="text-base sm:text-2xl font-bold text-gray-900">Bạn bè (<span class="friends-count">0</span>)</h2>
+              <button class="px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-100 hover:bg-gray-200 rounded transition-colors text-xs sm:text-sm">
                 <i class="fas fa-search"></i> <span class="hidden sm:inline">Tìm kiếm</span>
               </button>
             </div>
@@ -1587,56 +1585,49 @@
       const profileUrl = getProfileUrl(post.user_id, post.username_slug);
       
       return `
-        <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow post-card mb-4">
+        <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-shadow post-card mb-2 sm:mb-4">
           <!-- Post Header -->
-          <div class="p-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
+          <div class="p-2.5 sm:p-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
               <a href="${profileUrl}" class="hover:opacity-80 transition-opacity flex-shrink-0">
-                ${userAvatar}
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden">
+                  ${userAvatar}
+                </div>
               </a>
               <div class="min-w-0 flex-1">
                 <a href="${profileUrl}" class="hover:underline">
-                  <h4 class="font-semibold text-gray-900 truncate">${escapeHtml(userName)}</h4>
+                  <h4 class="font-semibold text-gray-900 truncate text-xs sm:text-sm">${escapeHtml(userName)}</h4>
                 </a>
-                <p class="text-sm text-gray-500 flex items-center gap-1.5">
-                  <i class="far fa-clock"></i>
+                <p class="text-xs text-gray-500 flex items-center gap-1">
+                  <i class="far fa-clock text-xs"></i>
                   <span>${getTimeAgo(post.created_at)}</span>
                 </p>
               </div>
             </div>
             ${isOwnProfile ? `
-              <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors p-2 flex-shrink-0">
+              <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors p-1 flex-shrink-0 text-sm sm:text-base">
                 <i class="fas fa-trash"></i>
               </button>
             ` : ''}
           </div>
           
-          <!-- Post Content -->
-          <div class="px-4 pb-3">
-            ${titleHTML}
-            <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${processContent(post.content)}</p>
-            <a href="${getPostUrl(post)}" class="inline-block mt-2 text-sm text-green-600 hover:text-green-700 font-semibold">
-              Xem chi tiết <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-          </div>
-          
-          ${imageHTML ? `<div class="px-0 mb-3">${imageHTML}</div>` : ''}
+          ${imageHTML ? `<div class="px-0 mb-2 sm:mb-3">${imageHTML}</div>` : ''}
           ${pollHTML}
-          ${tagsHTML ? `<div class="px-4 pb-3">${tagsHTML}</div>` : ''}
+          ${tagsHTML ? `<div class="px-2.5 sm:px-4 pb-2 sm:pb-3">${tagsHTML}</div>` : ''}
           
           <!-- Post Stats - Clickable -->
-          <div class="px-4 py-3 border-t border-gray-100">
-            <div class="flex items-center justify-between text-sm">
+          <div class="px-2.5 sm:px-4 py-2 sm:py-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs sm:text-sm">
               <button 
                 onclick="showLikesList(${post.id})" 
-                class="flex items-center gap-1.5 text-gray-600 hover:text-green-600 hover:underline transition-colors"
+                class="flex items-center gap-1 text-gray-600 hover:text-green-600 hover:underline transition-colors"
               >
                 ${post.likes_count > 0 ? `
                   <span class="flex items-center gap-1">
-                    <i class="fas fa-thumbs-up text-green-600"></i>
+                    <i class="fas fa-thumbs-up text-green-600 text-xs"></i>
                     <span class="font-medium text-gray-700">${post.likes_count}</span>
                   </span>
-                ` : '<span class="text-gray-500">Chưa có lượt thích</span>'}
+                ` : '<span class="text-gray-500 text-xs">Chưa có lượt thích</span>'}
               </button>
               <button 
                 onclick="toggleComments(${post.id})" 
@@ -2791,7 +2782,7 @@
         const data = await response.json();
 
         if (data.success) {
-          alert('Đăng bài thành công!');
+          // Silently close modal and reload posts
           closeCreatePostModal();
           loadUserPosts(currentUserId);
           // Reset form

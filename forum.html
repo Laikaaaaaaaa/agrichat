@@ -204,7 +204,57 @@
   </header>
 
   <!-- Main Content -->
-  <div class="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+  <div class="min-h-screen bg-green-50">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        
+        <!-- Left Sidebar - Hidden on mobile -->
+        <div class="hidden lg:block lg:col-span-1">
+          <div class="sticky top-20">
+            <!-- Search Box -->
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <div class="relative">
+                <input type="text" placeholder="Tìm kiếm bài viết..." class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm">
+                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+              </div>
+            </div>
+            
+            <!-- Categories -->
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <h3 class="font-bold text-gray-900 mb-3 text-base">📁 Danh mục</h3>
+              <div class="space-y-2 text-sm">
+                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌾 Trồng trọt</button>
+                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🐄 Chăn nuôi</button>
+                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌱 Bệnh sâu hại</button>
+                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">💧 Tưới tiêu</button>
+                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🧑‍🌾 Kinh nghiệm</button>
+                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">❓ Hỏi đáp</button>
+              </div>
+            </div>
+            
+            <!-- Trending Topics -->
+            <div class="bg-white rounded-xl shadow-sm p-4">
+              <h3 class="font-bold text-gray-900 mb-3 text-base">🔥 Xu hướng</h3>
+              <div class="space-y-2 text-sm">
+                <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                  <div class="font-medium text-gray-800">#Lúa tẻ</div>
+                  <div class="text-xs text-gray-500">245 bài viết</div>
+                </div>
+                <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                  <div class="font-medium text-gray-800">#Phòng chống sâu bệnh</div>
+                  <div class="text-xs text-gray-500">189 bài viết</div>
+                </div>
+                <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                  <div class="font-medium text-gray-800">#Tưới tiêu thông minh</div>
+                  <div class="text-xs text-gray-500">127 bài viết</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Main Content - Takes full width on mobile, 3 cols on desktop -->
+        <div class="lg:col-span-3">
     
     <!-- Create Post Card -->
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-md p-3 sm:p-4 mb-4 sm:mb-6">
@@ -257,6 +307,9 @@
       </button>
     </div>
     
+        </div>
+      </div>
+    </div>
   </div>
   
   <!-- Likes Modal -->

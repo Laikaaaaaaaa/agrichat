@@ -754,6 +754,10 @@
             <i class="fas fa-map-marker-alt"></i>
             <span class="hidden xs:inline">Vị trí</span>
           </button>
+          <button onclick="insertEmoji()" class="flex-1 py-2.5 sm:py-3 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
+            <i class="fas fa-smile"></i>
+            <span class="hidden xs:inline">Emoji</span>
+          </button>
           <button onclick="submitPost()" class="flex-1 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm">
             Đăng
           </button>
@@ -2027,6 +2031,16 @@
     function removePostImage() {
       document.getElementById('image-preview-container').classList.add('hidden');
       document.getElementById('post-image-input').value = '';
+    }
+
+    // Insert emoji into content
+    function insertEmoji() {
+      const emojis = ['😀', '😂', '😍', '😭', '🎉', '🔥', '👍', '❤️', '😡', '🤔', '😴', '🌟', '⭐', '👏', '🙏'];
+      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+      
+      const postContent = document.getElementById('post-content');
+      postContent.value += emoji;
+      postContent.focus();
     }
 
     async function submitPost() {

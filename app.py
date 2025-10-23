@@ -4441,6 +4441,45 @@ def api_get_profile():
     return jsonify(result)
 
 
+@app.route('/api/auth/current-user', methods=['GET'])
+def api_get_current_user():
+    """API lấy thông tin user hiện tại (không yêu cầu login)"""
+    user_id = session.get('user_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Not logged in'})
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, email, name, avatar_url, username_slug 
+            FROM users 
+            WHERE id = ?
+        ''', (user_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'success': False, 'message': 'User not found'})
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': row[0],
+                'email': row[1],
+                'name': row[2],
+                'avatar_url': row[3],
+                'username_slug': row[4]
+            }
+        })
+    except Exception as e:
+        logging.error(f"Error getting current user: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/auth/update-profile', methods=['POST'])
 @auth.login_required
 def api_update_profile():

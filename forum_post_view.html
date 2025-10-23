@@ -345,12 +345,12 @@
     }
 
     // Format time on page load
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       const timeEl = document.getElementById('post-time');
       timeEl.textContent = getTimeAgo(postCreatedAt);
       
-      // Get current user
-      getCurrentUser();
+      // Get current user first
+      await getCurrentUser();
       
       // Load comments
       loadComments();
@@ -366,7 +366,7 @@
       try {
         const response = await fetch('/api/auth/current-user');
         const data = await response.json();
-        if (data.success) {
+        if (data.success && data.user) {
           currentUserId = data.user.id;
         }
       } catch (error) {
@@ -467,7 +467,7 @@
                     <a href="/profile/${comment.username_slug || comment.user_id}" class="font-semibold text-gray-900 hover:underline text-xs sm:text-sm">
                       ${userName}
                     </a>
-                    <p class="text-gray-800 mt-1 text-xs sm:text-sm">${escapeHtml(comment.content)}</p>
+                    <p class="text-gray-800 mt-1 text-xs sm:text-sm">${escapeHtml(comment.content || '')}</p>
                   </div>
                   <div class="flex items-center gap-4 mt-1 px-4 text-xs text-gray-500">
                     <span>${getTimeAgo(comment.created_at)}</span>

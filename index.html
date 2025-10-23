@@ -2692,6 +2692,9 @@
           </button>
         </div>
 
+        <!-- ⚠️ WEATHER ALERTS -->
+        <div id="weather-alerts" class="hidden space-y-2"></div>
+
         <div id="weather-info" class="rounded-xl bg-gradient-to-br from-green-50 via-white to-blue-50 p-3 md:p-4 shadow-sm border border-green-100 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300" data-state="idle" onclick="openWeatherMap()" title="Click để xem bản đồ thời tiết chi tiết">
           <div class="flex items-center gap-3">
             <div id="weather-icon" class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center animate-pulse">
@@ -2837,6 +2840,117 @@
           weatherEl.dataset.state = 'ready';
           iconEl.classList.remove('animate-pulse');
         }
+        // Check weather conditions and generate alerts
+        function checkWeatherAlerts(data) {
+          const alerts = [];
+          
+          // Check for strong winds (Gió mạnh)
+          const windSpeed = data.wind_kph || (data.wind_m_s ? data.wind_m_s * 3.6 : 0);
+          if (windSpeed >= 75) {
+            alerts.push({
+              type: 'wind',
+              severity: 'danger',
+              icon: 'fa-wind',
+              message: `🌪️ <strong>Cảnh báo gió rất mạnh:</strong> Tốc độ gió ${windSpeed.toFixed(0)} km/h. Nguy hiểm cho cây trồng, nhà kính và công trình. Hạn chế di chuyển và bảo vệ tài sản.`
+            });
+          } else if (windSpeed >= 50) {
+            alerts.push({
+              type: 'wind',
+              severity: 'warning',
+              icon: 'fa-wind',
+              message: `💨 <strong>Cảnh báo gió mạnh:</strong> Tốc độ gió ${windSpeed.toFixed(0)} km/h. Ảnh hưởng đến cây trồng và công trình. Cần gia cố nhà kính và bảo vệ cây non.`
+            });
+          }
+          
+          // Check for heavy rain/storms (Bão/Mưa lớn)
+          const precip = data.precip_mm || 0;
+          if (precip >= 100) {
+            alerts.push({
+              type: 'storm',
+              severity: 'danger',
+              icon: 'fa-cloud-showers-heavy',
+              message: `⛈️ <strong>Cảnh báo mưa rất to/Bão:</strong> Lượng mưa ${precip} mm. Nguy cơ ngập úng và thiệt hại nặng. Dừng hoạt động nông nghiệp, bảo vệ cây trồng và gia súc.`
+            });
+          } else if (precip >= 50) {
+            alerts.push({
+              type: 'storm',
+              severity: 'warning',
+              icon: 'fa-cloud-rain',
+              message: `🌧️ <strong>Cảnh báo mưa lớn:</strong> Lượng mưa ${precip} mm. Nguy cơ ngập úng. Chuẩn bị thoát nước và bảo vệ cây trồng.`
+            });
+          }
+          
+          // Check for extreme heat (Nắng nóng)
+          const temp = data.temp;
+          if (temp !== undefined && temp !== null) {
+            if (temp >= 38) {
+              alerts.push({
+                type: 'heat',
+                severity: 'danger',
+                icon: 'fa-temperature-high',
+                message: `🌡️ <strong>Cảnh báo nắng nóng gay gắt:</strong> Nhiệt độ ${temp}°C. Nguy hiểm cho cây trồng và gia súc. Tăng cường tưới nước, che chắn và bảo vệ động vật.`
+              });
+            } else if (temp >= 35) {
+              alerts.push({
+                type: 'heat',
+                severity: 'warning',
+                icon: 'fa-sun',
+                message: `☀️ <strong>Cảnh báo nắng nóng:</strong> Nhiệt độ ${temp}°C. Ảnh hưởng đến cây trồng và gia súc. Cần tưới nước và che chắn thích hợp.`
+              });
+            }
+          }
+          
+          // Check for extreme cold (Rét đậm)
+          if (temp !== undefined && temp !== null && temp <= 10) {
+            alerts.push({
+              type: 'cold',
+              severity: temp <= 5 ? 'danger' : 'warning',
+              icon: 'fa-temperature-low',
+              message: `❄️ <strong>Cảnh báo rét ${temp <= 5 ? 'đậm' : ''}:</strong> Nhiệt độ ${temp}°C. Nguy cơ hại cây trồng. Cần che phủ và bảo vệ cây trồng nhạy cảm.`
+            });
+          }
+          
+          // Check for dry conditions (potential drought indicator)
+          const humidity = data.humidity;
+          if (humidity !== undefined && humidity !== null && humidity <= 30 && precip < 1) {
+            alerts.push({
+              type: 'drought',
+              severity: 'advisory',
+              icon: 'fa-tint-slash',
+              message: `🏜️ <strong>Cảnh báo khô hạn:</strong> Độ ẩm ${humidity}% và không có mưa. Nguy cơ hạn hán. Cần quản lý nước tưới tiêu hợp lý.`
+            });
+          }
+          
+          return alerts;
+        }
+        
+        // Render weather alerts
+        function renderAlerts(alerts) {
+          const container = document.getElementById('weather-alerts');
+          if (!container) return;
+          
+          if (!alerts || alerts.length === 0) {
+            container.classList.add('hidden');
+            container.innerHTML = '';
+            return;
+          }
+          
+          const severityStyles = {
+            danger: 'bg-red-100 border-red-500 text-red-900',
+            warning: 'bg-orange-100 border-orange-500 text-orange-900',
+            advisory: 'bg-yellow-100 border-yellow-500 text-yellow-900'
+          };
+          
+          container.innerHTML = alerts.map(alert => `
+            <div class="${severityStyles[alert.severity]} border-l-4 rounded-lg p-3 shadow-sm">
+              <i class="fas ${alert.icon} mr-2"></i>
+              <span>${alert.message}</span>
+            </div>
+          `).join('');
+          
+          container.classList.remove('hidden');
+        }
+
         function renderWeather(data) {
           clearLoading();
           // data: { location_name, location_country, temp, humidity, wind_kph (or wind_m_s), precip_mm, condition, icon (optional) }
@@ -2877,6 +2991,10 @@
             iconEl.innerHTML = `<i class="fas fa-cloud-sun"></i>`;
             iconEl.classList.add('bg-green-500');
           }
+          
+          // Check and render weather alerts
+          const alerts = checkWeatherAlerts(data);
+          renderAlerts(alerts);
         }
         function renderError(msg = 'Không thể tải dữ liệu thời tiết.') {
           clearLoading();

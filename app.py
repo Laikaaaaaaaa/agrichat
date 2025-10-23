@@ -4372,8 +4372,30 @@ def api_update_profile():
     user_id = session.get('user_id')
     data = request.get_json()
     name = data.get('name')
+    bio = data.get('bio', '')
     
+    # Update name in users table
     result = auth.update_user_profile(user_id, name)
+    
+    if result['success'] and bio is not None:
+        # Update or insert bio in user_profiles table
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists
+            cursor.execute('SELECT user_id FROM user_profiles WHERE user_id = ?', (user_id,))
+            if cursor.fetchone():
+                cursor.execute('UPDATE user_profiles SET bio = ? WHERE user_id = ?', (bio, user_id))
+            else:
+                cursor.execute('INSERT INTO user_profiles (user_id, bio) VALUES (?, ?)', (user_id, bio))
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logging.error(f"Error updating bio: {e}")
+            return jsonify({'success': False, 'message': f'Lỗi cập nhật tiểu sử: {str(e)}'})
+    
     return jsonify(result)
 
 
@@ -5251,23 +5273,26 @@ def get_friends():
         if not user_id:
             return jsonify({'success': False, 'message': 'User ID required'}), 400
         
+        user_id = int(user_id)
+        
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
+        # Get friends where user is either user_id or friend_id
         cursor.execute('''
             SELECT 
-                u.id, u.name, u.email, u.avatar_url,
+                u.id, u.name, u.email, u.avatar_url, u.username_slug,
                 f.status, f.created_at
             FROM friendships f
             JOIN users u ON (
                 CASE 
                     WHEN f.user_id = ? THEN u.id = f.friend_id
-                    ELSE u.id = f.user_id
+                    WHEN f.friend_id = ? THEN u.id = f.user_id
                 END
             )
             WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted'
             ORDER BY u.name ASC
-        ''', (user_id, user_id, user_id))
+        ''', (user_id, user_id, user_id, user_id))
         
         friends = []
         for row in cursor.fetchall():
@@ -5276,8 +5301,9 @@ def get_friends():
                 'name': row[1],
                 'email': row[2],
                 'avatar_url': row[3],
-                'status': row[4],
-                'friend_since': row[5]
+                'username_slug': row[4],
+                'status': row[5],
+                'friend_since': row[6]
             })
         
         conn.close()

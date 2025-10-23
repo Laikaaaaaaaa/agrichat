@@ -156,10 +156,7 @@
     
     <!-- Cover Background -->
     <div class="h-48 md:h-64 bg-gradient-to-r from-green-400 to-green-600 relative">
-      <button class="absolute bottom-4 right-4 px-3 py-2 bg-white hover:bg-gray-100 rounded-lg shadow-md flex items-center gap-2 font-medium transition-colors text-sm">
-        <i class="fas fa-camera"></i>
-        <span class="hidden md:inline">Chỉnh sửa ảnh bìa</span>
-      </button>
+      <!-- Removed edit cover button -->
     </div>
     
     <!-- Profile Info Container -->
@@ -328,18 +325,24 @@
         <div class="bg-white rounded-xl shadow p-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900">Bạn bè</h2>
-            <a href="#" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
+            <a href="#" onclick="switchTab('friends'); return false;" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
           </div>
-          <p class="text-gray-500 text-sm text-center py-4">Chức năng đang phát triển</p>
+          <div id="friends-preview" class="grid grid-cols-3 gap-2">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          <p id="no-friends-preview" class="text-gray-500 text-sm text-center py-4 hidden">Chưa có bạn bè</p>
         </div>
         
         <!-- Photos Card -->
         <div class="bg-white rounded-xl shadow p-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900">Ảnh</h2>
-            <a href="#" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
+            <a href="#" onclick="switchTab('photos'); return false;" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
           </div>
-          <p class="text-gray-500 text-sm text-center py-4">Chức năng đang phát triển</p>
+          <div id="photos-preview" class="grid grid-cols-3 gap-2">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          <p id="no-photos-preview" class="text-gray-500 text-sm text-center py-4 hidden">Chưa có ảnh</p>
         </div>
         
       </div>
@@ -832,6 +835,16 @@
       
       // Update page title
       document.title = `${userName} - AgriSense AI`;
+      
+      // Update bio in sidebar
+      const userBio = document.getElementById('user-bio');
+      if (userBio) {
+        userBio.textContent = user.bio || 'Chưa có giới thiệu';
+      }
+      
+      // Load friends and photos preview
+      loadFriendsPreview();
+      loadPhotosPreview();
     }
     
     function updateFriendButtons(profileData) {
@@ -994,7 +1007,7 @@
       
       container.innerHTML = notifications.map(notif => {
         const avatar = notif.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notif.user.name)}&background=16a34a&color=fff&size=40`;
-        const timeAgo = getTimeAgo(new Date(notif.created_at));
+        const timeAgo = getTimeAgo(notif.created_at); // Don't wrap in new Date()
         
         return `
           <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer" onclick="viewUserProfile(${notif.user.id})">
@@ -1205,7 +1218,18 @@
     
     // Get time ago
     function getTimeAgo(dateString) {
-      const date = new Date(dateString);
+      // Parse the date string - if it doesn't have timezone info, treat as UTC
+      let date;
+      if (dateString instanceof Date) {
+        date = dateString;
+      } else {
+        // SQLite returns UTC time without 'Z', so we need to add it
+        const dateStr = dateString.includes('Z') || dateString.includes('+') 
+          ? dateString 
+          : dateString + 'Z';
+        date = new Date(dateStr);
+      }
+      
       const now = new Date();
       const seconds = Math.floor((now - date) / 1000);
       
@@ -1477,6 +1501,65 @@
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
     });
+    
+    // Load friends preview for sidebar
+    async function loadFriendsPreview() {
+      try {
+        const response = await fetch(`/api/profile/friends?user_id=${profileUserId}&limit=6`);
+        const data = await response.json();
+        
+        const previewContainer = document.getElementById('friends-preview');
+        const noFriendsMsg = document.getElementById('no-friends-preview');
+        
+        if (data.success && data.friends && data.friends.length > 0) {
+          previewContainer.innerHTML = data.friends.slice(0, 6).map(friend => `
+            <a href="/profile/${friend.username_slug || friend.id}" class="block">
+              <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                ${friend.avatar_url 
+                  ? `<img src="${friend.avatar_url}" class="w-full h-full object-cover" />`
+                  : `<div class="w-full h-full flex items-center justify-center bg-green-600 text-white font-bold text-lg">
+                      ${(friend.name || friend.email).charAt(0).toUpperCase()}
+                    </div>`
+                }
+              </div>
+            </a>
+          `).join('');
+          previewContainer.classList.remove('hidden');
+          noFriendsMsg.classList.add('hidden');
+        } else {
+          previewContainer.classList.add('hidden');
+          noFriendsMsg.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error loading friends preview:', error);
+      }
+    }
+    
+    // Load photos preview for sidebar
+    async function loadPhotosPreview() {
+      try {
+        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}&limit=6`);
+        const data = await response.json();
+        
+        const previewContainer = document.getElementById('photos-preview');
+        const noPhotosMsg = document.getElementById('no-photos-preview');
+        
+        if (data.success && data.photos && data.photos.length > 0) {
+          previewContainer.innerHTML = data.photos.slice(0, 6).map(photo => `
+            <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity" onclick="openPhotoModal(${photo.id})">
+              <img src="${photo.photo_url}" class="w-full h-full object-cover" />
+            </div>
+          `).join('');
+          previewContainer.classList.remove('hidden');
+          noPhotosMsg.classList.add('hidden');
+        } else {
+          previewContainer.classList.add('hidden');
+          noPhotosMsg.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error loading photos preview:', error);
+      }
+    }
     
     // Load profile on page load
     document.addEventListener('DOMContentLoaded', function() {

@@ -148,10 +148,6 @@ function displayPhotoModal(photo) {
                 <i class="fas fa-comment"></i>
                 <span>Bình luận</span>
               </button>
-              <button class="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors">
-                <i class="fas fa-share"></i>
-                <span>Chia sẻ</span>
-              </button>
             </div>
             
             <!-- Comment Input -->
@@ -213,7 +209,11 @@ function displayPhotoComments(comments, photoId) {
   
   container.innerHTML = comments.map(comment => {
     const avatar = comment.user_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user_name)}&background=16a34a&color=fff&size=32`;
-    const date = new Date(comment.created_at);
+    // Fix timezone: SQLite returns UTC without 'Z', so add it for proper parsing
+    const dateStr = comment.created_at.includes('Z') || comment.created_at.includes('+') 
+      ? comment.created_at 
+      : comment.created_at + 'Z';
+    const date = new Date(dateStr);
     const timeAgo = getTimeAgo(date);
     
     return `

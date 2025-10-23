@@ -4605,8 +4605,9 @@ def view_forum_post(username_slug, post_identifier):
             conn.close()
             return "Post not found", 404
         
-        # Verify username_slug matches
-        if row[12] != username_slug:
+        # Verify username_slug matches (row[12] is username_slug from users table)
+        post_username_slug = row[12]
+        if not post_username_slug or post_username_slug != username_slug:
             conn.close()
             return "Post not found", 404
         
@@ -4636,16 +4637,16 @@ def view_forum_post(username_slug, post_identifier):
         post_data = {
             'id': row[0],
             'user_id': row[8],
-            'title': row[2],
-            'content': row[3],
+            'title': row[2] or '',
+            'content': row[3] or '',
             'image_url': row[4],
             'tags': json.loads(row[5]) if row[5] else [],
             'created_at': created_at,
             'poll_data': json.loads(row[7]) if row[7] else None,
-            'user_name': row[9],
-            'user_email': row[10],
+            'user_name': row[9] or 'Unknown User',
+            'user_email': row[10] or '',
             'user_avatar': row[11],
-            'username_slug': row[12],
+            'username_slug': row[12] or 'unknown',
             'likes_count': likes_count,
             'comments_count': comments_count,
             'user_liked': user_liked,

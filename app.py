@@ -4699,6 +4699,11 @@ def get_forum_posts():
         
         posts = []
         for row in cursor.fetchall():
+            # Ensure created_at is in ISO format for JavaScript parsing
+            created_at = row[6]
+            if created_at and len(created_at) == 19:  # YYYY-MM-DD HH:MM:SS format
+                created_at = f"{created_at}Z"  # Add Z to indicate UTC
+            
             post = {
                 'id': row[0],
                 'user_id': row[1],
@@ -4706,7 +4711,7 @@ def get_forum_posts():
                 'content': row[3],
                 'image_url': row[4],
                 'tags': json.loads(row[5]) if row[5] else [],
-                'created_at': row[6],
+                'created_at': created_at,
                 'user_name': row[7],
                 'user_email': row[8],
                 'user_avatar': row[9],
@@ -4909,13 +4914,18 @@ def get_forum_likes(post_id):
         
         likes = []
         for row in likes_data:
+            # Ensure created_at is in ISO format for JavaScript parsing
+            created_at = row[5]
+            if created_at and len(created_at) == 19:  # YYYY-MM-DD HH:MM:SS format
+                created_at = f"{created_at}Z"  # Add Z to indicate UTC
+            
             likes.append({
                 'user_id': row[0],
                 'user_name': row[1],
                 'user_email': row[2],
                 'user_avatar': row[3],
                 'username_slug': row[4],
-                'created_at': row[5]
+                'created_at': created_at
             })
         
         return jsonify({
@@ -4953,11 +4963,16 @@ def get_forum_comments(post_id):
         
         comments = []
         for row in cursor.fetchall():
+            # Ensure created_at is in ISO format for JavaScript parsing
+            created_at = row[3]
+            if created_at and len(created_at) == 19:  # YYYY-MM-DD HH:MM:SS format
+                created_at = f"{created_at}Z"  # Add Z to indicate UTC
+            
             comments.append({
                 'id': row[0],
                 'user_id': row[1],
                 'content': row[2],
-                'created_at': row[3],
+                'created_at': created_at,
                 'user_name': row[4],
                 'user_email': row[5],
                 'user_avatar': row[6],

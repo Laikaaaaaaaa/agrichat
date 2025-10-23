@@ -912,18 +912,23 @@
       const urlParams = new URLSearchParams(window.location.search);
       const userIdParam = urlParams.get('user_id');
       
-      // Check if URL is /profile/c/username.123456 (other user) or /profile (own profile)
-      const pathMatch = window.location.pathname.match(/\/profile\/c\/(.+)/);
+      // Check if URL is /profile/username.123456 (new format) or /profile/c/username.123456 (old format)
+      let pathMatch = window.location.pathname.match(/\/profile\/([^\/]+)$/);
+      
+      // If not found, try the old /profile/c/ format
+      if (!pathMatch) {
+        pathMatch = window.location.pathname.match(/\/profile\/c\/(.+)/);
+      }
       
       return userIdParam || (pathMatch ? pathMatch[1] : null);
     }
     
-    // Generate profile URL - /profile for own, /profile/c/username for others
+    // Generate profile URL - /profile for own, /profile/username.userid for others
     function getProfileUrl(userId, usernameSlug = null) {
       if (userId === currentUserId) {
         return '/profile';
       }
-      return `/profile/c/${usernameSlug || userId}`;
+      return `/profile/${usernameSlug || userId}`;
     }
     
     // Show alert message

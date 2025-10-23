@@ -4030,6 +4030,12 @@ def profile_own():
     """Trang hồ sơ của chính mình"""
     return send_from_directory(HERE, 'profile.html')
 
+@app.route('/profile/<identifier>')
+@auth.login_required
+def profile_user(identifier):
+    """Trang hồ sơ người dùng - accepts username.userid or user ID"""
+    return send_from_directory(HERE, 'profile.html')
+
 @app.route('/profile/c/<identifier>')
 @auth.login_required
 def profile_other(identifier):

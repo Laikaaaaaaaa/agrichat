@@ -127,102 +127,100 @@
   </header>
 
   <!-- Main Content -->
-  <div class="max-w-7xl mx-auto">
+  <div class="max-w-7xl mx-auto bg-white">
     
-    <!-- Profile Header Card -->
-    <div class="bg-white shadow">
-      <!-- Cover Background -->
-      <div class="h-80 bg-gradient-to-r from-green-400 to-green-600 relative">
-        <button class="absolute bottom-4 right-4 px-4 py-2 bg-white hover:bg-gray-100 rounded-lg shadow-md flex items-center gap-2 font-medium transition-colors">
-          <i class="fas fa-camera"></i>
-          <span class="hidden md:inline">Chỉnh sửa ảnh bìa</span>
-        </button>
-      </div>
-      
-      <!-- Profile Info Section -->
-      <div class="px-4 md:px-6">
-        <!-- Avatar and Name -->
-        <div class="flex flex-col md:flex-row md:items-end md:justify-between -mt-20 md:-mt-24 pb-4">
-          <div class="flex flex-col md:flex-row md:items-end gap-4">
-            <!-- Avatar -->
-            <div class="avatar-wrapper">
-              <img id="profile-avatar" src="" alt="Avatar" class="w-40 h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
-              <div id="avatar-placeholder" class="w-40 h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
-                ?
-              </div>
-              <div class="avatar-edit-btn" onclick="showAvatarOptions()">
-                <i class="fas fa-camera"></i>
-              </div>
+    <!-- Cover Background -->
+    <div class="h-64 md:h-80 bg-gradient-to-r from-green-400 to-green-600 relative">
+      <button class="absolute bottom-4 right-4 px-3 py-2 bg-white hover:bg-gray-100 rounded-lg shadow-md flex items-center gap-2 font-medium transition-colors text-sm">
+        <i class="fas fa-camera"></i>
+        <span class="hidden md:inline">Chỉnh sửa ảnh bìa</span>
+      </button>
+    </div>
+    
+    <!-- Profile Info Container -->
+    <div class="px-4 md:px-6 pb-4 border-b border-gray-300">
+      <!-- Avatar and Actions Row -->
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between -mt-16 md:-mt-20">
+        <!-- Avatar + Name -->
+        <div class="flex flex-col md:flex-row md:items-end gap-4 mb-4 md:mb-0">
+          <!-- Avatar -->
+          <div class="avatar-wrapper">
+            <img id="profile-avatar" src="" alt="Avatar" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
+            <div id="avatar-placeholder" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
+              ?
             </div>
-            
-            <!-- Name and Stats -->
-            <div class="mb-4">
-              <h1 id="profile-name" class="text-3xl font-bold text-gray-900 mb-1">Đang tải...</h1>
-              <p id="profile-email" class="text-gray-600 mb-2">email@example.com</p>
-              <div class="flex gap-2 text-sm text-gray-600">
-                <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
-                <span>•</span>
-                <span><span class="font-semibold">0</span> bạn bè</span>
-              </div>
+            <div class="avatar-edit-btn" onclick="showAvatarOptions()">
+              <i class="fas fa-camera"></i>
             </div>
           </div>
           
-          <!-- Action Buttons -->
-          <div class="flex gap-2 mb-4">
-            <button onclick="toggleSettingsMenu()" class="relative px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2">
-              <i class="fas fa-cog"></i>
-              <span class="hidden md:inline">Chỉnh sửa trang cá nhân</span>
-              <span class="md:hidden">Chỉnh sửa</span>
-              
-              <!-- Settings Dropdown Menu -->
-              <div id="settings-menu" class="hidden absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
-                <button onclick="openEditProfileModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-                  <i class="fas fa-user text-green-600"></i>
-                  <span class="text-gray-700">Chỉnh sửa thông tin</span>
-                </button>
-                <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-                  <i class="fas fa-key text-blue-600"></i>
-                  <span class="text-gray-700">Đổi mật khẩu</span>
-                </button>
-                <button onclick="togglePrivacy()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-                  <i class="fas fa-lock text-purple-600"></i>
-                  <span class="text-gray-700">Quyền riêng tư</span>
-                </button>
-                <hr class="my-2">
-                <button onclick="logout()" class="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3 transition-colors text-red-600">
-                  <i class="fas fa-sign-out-alt"></i>
-                  <span>Đăng xuất</span>
-                </button>
-              </div>
-            </button>
+          <!-- Name and Stats -->
+          <div class="pb-2">
+            <h1 id="profile-name" class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Đang tải...</h1>
+            <p id="profile-email" class="text-gray-600 text-sm mb-2">email@example.com</p>
+            <div class="flex gap-2 text-sm text-gray-600">
+              <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
+              <span>•</span>
+              <span><span class="font-semibold">0</span> bạn bè</span>
+            </div>
           </div>
         </div>
         
-        <!-- Navigation Tabs -->
-        <div class="border-t border-gray-300">
-          <div class="flex gap-2">
-            <button class="px-4 py-3 border-b-4 border-green-600 text-green-600 font-semibold">
-              Bài viết
+        <!-- Action Button -->
+        <div class="pb-2">
+          <div class="relative">
+            <button onclick="toggleSettingsMenu()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+              <i class="fas fa-cog"></i>
+              <span>Chỉnh sửa trang cá nhân</span>
             </button>
-            <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-t-lg">
-              Giới thiệu
-            </button>
-            <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-t-lg">
-              Bạn bè
-            </button>
-            <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-t-lg">
-              Ảnh
-            </button>
+            
+            <!-- Settings Dropdown Menu -->
+            <div id="settings-menu" class="hidden absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+              <button onclick="openEditProfileModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+                <i class="fas fa-user text-green-600"></i>
+                <span class="text-gray-700">Chỉnh sửa thông tin</span>
+              </button>
+              <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+                <i class="fas fa-key text-blue-600"></i>
+                <span class="text-gray-700">Đổi mật khẩu</span>
+              </button>
+              <button onclick="togglePrivacy()" class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+                <i class="fas fa-lock text-purple-600"></i>
+                <span class="text-gray-700">Quyền riêng tư</span>
+              </button>
+              <hr class="my-2">
+              <button onclick="logout()" class="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3 transition-colors text-red-600">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Đăng xuất</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
+      
+      <!-- Navigation Tabs -->
+      <div class="mt-4">
+        <div class="flex gap-1 border-t border-gray-300 -mb-px">
+          <button class="px-4 py-3 border-b-4 border-green-600 text-green-600 font-semibold -mb-px">
+            Bài viết
+          </button>
+          <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
+            Giới thiệu
+          </button>
+          <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
+            Bạn bè
+          </button>
+          <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
+            Ảnh
+          </button>
+        </div>
+      </div>
     </div>
-    
     <!-- Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 px-4 md:px-6 py-4">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 md:p-6 bg-gray-50">
       
       <!-- Left Sidebar -->
-      <div class="lg:col-span-5 space-y-4">
+      <div class="lg:col-span-5 xl:col-span-4 space-y-4">
         
         <!-- Intro Card -->
         <div class="bg-white rounded-xl shadow p-4">
@@ -232,14 +230,14 @@
           
           <!-- Bio/Description -->
           <div class="mb-4">
-            <p id="user-bio" class="text-gray-600 text-center py-2">Chưa có giới thiệu</p>
+            <p id="user-bio" class="text-gray-600 text-center py-3">Chưa có giới thiệu</p>
             <button onclick="openEditProfileModal()" class="w-full mt-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-sm transition-colors">
               Chỉnh sửa tiểu sử
             </button>
           </div>
           
           <!-- Info List -->
-          <div class="space-y-3">
+          <div class="space-y-3 pt-3 border-t border-gray-200">
             <div class="flex items-center gap-3 text-gray-700">
               <i class="fas fa-envelope w-5 text-gray-500"></i>
               <span id="profile-email-sidebar" class="text-sm">email@example.com</span>
@@ -247,12 +245,12 @@
             
             <div class="flex items-center gap-3 text-gray-700">
               <i class="fas fa-calendar-alt w-5 text-gray-500"></i>
-              <span class="text-sm">Tham gia <span id="created-at">-</span></span>
+              <span class="text-sm">Tham gia <span id="created-at" class="font-medium">-</span></span>
             </div>
             
             <div class="flex items-center gap-3 text-gray-700">
               <i class="fas fa-clock w-5 text-gray-500"></i>
-              <span class="text-sm">Hoạt động <span id="last-login">-</span></span>
+              <span class="text-sm">Hoạt động <span id="last-login" class="font-medium">-</span></span>
             </div>
           </div>
         </div>
@@ -261,29 +259,29 @@
         <div class="bg-white rounded-xl shadow p-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900">Bạn bè</h2>
-            <a href="#" class="text-green-600 hover:underline text-sm">Xem tất cả</a>
+            <a href="#" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
           </div>
-          <p class="text-gray-500 text-sm">Chức năng đang phát triển</p>
+          <p class="text-gray-500 text-sm text-center py-4">Chức năng đang phát triển</p>
         </div>
         
         <!-- Photos Card -->
         <div class="bg-white rounded-xl shadow p-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900">Ảnh</h2>
-            <a href="#" class="text-green-600 hover:underline text-sm">Xem tất cả</a>
+            <a href="#" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
           </div>
-          <p class="text-gray-500 text-sm">Chức năng đang phát triển</p>
+          <p class="text-gray-500 text-sm text-center py-4">Chức năng đang phát triển</p>
         </div>
         
       </div>
       
       <!-- Right Content - Posts -->
-      <div class="lg:col-span-7 space-y-4">
+      <div class="lg:col-span-7 xl:col-span-8 space-y-4">
         
-        <!-- Create Post Card (if viewing own profile) -->
-        <div id="create-post-section" class="bg-white rounded-xl shadow p-4">
+        <!-- Create Post Card -->
+        <div class="bg-white rounded-xl shadow p-4">
           <div class="flex gap-3 items-center mb-3">
-            <div id="small-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+            <div id="small-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
               <i class="fas fa-user"></i>
             </div>
             <a href="/forum" class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-left">

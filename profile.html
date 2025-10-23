@@ -211,7 +211,7 @@
   <div class="max-w-7xl mx-auto bg-white">
     
     <!-- Cover Background -->
-    <div class="h-40 sm:h-48 md:h-64 bg-gradient-to-r from-green-400 to-green-600 relative">
+    <div id="cover-photo" class="h-40 sm:h-48 md:h-64 bg-gradient-to-r from-green-400 to-green-600 relative">
       <!-- Removed edit cover button -->
     </div>
     
@@ -1080,6 +1080,17 @@
         document.getElementById('avatar-placeholder').style.display = 'flex';
       }
       
+      // Update cover photo background
+      if (profileData.cover_photo_url) {
+        const coverDiv = document.getElementById('cover-photo');
+        if (coverDiv) {
+          coverDiv.style.backgroundImage = `url('${profileData.cover_photo_url}')`;
+          coverDiv.style.backgroundSize = 'cover';
+          coverDiv.style.backgroundPosition = 'center';
+          coverDiv.style.backgroundRepeat = 'no-repeat';
+        }
+      }
+      
       // Update small avatar
       const smallAvatar = document.getElementById('small-avatar');
       if (user.avatar_url) {
@@ -1129,6 +1140,24 @@
       const userBio = document.getElementById('user-bio');
       if (userBio) {
         userBio.textContent = user.bio || 'Chưa có giới thiệu';
+      }
+      
+      // Reset tabs to "Bài viết" when loading new profile
+      const postsTabButton = document.querySelector('button[onclick*="switchTab(\'posts\'"]');
+      if (postsTabButton) {
+        // Remove highlight from all tabs first
+        document.querySelectorAll('.profile-tab').forEach(tab => {
+          tab.classList.remove('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
+          tab.classList.add('text-gray-600', 'hover:bg-gray-100');
+        });
+        // Highlight posts tab
+        postsTabButton.classList.add('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
+        postsTabButton.classList.remove('text-gray-600', 'hover:bg-gray-100');
+        // Show posts section, hide others
+        document.getElementById('posts-section').classList.remove('hidden');
+        document.getElementById('intro-section').classList.add('hidden');
+        document.getElementById('friends-section').classList.add('hidden');
+        document.getElementById('photos-section').classList.add('hidden');
       }
       
       // Load friends and photos preview

@@ -2,7 +2,15 @@
 
 async function loadPhotos() {
   try {
-    const response = await fetch('/api/profile/photos');
+    // Use profileUserId from profile.html (the user whose profile is being viewed)
+    const userId = typeof profileUserId !== 'undefined' ? profileUserId : null;
+    
+    if (!userId) {
+      console.error('profileUserId is not defined');
+      return;
+    }
+    
+    const response = await fetch(`/api/profile/photos?user_id=${userId}`);
     const data = await response.json();
     
     if (data.success) {
@@ -48,7 +56,14 @@ function displayPhotos(photos) {
 
 async function openPhotoModal(photoId) {
   try {
-    const response = await fetch('/api/profile/photos');
+    const userId = typeof profileUserId !== 'undefined' ? profileUserId : null;
+    
+    if (!userId) {
+      console.error('profileUserId is not defined');
+      return;
+    }
+    
+    const response = await fetch(`/api/profile/photos?user_id=${userId}`);
     const data = await response.json();
     
     if (data.success) {

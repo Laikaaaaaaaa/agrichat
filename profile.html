@@ -238,7 +238,12 @@
           
           <!-- Name and Stats (right of avatar, aligned to bottom) -->
           <div class="pb-1 sm:pb-2 flex-1 min-w-0">
-            <h1 id="profile-name" class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 truncate">Đang tải...</h1>
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <h1 id="profile-name" class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">Đang tải...</h1>
+              <button onclick="shareProfile()" class="flex-shrink-0 p-2 hover:bg-gray-200 rounded-lg transition-colors text-gray-600 hover:text-green-600" title="Chia sẻ hồ sơ">
+                <i class="fas fa-share-alt text-lg"></i>
+              </button>
+            </div>
             <p id="profile-email" class="text-gray-600 text-xs sm:text-sm mb-2 truncate">email@example.com</p>
             <div class="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
               <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
@@ -2400,6 +2405,57 @@
           nameEl.textContent = document.getElementById('profile-name').textContent;
         }
       }
+    }
+
+    // Share profile link
+    function shareProfile() {
+      // Build profile URL
+      const profileUrl = window.location.href;
+      
+      // Try using native share API first (mobile friendly)
+      if (navigator.share) {
+        navigator.share({
+          title: `Hồ sơ của ${document.getElementById('profile-name').textContent}`,
+          text: 'Xem hồ sơ của tôi trên AgriSense AI',
+          url: profileUrl
+        }).catch(err => {
+          if (err.name !== 'AbortError') {
+            console.error('Share failed:', err);
+          }
+        });
+      } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(profileUrl).then(() => {
+          // Show success message
+          const btn = event.target.closest('button');
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-check text-green-600"></i>';
+          btn.classList.add('bg-green-50');
+          
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('bg-green-50');
+          }, 2000);
+          
+          // Show toast notification
+          showShareNotification('Đã sao chép liên kết vào bộ nhớ tạm!');
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          alert('Không thể sao chép liên kết. Vui lòng thử lại.');
+        });
+      }
+    }
+    
+    // Show share notification
+    function showShareNotification(message) {
+      const notification = document.createElement('div');
+      notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 animate-pulse';
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+      }, 2000);
     }
 
     function closeCreatePostModal() {

@@ -389,7 +389,7 @@
         <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
           <div class="flex items-center justify-between mb-3 sm:mb-4">
             <h2 class="text-lg sm:text-xl font-bold text-gray-900">Bạn bè</h2>
-            <a href="#" onclick="switchTab('friends', event); return false;" class="text-green-600 hover:underline text-xs sm:text-sm font-medium">Xem tất cả</a>
+            <a href="#" onclick="switchTab('friends', event); return false;" class="text-green-600 hover:text-green-700 text-xs sm:text-sm font-medium transition-colors no-underline">Xem tất cả</a>
           </div>
           <div id="friends-preview" class="grid grid-cols-3 gap-1.5 sm:gap-2">
             <!-- Will be populated by JavaScript -->
@@ -401,7 +401,7 @@
         <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
           <div class="flex items-center justify-between mb-3 sm:mb-4">
             <h2 class="text-lg sm:text-xl font-bold text-gray-900">Ảnh</h2>
-            <a href="#" onclick="switchTab('photos', event); return false;" class="text-green-600 hover:underline text-xs sm:text-sm font-medium">Xem tất cả</a>
+            <a href="#" onclick="switchTab('photos', event); return false;" class="text-green-600 hover:text-green-700 text-xs sm:text-sm font-medium transition-colors no-underline">Xem tất cả</a>
           </div>
           <div id="photos-preview" class="grid grid-cols-3 gap-1.5 sm:gap-2">
             <!-- Will be populated by JavaScript -->
@@ -904,10 +904,18 @@
       const urlParams = new URLSearchParams(window.location.search);
       const userIdParam = urlParams.get('user_id');
       
-      // Check if URL is /profile/username.123456 or /profile/123 format
-      const pathMatch = window.location.pathname.match(/\/profile\/(.+)/);
+      // Check if URL is /profile/c/username.123456 (other user) or /profile (own profile)
+      const pathMatch = window.location.pathname.match(/\/profile\/c\/(.+)/);
       
       return userIdParam || (pathMatch ? pathMatch[1] : null);
+    }
+    
+    // Generate profile URL - /profile for own, /profile/c/username for others
+    function getProfileUrl(userId, usernameSlug = null) {
+      if (userId === currentUserId) {
+        return '/profile';
+      }
+      return `/profile/c/${usernameSlug || userId}`;
     }
     
     // Show alert message
@@ -1017,9 +1025,18 @@
           isOwnProfile: profileData.is_own_profile
         });
         
-        // Update URL to use username slug (for sharing)
+        // Update URL based on profile ownership
         const currentPath = window.location.pathname;
-        const expectedPath = `/profile/${profileUserSlug || profileUserId}`;
+        let expectedPath;
+        
+        if (isOwnProfile) {
+          // Own profile: /profile
+          expectedPath = '/profile';
+        } else {
+          // Other user profile: /profile/c/username.id
+          expectedPath = `/profile/c/${profileUserSlug || profileUserId}`;
+        }
+        
         if (currentPath !== expectedPath) {
           window.history.replaceState(null, '', expectedPath);
         }
@@ -1514,16 +1531,18 @@
           </div>`
         : '';
       
+      const profileUrl = getProfileUrl(post.user_id, post.username_slug);
+      
       return `
         <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow post-card mb-4">
           <!-- Post Header -->
           <div class="p-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <a href="/profile/${post.user_id}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+              <a href="${profileUrl}" class="hover:opacity-80 transition-opacity flex-shrink-0">
                 ${userAvatar}
               </a>
               <div class="min-w-0 flex-1">
-                <a href="/profile/${post.user_id}" class="hover:underline">
+                <a href="${profileUrl}" class="hover:underline">
                   <h4 class="font-semibold text-gray-900 truncate">${escapeHtml(userName)}</h4>
                 </a>
                 <p class="text-sm text-gray-500 flex items-center gap-1.5">

@@ -4025,10 +4025,15 @@ def otp():
 
 
 @app.route('/profile')
-@app.route('/profile/<identifier>')
 @auth.login_required
-def profile(identifier=None):
-    """Trang hồ sơ người dùng - accepts username slug or user ID"""
+def profile_own():
+    """Trang hồ sơ của chính mình"""
+    return send_from_directory(HERE, 'profile.html')
+
+@app.route('/profile/c/<identifier>')
+@auth.login_required
+def profile_other(identifier):
+    """Trang hồ sơ người dùng khác - accepts username slug or user ID"""
     return send_from_directory(HERE, 'profile.html')
 
 

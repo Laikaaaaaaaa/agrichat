@@ -2023,21 +2023,29 @@
     // Load photos preview for sidebar
     async function loadPhotosPreview() {
       try {
-        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}&limit=6&t=${Date.now()}`);
+        console.log('Loading photos for user:', profileUserId);
+        const url = `/api/profile/photos?user_id=${profileUserId}&limit=6&t=${Date.now()}`;
+        console.log('API URL:', url);
+        
+        const response = await fetch(url);
         const data = await response.json();
+        
+        console.log('Photos response:', data);
         
         const previewContainer = document.getElementById('photos-preview');
         const noPhotosMsg = document.getElementById('no-photos-preview');
         
         if (data.success && data.photos && data.photos.length > 0) {
+          console.log('Found', data.photos.length, 'photos');
           previewContainer.innerHTML = data.photos.slice(0, 6).map(photo => `
             <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity" onclick="openPhotoModal(${photo.id})">
-              <img src="${photo.photo_url}" class="w-full h-full object-cover" />
+              <img src="${photo.photo_url}" class="w-full h-full object-cover" alt="Photo" />
             </div>
           `).join('');
           previewContainer.classList.remove('hidden');
           noPhotosMsg.classList.add('hidden');
         } else {
+          console.log('No photos found or error:', data);
           previewContainer.classList.add('hidden');
           noPhotosMsg.classList.remove('hidden');
         }

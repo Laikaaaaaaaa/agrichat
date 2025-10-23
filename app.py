@@ -5254,6 +5254,8 @@ def get_user_photos():
         except (ValueError, TypeError):
             return jsonify({'success': False, 'message': 'Invalid user ID'}), 400
         
+        logging.info(f"get_user_photos: Fetching photos for user_id={user_id} (type: {type(user_id).__name__})")
+        
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
@@ -5295,6 +5297,8 @@ def get_user_photos():
                 'user_liked': bool(row[10])
             })
         
+        logging.info(f"get_user_photos: Returning {len(photos)} photos for user_id={user_id}")
+        
         conn.close()
         
         return jsonify({'success': True, 'photos': photos})
@@ -5306,6 +5310,8 @@ def get_user_photos():
 def sync_user_photos(user_id, cursor):
     """Sync user photos from avatar and forum posts"""
     try:
+        logging.info(f"sync_user_photos: Syncing photos for user_id={user_id} (type: {type(user_id).__name__})")
+        
         # Get user's current avatar
         cursor.execute('SELECT avatar_url FROM users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
@@ -5319,6 +5325,7 @@ def sync_user_photos(user_id, cursor):
                     INSERT INTO user_photos (user_id, photo_url, photo_type, caption)
                     VALUES (?, ?, "avatar", "Ảnh đại diện")
                 ''', (user_id, avatar_url))
+                logging.info(f"sync_user_photos: Added avatar for user_id={user_id}")
         
         # Get images from forum posts
         cursor.execute('''
@@ -5329,6 +5336,8 @@ def sync_user_photos(user_id, cursor):
         ''', (user_id,))
         
         posts = cursor.fetchall()
+        logging.info(f"sync_user_photos: Found {len(posts)} posts with images for user_id={user_id}")
+        
         for post in posts:
             post_id, image_urls, content, created_at = post
             if image_urls:

@@ -61,9 +61,9 @@ class Api:
         logging.info("Khởi tạo Image Search Engine...")
         self.image_engine = ImageSearchEngine()
         
-        # Initialize Short-term Memory (lưu trữ 15 cuộc hội thoại gần nhất - tăng từ 10)
+        # Initialize Short-term Memory (lưu trữ 30 cuộc hội thoại gần nhất - tăng từ 15)
         self.conversation_history = []
-        self.max_history_length = 15
+        self.max_history_length = 30
         logging.info("Khởi tạo hoàn tất!")
 
         # PRIMARY API: OpenAI GPT

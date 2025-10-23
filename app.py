@@ -1205,6 +1205,28 @@ Từ chối lịch sự các câu hỏi ngoài phạm vi: "Xin lỗi, tôi chỉ
             # Lấy ngữ cảnh từ lịch sử hội thoại
             conversation_context = self.get_conversation_context()
 
+            # Phát hiện câu hỏi yêu cầu thêm thông tin về chủ đề trước
+            follow_up_keywords = ['thông tin thêm', 'chi tiết hơn', 'nói rõ hơn', 'thêm', 'nhiều hơn', 
+                                 'cụ thể hơn', 'rõ ràng hơn', 'giải thích thêm', 'thông tin nhiều hơn',
+                                 'cho thêm', 'bổ sung', 'mở rộng']
+            message_lower = message.lower().strip()
+            is_follow_up = any(keyword in message_lower for keyword in follow_up_keywords)
+            
+            # Nếu là câu hỏi yêu cầu thêm thông tin và có lịch sử
+            additional_context = ""
+            if is_follow_up and len(self.conversation_history) > 0:
+                last_exchange = self.conversation_history[-1]
+                additional_context = f"""
+===== NGỮ CẢNH QUAN TRỌNG =====
+Người dùng vừa yêu cầu THÊM THÔNG TIN về chủ đề trong câu trả lời cuối:
+
+Câu hỏi trước: {last_exchange['user_query']}
+Trả lời trước: {last_exchange['ai_response'][:500]}...
+
+➡️ HÃY CUNG CẤP THÊM CHI TIẾT, VÍ DỤ CỤ THỂ, SỐ LIỆU, HOẶC THÔNG TIN BỔ SUNG về chủ đề này!
+➡️ KHÔNG HỎI LẠI người dùng muốn biết gì!
+"""
+
             # Lấy system prompt theo chế độ hiện tại để thay đổi phong cách trả lời
             try:
                 mode_system_prompt = self.mode_manager.get_system_prompt() or ''
@@ -1218,6 +1240,8 @@ Từ chối lịch sự các câu hỏi ngoài phạm vi: "Xin lỗi, tôi chỉ
 
 {conversation_context}
 
+{additional_context}
+
 ===== HƯỚNG DẪN TRẢ LỜI =====
 QUAN TRỌNG: Đây là cuộc hội thoại LIÊN TỤC. Hãy đọc kỹ LỊCH SỬ HỘI THOẠI ở trên!
 
@@ -1229,11 +1253,17 @@ QUAN TRỌNG: Đây là cuộc hội thoại LIÊN TỤC. Hãy đọc kỹ LỊC
 2. Nếu người dùng hỏi "nó", "cái đó", "thế còn", "vậy thì":
    - Tìm NGAY trong lịch sử xem họ đang nói về gì
    - Trả lời dựa trên ngữ cảnh đó
+
+3. Nếu người dùng yêu cầu "thông tin thêm", "chi tiết hơn", "nói rõ hơn", "thêm", "nhiều hơn":
+   - ĐỌC LẠI câu trả lời CUỐI CÙNG của AI trong lịch sử
+   - Tìm CHỦ ĐỀ CHÍNH trong câu trả lời đó
+   - Cung cấp THÊM THÔNG TIN về chủ đề đó (ví dụ, chi tiết kỹ thuật, số liệu cụ thể, ví dụ thực tế)
+   - KHÔNG hỏi lại người dùng muốn biết gì!
    
-3. Nếu câu hỏi hoàn toàn mới, không liên quan:
+4. Nếu câu hỏi hoàn toàn mới, không liên quan:
    - Trả lời bình thường
 
-4. LUÔN LUÔN ưu tiên thông tin từ LỊCH SỬ để hiểu đúng ý người dùng!
+5. LUÔN LUÔN ưu tiên thông tin từ LỊCH SỬ để hiểu đúng ý người dùng!
 
 ===== CÂU HỎI HIỆN TẠI =====
 {message}

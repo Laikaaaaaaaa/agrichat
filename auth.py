@@ -32,7 +32,7 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT,
             name TEXT,
-            username_slug TEXT UNIQUE,
+            username_slug TEXT,
             google_id TEXT UNIQUE,
             avatar_url TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -41,9 +41,9 @@ def init_db():
         )
     ''')
     
-    # Add username_slug column if it doesn't exist (migration)
+    # Add username_slug column if it doesn't exist (migration for old databases)
     try:
-        cursor.execute('ALTER TABLE users ADD COLUMN username_slug TEXT UNIQUE')
+        cursor.execute('ALTER TABLE users ADD COLUMN username_slug TEXT')
     except sqlite3.OperationalError:
         pass  # Column already exists
     

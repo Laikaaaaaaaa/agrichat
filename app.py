@@ -3980,6 +3980,23 @@ Trả lời chi tiết, khoa học và dễ hiểu. Giữ nguyên định dạng
 
 api = Api()
 
+# Update last_login for online status tracking
+@app.before_request
+def update_user_activity():
+    """Update last_login timestamp for authenticated users on each request"""
+    if 'user_id' in session:
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE users SET last_login = datetime('now') 
+                WHERE id = ?
+            ''', (session['user_id'],))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logging.error(f"Error updating user activity: {e}")
+
 # Flask routes
 # ==================== AUTHENTICATION ROUTES ====================
 

@@ -5641,19 +5641,24 @@ def search_users():
     try:
         name = request.args.get('name', '').strip()
         
-        if not name or len(name) < 1:
-            return jsonify({'success': False, 'message': 'Nhập tên người dùng'}), 400
-        
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
         # Search for users with partial name match (case-insensitive)
-        cursor.execute('''
-            SELECT id, name, avatar
-            FROM users
-            WHERE LOWER(name) LIKE LOWER(?)
-            LIMIT 5
-        ''', (f'%{name}%',))
+        # If name is empty, return all users (for autocomplete cache)
+        if name:
+            cursor.execute('''
+                SELECT id, name, avatar
+                FROM users
+                WHERE LOWER(name) LIKE LOWER(?)
+                LIMIT 20
+            ''', (f'%{name}%',))
+        else:
+            cursor.execute('''
+                SELECT id, name, avatar
+                FROM users
+                LIMIT 100
+            ''')
         
         users = cursor.fetchall()
         conn.close()
@@ -5661,13 +5666,19 @@ def search_users():
         if not users:
             return jsonify({'success': False, 'message': 'Không tìm thấy người dùng'}), 404
         
-        # Return first match (or you could return multiple results)
-        user = users[0]
+        # Return all matches for autocomplete suggestions
+        user_list = [
+            {
+                'id': user['id'],
+                'name': user['name'],
+                'avatar': user['avatar']
+            }
+            for user in users
+        ]
+        
         return jsonify({
             'success': True,
-            'user_id': user['id'],
-            'name': user['name'],
-            'avatar': user['avatar']
+            'users': user_list
         })
     except Exception as e:
         logging.error(f"Error searching users: {e}")

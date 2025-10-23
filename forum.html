@@ -342,28 +342,20 @@
           </div>
         </div>
         
-        <!-- Post Title -->
-        <div class="mb-2 sm:mb-3">
-          <input 
-            type="text" 
-            id="post-title" 
-            placeholder="Tiêu đề bài viết (tùy chọn)"
-            class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm sm:text-base"
-          />
+        <!-- Post Content (No Title) -->
+        <div class="relative mb-3 sm:mb-4">
+          <textarea 
+            id="post-content" 
+            rows="5" 
+            placeholder="Chia sẻ suy nghĩ của bạn về nông nghiệp..."
+            class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:border-green-600 resize-none"
+          ></textarea>
         </div>
         
-        <!-- Post Content -->
-        <textarea 
-          id="post-content" 
-          rows="6" 
-          placeholder="Chia sẻ suy nghĩ của bạn về nông nghiệp..."
-          class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base"
-        ></textarea>
-        
         <!-- Image Upload Preview -->
-        <div id="image-preview-container" class="hidden mb-2 sm:mb-3">
+        <div id="image-preview-container" class="hidden mb-3 sm:mb-4">
           <div class="relative">
-            <img id="image-preview" src="" alt="Preview" class="w-full rounded-lg max-h-60 sm:max-h-96 object-cover" />
+            <img id="image-preview" src="" alt="Preview" class="w-full rounded-lg max-h-48 sm:max-h-64 object-cover" />
             <button onclick="removeImage()" class="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100">
               <i class="fas fa-times text-gray-600 text-sm"></i>
             </button>
@@ -371,7 +363,7 @@
         </div>
         
         <!-- Tags Input -->
-        <div class="mb-2 sm:mb-3">
+        <div class="mb-3 sm:mb-4">
           <input 
             type="text" 
             id="post-tags" 
@@ -380,30 +372,24 @@
           />
         </div>
         
-        <!-- Add to Post -->
-        <div class="border border-gray-300 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4">
-          <p class="text-xs sm:text-sm font-medium text-gray-700 mb-2">Thêm vào bài viết</p>
-          <div class="flex gap-1 sm:gap-2">
-            <button onclick="selectPostImage()" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <i class="fas fa-image text-green-600 text-sm"></i>
-              <span class="text-xs sm:text-sm">Ảnh</span>
-            </button>
-            <button onclick="openPollModal()" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <i class="fas fa-poll text-blue-600 text-sm"></i>
-              <span class="text-xs sm:text-sm hidden xs:inline">Khảo sát</span>
-              <span class="text-xs sm:text-sm xs:hidden">Poll</span>
-            </button>
-            <button onclick="openLocationPicker()" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <i class="fas fa-map-marker-alt text-red-600 text-sm"></i>
-              <span class="text-xs sm:text-sm hidden xs:inline">Vị trí</span>
-            </button>
-          </div>
+        <!-- Bottom Action Bar -->
+        <div class="flex gap-2 sm:gap-3">
+          <button onclick="selectPostImage()" class="flex-1 py-2.5 sm:py-3 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
+            <i class="fas fa-image"></i>
+            <span class="hidden xs:inline">Ảnh</span>
+          </button>
+          <button onclick="openPollModal()" class="flex-1 py-2.5 sm:py-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
+            <i class="fas fa-poll"></i>
+            <span class="hidden xs:inline">Khảo sát</span>
+          </button>
+          <button onclick="openLocationPicker()" class="flex-1 py-2.5 sm:py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
+            <i class="fas fa-map-marker-alt"></i>
+            <span class="hidden xs:inline">Vị trí</span>
+          </button>
+          <button onclick="submitPost()" class="flex-1 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm">
+            Đăng
+          </button>
         </div>
-        
-        <!-- Submit Button -->
-        <button onclick="submitPost()" class="w-full py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
-          Đăng bài
-        </button>
       </div>
     </div>
   </div>
@@ -417,7 +403,7 @@
       <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full">
         <!-- Modal Header -->
         <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
-          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Tạo khảo sát</h2>
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Thêm cuộc thăm dò ý kiến</h2>
           <button onclick="closePollModal()" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times text-lg sm:text-xl"></i>
           </button>
@@ -425,51 +411,60 @@
         
         <!-- Modal Body -->
         <div class="p-3 sm:p-4">
-          <!-- Poll Question -->
-          <div class="mb-3 sm:mb-4">
-            <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Câu hỏi</label>
-            <input 
-              type="text" 
-              id="poll-question" 
-              placeholder="Bạn muốn hỏi cái gì?"
-              class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
-            />
-          </div>
-          
-          <!-- Poll Options -->
-          <div class="mb-3 sm:mb-4">
-            <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Các tùy chọn</label>
-            <div id="poll-options-container" class="space-y-2">
-              <input 
-                type="text" 
-                placeholder="Tùy chọn 1"
-                class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
-              />
-              <input 
-                type="text" 
-                placeholder="Tùy chọn 2"
-                class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
-              />
+          <!-- Poll Options (Main) -->
+          <div class="mb-4 sm:mb-5">
+            <div id="poll-options-container" class="space-y-2.5">
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Lựa chọn 1"
+                  class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+                />
+                <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Lựa chọn 2"
+                  class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+                />
+                <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
-            <button onclick="addPollOption()" class="mt-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs sm:text-sm">
-              + Thêm tùy chọn
+            <button onclick="addPollOption()" class="mt-3 w-full py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <i class="fas fa-plus text-green-600"></i>
+              <span>Thêm lựa chọn</span>
             </button>
           </div>
           
-          <!-- Poll Settings -->
-          <div class="mb-3 sm:mb-4 p-2 sm:p-3 bg-gray-50 rounded-lg">
-            <label class="flex items-center gap-2">
+          <!-- Poll Settings (Bottom Right) -->
+          <div class="flex items-center justify-between">
+            <div class="text-xs sm:text-sm text-gray-500">
+              Bạn không thể tạo cuộc thăm dò ý kiến không chứa ít nhất hai lựa chọn trong bài viết.
+            </div>
+            <button onclick="togglePollSettings()" class="ml-2 p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Cài đặt">
+              <i class="fas fa-cog text-gray-600 text-lg"></i>
+            </button>
+          </div>
+          
+          <!-- Poll Settings (Hidden by default) -->
+          <div id="poll-settings" class="hidden mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <label class="flex items-center gap-2 mb-2">
               <input type="checkbox" id="poll-multiple" class="w-4 h-4">
               <span class="text-xs sm:text-sm text-gray-700">Cho phép chọn nhiều tùy chọn</span>
             </label>
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-2">
-            <button onclick="closePollModal()" class="flex-1 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm sm:text-base">
+          <div class="flex gap-2 mt-4 sm:mt-5">
+            <button onclick="closePollModal()" class="flex-1 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm sm:text-base">
               Hủy
             </button>
-            <button onclick="addPollToPost()" class="flex-1 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
+            <button onclick="addPollToPost()" class="flex-1 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
               Thêm
             </button>
           </div>
@@ -536,6 +531,7 @@
     let selectedLocation = null;
     let mentionedUsers = [];
     let hashtags = [];
+    let allUsersCache = []; // Cache all users for real-time filtering
     
     // Back button
     function goBack() {
@@ -856,8 +852,8 @@
       // Escape HTML first
       let processed = escapeHtml(text);
       
-      // Highlight hashtags: #word -> <a href="/forum?tag=word" class="...">
-      processed = processed.replace(/#(\w+)/g, (match, tag) => {
+      // Highlight hashtags: #word or #word_word or #wordword -> <a href="/forum?tag=word" class="...">
+      processed = processed.replace(/#([\w]+)/g, (match, tag) => {
         return `<a href="javascript:searchByTag('${tag}')" class="text-green-600 hover:underline font-semibold cursor-pointer">${match}</a>`;
       });
       
@@ -876,8 +872,9 @@
       fetch(`/api/users/search?name=${encodeURIComponent(userName)}`)
         .then(res => res.json())
         .then(data => {
-          if (data.success && data.user_id) {
-            window.location.href = `/profile/${data.user_id}`;
+          if (data.success && data.users && data.users.length > 0) {
+            // Navigate to first match
+            window.location.href = `/profile/${data.users[0].id}`;
           } else {
             alert('Không tìm thấy người dùng');
           }
@@ -993,35 +990,48 @@
     function addPollOption() {
       const container = document.getElementById('poll-options-container');
       const optionCount = container.querySelectorAll('.poll-option').length;
-      const newOption = document.createElement('input');
-      newOption.type = 'text';
-      newOption.className = 'poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base';
-      newOption.placeholder = `Tùy chọn ${optionCount + 1}`;
-      container.appendChild(newOption);
+      
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'flex items-center gap-2';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base';
+      input.placeholder = `Lựa chọn ${optionCount + 1}`;
+      
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'text-gray-400 hover:text-gray-600 p-1';
+      removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+      removeBtn.onclick = function() { removePollOption(this); };
+      
+      optionDiv.appendChild(input);
+      optionDiv.appendChild(removeBtn);
+      container.appendChild(optionDiv);
+    }
+    
+    function removePollOption(button) {
+      const optionDiv = button.parentElement;
+      optionDiv.remove();
+    }
+    
+    function togglePollSettings() {
+      const settings = document.getElementById('poll-settings');
+      settings.classList.toggle('hidden');
     }
     
     function addPollToPost() {
-      const question = document.getElementById('poll-question').value.trim();
       const options = Array.from(document.querySelectorAll('.poll-option'))
         .map(input => input.value.trim())
         .filter(value => value);
       const allowMultiple = document.getElementById('poll-multiple').checked;
-      
-      if (!question) {
-        alert('Vui lòng nhập câu hỏi');
-        return;
-      }
       
       if (options.length < 2) {
         alert('Cần ít nhất 2 tùy chọn');
         return;
       }
       
-      pollData = { question, options, allowMultiple, votes: options.map(() => 0) };
-      
-      // Update UI to show poll added
-      const postContent = document.getElementById('post-content');
-      postContent.value += `\n\n[POLL: ${question}]`;
+      pollData = { question: '', options, allowMultiple, votes: options.map(() => 0) };
       
       closePollModal();
       showAlert('Khảo sát đã được thêm!', 'success');
@@ -1077,34 +1087,96 @@
         const text = this.value;
         const lastAtIndex = text.lastIndexOf('@');
         
-        if (lastAtIndex === -1) return;
+        if (lastAtIndex === -1) {
+          hideMentionSuggestions();
+          return;
+        }
         
         const afterAt = text.substring(lastAtIndex + 1);
-        if (afterAt.includes(' ')) return;
         
-        showMentionSuggestions(this, afterAt, lastAtIndex);
+        // Stop if we hit a comma or multiple spaces
+        if (afterAt.includes(',') || afterAt.split(' ').length > 2) {
+          hideMentionSuggestions();
+          return;
+        }
+        
+        // Show suggestions for search text (can contain spaces for full names)
+        showMentionSuggestions(this, afterAt.trim(), lastAtIndex);
       });
     }
     
     function showMentionSuggestions(textArea, searchText, atIndex) {
-      // Lấy danh sách bạn bè hoặc người dùng ngẫu nhiên
-      const friends = ['Nguyễn Văn A', 'Trần Thị B', 'Phạm Văn C', 'Lê Thị D'];
-      const filtered = friends.filter(f => f.toLowerCase().includes(searchText.toLowerCase()));
+      if (!searchText || searchText.length < 1) {
+        hideMentionSuggestions();
+        return;
+      }
+
+      // Nếu cache trống, gọi API để lấy tất cả users
+      if (allUsersCache.length === 0) {
+        fetch(`/api/users/search?name=`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.users) {
+              allUsersCache = data.users;
+              filterAndShowMentions(textArea, searchText, atIndex);
+            }
+          })
+          .catch(error => console.error('Error fetching users:', error));
+      } else {
+        // Nếu cache có data, filter client-side
+        filterAndShowMentions(textArea, searchText, atIndex);
+      }
+    }
+
+    function filterAndShowMentions(textArea, searchText, atIndex) {
+      // Filter users based on search text (case-insensitive)
+      const filtered = allUsersCache.filter(user => 
+        user.name.toLowerCase().includes(searchText.toLowerCase())
+      );
+
+      if (filtered.length === 0) {
+        showNoUserMessage();
+        return;
+      }
+
+      let suggestionList = document.getElementById('mention-suggestions');
       
-      if (filtered.length === 0) return;
+      if (!suggestionList) {
+        suggestionList = document.createElement('div');
+        suggestionList.id = 'mention-suggestions';
+        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto';
+        textArea.parentElement.appendChild(suggestionList);
+      }
+
+      // Tính vị trí từ cursor
+      const textBeforeCursor = textArea.value.substring(0, atIndex);
+      const lines = textBeforeCursor.split('\n');
+      const currentLine = lines[lines.length - 1];
       
-      // Tạo suggestion box (đơn giản)
+      suggestionList.style.left = (currentLine.length * 8) + 'px';
+      suggestionList.style.top = ((lines.length - 1) * 24) + 'px';
+
+      suggestionList.innerHTML = filtered.map(user => 
+        `<div class="px-3 py-2 hover:bg-blue-100 cursor-pointer text-sm font-medium" onclick="insertMention('${user.name}')">${user.name}</div>`
+      ).join('');
+    }
+
+    function showNoUserMessage() {
       let suggestionList = document.getElementById('mention-suggestions');
       if (!suggestionList) {
         suggestionList = document.createElement('div');
         suggestionList.id = 'mention-suggestions';
-        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto';
+        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-20';
+        const textArea = document.getElementById('post-content');
         textArea.parentElement.appendChild(suggestionList);
       }
       
-      suggestionList.innerHTML = filtered.map(name => 
-        `<div class="px-3 py-2 hover:bg-blue-100 cursor-pointer text-sm" onclick="insertMention('${name}')">${name}</div>`
-      ).join('');
+      suggestionList.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500 italic">Không tìm thấy người dùng</div>';
+    }
+
+    function hideMentionSuggestions() {
+      const suggestionList = document.getElementById('mention-suggestions');
+      if (suggestionList) suggestionList.innerHTML = '';
     }
     
     function insertMention(name) {
@@ -1168,7 +1240,6 @@
     
     // Submit post
     async function submitPost() {
-      const title = document.getElementById('post-title').value.trim();
       const content = document.getElementById('post-content').value.trim();
       const tags = document.getElementById('post-tags').value.trim();
       
@@ -1178,7 +1249,7 @@
       }
       
       const postData = {
-        title,
+        title: '', // Empty title - no title field
         content,
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
         image_url: selectedImage,
@@ -1205,6 +1276,10 @@
           selectedLocation = null;
           mentionedUsers = [];
           hashtags = [];
+          selectedImage = null;
+          document.getElementById('post-content').value = '';
+          document.getElementById('post-tags').value = '';
+          document.getElementById('image-preview-container').classList.add('hidden');
         } else {
           showAlert(data.message || 'Đăng bài thất bại', 'error');
         }

@@ -4665,8 +4665,7 @@ def get_forum_posts():
                 u.avatar_url as user_avatar,
                 (SELECT COUNT(*) FROM forum_likes WHERE post_id = p.id) as likes_count,
                 (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) as comments_count,
-                p.poll_data,
-                p.location
+                p.poll_data
             FROM forum_posts p
             LEFT JOIN users u ON p.user_id = u.id
             WHERE 1=1
@@ -4720,7 +4719,6 @@ def get_forum_posts():
                 'likes_count': row[10],
                 'comments_count': row[11],
                 'poll': json.loads(row[12]) if row[12] else None,
-                'location': json.loads(row[13]) if row[13] else None,
                 'user_liked': False,
                 'user_voted': False,
                 'user_voted_option': None,
@@ -4802,7 +4800,6 @@ def create_forum_post():
         image_url = data.get('image_url')
         tags = data.get('tags', [])
         poll = data.get('poll')  # Poll data
-        location = data.get('location')  # Location data
         mentioned_users = data.get('mentioned_users', [])  # Mentioned users
         
         if not content:
@@ -4811,13 +4808,12 @@ def create_forum_post():
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        # Insert with all columns (including poll_data, location, mentioned_users)
+        # Insert with all columns (including poll_data, mentioned_users)
         cursor.execute('''
-            INSERT INTO forum_posts (user_id, title, content, image_url, tags, poll_data, location, mentioned_users, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO forum_posts (user_id, title, content, image_url, tags, poll_data, mentioned_users, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ''', (session['user_id'], title, content, image_url, json.dumps(tags), 
               json.dumps(poll) if poll else None, 
-              json.dumps(location) if location else None,
               json.dumps(mentioned_users)))
         
         post_id = cursor.lastrowid

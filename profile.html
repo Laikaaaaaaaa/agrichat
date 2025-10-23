@@ -753,6 +753,10 @@
             <i class="fas fa-poll"></i>
             <span class="hidden xs:inline">Khảo sát</span>
           </button>
+          <button onclick="openLocationPicker()" class="flex-1 py-2.5 sm:py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
+            <i class="fas fa-map-marker-alt"></i>
+            <span class="hidden xs:inline">Vị trí</span>
+          </button>
           <button onclick="submitPost()" class="flex-1 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm">
             Đăng
           </button>
@@ -841,6 +845,52 @@
   </div>
   
   <!-- Location Modal -->
+  <div id="location-modal" class="modal hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Thêm vị trí</h2>
+          <button onclick="closeLocationModal()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times text-lg sm:text-xl"></i>
+          </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-3 sm:p-4">
+          <!-- Location Search -->
+          <div class="mb-3 sm:mb-4">
+            <input 
+              type="text" 
+              id="location-search" 
+              placeholder="Tìm vị trí..."
+              class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600 text-sm sm:text-base"
+            />
+          </div>
+          
+          <!-- Current Location -->
+          <button onclick="useCurrentLocation()" class="w-full mb-3 sm:mb-4 py-2 sm:py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm sm:text-base">
+            <i class="fas fa-crosshairs mr-2"></i>Sử dụng vị trí hiện tại
+          </button>
+          
+          <!-- Location List -->
+          <div id="location-list" class="space-y-2 max-h-60 overflow-y-auto mb-3 sm:mb-4">
+            <p class="text-center text-gray-500 text-xs sm:text-sm">Nhập địa chỉ để tìm kiếm</p>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex gap-2">
+            <button onclick="closeLocationModal()" class="flex-1 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm sm:text-base">
+              Hủy
+            </button>
+            <button id="location-confirm-btn" onclick="addLocationToPost()" class="flex-1 py-2 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base" disabled>
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   
   <script>
     let cropper = null;
@@ -850,6 +900,7 @@
     let isOwnProfile = false;
     let currentFriendRequestId = null;
     let pollData = null;
+    let selectedLocation = null;
     let selectedImage = null;
     let mentionedUsers = [];
     let hashtags = [];
@@ -1436,10 +1487,10 @@
                 const isUserVoted = post.user_voted && post.user_voted_option === idx;
                 return `
                 <div class="flex items-center gap-2">
-                  <input type="radio" name="poll_${post.id}" value="${idx}" id="poll_${post.id}_${idx}" class="cursor-pointer" ${post.user_voted ? 'disabled' : ''} />
+                  <input type="radio" name="poll_${post.id}" value="${idx}" id="poll_${post.id}_${idx}" class="cursor-pointer" ${post.user_voted ? 'disabled' : ''} ${isUserVoted ? 'checked' : ''} />
                   <label for="poll_${post.id}_${idx}" class="flex-1 py-2 px-3 bg-white rounded border ${isUserVoted ? 'border-green-500 bg-green-50' : 'border-blue-200'} text-sm text-gray-700 cursor-pointer hover:bg-blue-50 transition-colors">
                     <div class="flex items-center justify-between">
-                      <span>${escapeHtml(option)}</span>
+                      <span>${escapeHtml(option)} ${isUserVoted ? '✓' : ''}</span>
                       <span class="text-xs font-semibold text-gray-600">${voteData.percentage}% (${voteData.count})</span>
                     </div>
                     <div class="mt-1 w-full bg-gray-200 rounded-full h-1.5">
@@ -1456,8 +1507,6 @@
           </div>`
         : '';
       
-      // Location HTML
-      
       return `
         <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow post-card mb-4">
           <!-- Post Header -->
@@ -1470,12 +1519,10 @@
                 <a href="/profile/${post.user_id}" class="hover:underline">
                   <h4 class="font-semibold text-gray-900 truncate">${escapeHtml(userName)}</h4>
                 </a>
-                <div class="flex flex-col gap-1">
-                  <p class="text-sm text-gray-500 flex items-center gap-1.5">
-                    <i class="far fa-clock"></i>
-                    <span>${getTimeAgo(post.created_at)}</span>
-                  </p>
-                </div>
+                <p class="text-sm text-gray-500 flex items-center gap-1.5">
+                  <i class="far fa-clock"></i>
+                  <span>${getTimeAgo(post.created_at)}</span>
+                </p>
               </div>
             </div>
             ${isOwnProfile ? `
@@ -2195,6 +2242,7 @@
           tags: tags.split(',').map(t => t.trim()).filter(t => t),
           image_url: selectedImage,
           poll: pollData,
+          location: selectedLocation,
           mentioned_users: mentionedUsers
         };
 
@@ -2215,6 +2263,7 @@
           document.getElementById('post-tags').value = '';
           document.getElementById('image-preview-container').classList.add('hidden');
           pollData = null;
+          selectedLocation = null;
           mentionedUsers = [];
           hashtags = [];
           selectedImage = null;
@@ -2357,6 +2406,96 @@
     }
     
     // Location Modal Functions
+    function openLocationPicker() {
+      document.getElementById('location-modal').classList.add('active');
+      document.getElementById('location-modal').classList.remove('hidden');
+    }
+    
+    function closeLocationModal() {
+      document.getElementById('location-modal').classList.remove('active');
+      document.getElementById('location-modal').classList.add('hidden');
+      document.getElementById('location-search').value = '';
+      selectedLocation = null;
+      document.getElementById('location-confirm-btn').disabled = true;
+    }
+    
+    async function useCurrentLocation() {
+      if (navigator.geolocation) {
+        // Show loading spinner
+        const locationList = document.getElementById('location-list');
+        locationList.innerHTML = `<div class="p-3 text-center"><div class="inline-block"><div class="animate-spin rounded-full h-6 w-6 border-2 border-green-300 border-t-green-600"></div></div><p class="text-xs sm:text-sm text-gray-600 mt-2">Đang lấy vị trí...</p></div>`;
+        document.getElementById('location-confirm-btn').disabled = true;
+        
+        navigator.geolocation.getCurrentPosition(async position => {
+          const { latitude, longitude } = position.coords;
+          
+          try {
+            // Reverse geocode using Nominatim API to get address
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`
+            );
+            const data = await response.json();
+            
+            // Extract province and district from Nominatim response
+            const address = data.address;
+            let locationName = '';
+            
+            // For Vietnam locations, try to get province (state)
+            if (address.state) {
+              locationName = address.state;
+              // Try to add district if available
+              if (address.county) {
+                locationName = `${address.county}, ${address.state}`;
+              }
+            } else if (address.province) {
+              locationName = address.province;
+              if (address.county) {
+                locationName = `${address.county}, ${address.province}`;
+              }
+            } else if (address.county) {
+              locationName = address.county;
+            } else if (data.name) {
+              locationName = data.name;
+            } else {
+              locationName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            }
+            
+            selectedLocation = { latitude, longitude, address: locationName };
+            document.getElementById('location-confirm-btn').disabled = false;
+            
+            const locationListElement = document.getElementById('location-list');
+            locationListElement.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700"><i class="fas fa-check-circle mr-2"></i>Vị trí hiện tại: ${selectedLocation.address}</div>`;
+          } catch (error) {
+            console.error('Reverse geocoding error:', error);
+            // Fallback: use coordinates if geocoding fails
+            selectedLocation = { latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` };
+            document.getElementById('location-confirm-btn').disabled = false;
+            const locationListElement = document.getElementById('location-list');
+            locationListElement.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700"><i class="fas fa-check-circle mr-2"></i>Vị trí hiện tại: ${selectedLocation.address}</div>`;
+          }
+        }, (error) => {
+          // Handle geolocation error
+          console.error('Geolocation error:', error);
+          const locationListElement = document.getElementById('location-list');
+          locationListElement.innerHTML = `<div class="p-2 bg-red-50 rounded-lg text-xs sm:text-sm text-red-700"><i class="fas fa-exclamation-circle mr-2"></i>Không thể lấy vị trí. Vui lòng kiểm tra quyền định vị.</div>`;
+          document.getElementById('location-confirm-btn').disabled = true;
+        });
+      } else {
+        alert('Trình duyệt không hỗ trợ định vị địa chỉ');
+      }
+    }
+    
+    function addLocationToPost() {
+      if (!selectedLocation) {
+        alert('Vui lòng chọn vị trí');
+        return;
+      }
+      
+      // Don't add to post content - location is kept separate
+      closeLocationModal();
+      showAlert('Vị trí đã được thêm!', 'success');
+    }
+    
     // Escape HTML to prevent XSS
     function escapeHtml(text) {
       const map = {

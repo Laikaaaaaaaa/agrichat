@@ -1023,6 +1023,12 @@
         profileUserSlug = user.username_slug;
         isOwnProfile = profileData.is_own_profile;
         
+        console.log('Profile loaded:', {
+          currentUserId,
+          profileUserId,
+          isOwnProfile: profileData.is_own_profile
+        });
+        
         // Update URL to use username slug (for sharing)
         const currentPath = window.location.pathname;
         const expectedPath = `/profile/${profileUserSlug || profileUserId}`;
@@ -1101,8 +1107,11 @@
       }
       
       // Show/hide UI elements based on ownership
+      console.log('Updating UI - isOwnProfile:', isOwnProfile);
+      
       if (isOwnProfile) {
         // Owner view
+        console.log('Showing owner view');
         document.getElementById('owner-actions').style.display = 'block';
         document.getElementById('visitor-actions').style.display = 'none';
         document.getElementById('avatar-edit-btn').style.display = 'flex';
@@ -1115,6 +1124,7 @@
         
       } else {
         // Visitor view
+        console.log('Showing visitor view');
         document.getElementById('owner-actions').style.display = 'none';
         document.getElementById('visitor-actions').style.display = 'flex';
         document.getElementById('avatar-edit-btn').style.display = 'none';
@@ -1139,6 +1149,21 @@
       
       // Update online status indicator
       updateOnlineStatus(user.last_login);
+      
+      // Refresh online status every 30 seconds for visitor profiles
+      if (!isOwnProfile) {
+        setInterval(async () => {
+          try {
+            const response = await fetch(`/api/profile/user/${profileUserId}`);
+            const data = await response.json();
+            if (data.success) {
+              updateOnlineStatus(data.user.last_login);
+            }
+          } catch (error) {
+            console.error('Error refreshing online status:', error);
+          }
+        }, 30000); // 30 seconds
+      }
       
       // Load friends and photos preview
       loadFriendsPreview();

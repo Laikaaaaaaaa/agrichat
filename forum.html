@@ -227,13 +227,39 @@
             <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-bold text-gray-900 text-base">📰 Tin tức</h3>
-                <a href="/news" class="text-xs text-blue-600 hover:text-blue-700 font-medium">Xem tất cả</a>
+                <a href="news.html" class="text-xs text-blue-600 hover:text-blue-700 font-medium">Xem tất cả</a>
               </div>
               <div id="sidebar-news-container" class="space-y-2 text-sm">
-                <!-- News articles will be loaded dynamically -->
-                <div class="flex justify-center py-4">
-                  <div class="loading-spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>
-                </div>
+                <ul class="space-y-2">
+                  <li>
+                    <a href="news.html?category=agriculture&type=Tin%20t%E1%BB%A9c%20n%C3%B4ng%20nghi%E1%BB%87p" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-newspaper text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Tin tức nông nghiệp</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="news.html?category=technology&type=Xu%20h%C6%B0%E1%BB%9Bng%20c%C3%B4ng%20ngh%E1%BB%87" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-lightbulb text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Xu hướng công nghệ</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="news.html?category=research&type=Nghi%C3%AAn%20c%C3%B8u%20khoa%20h%E1%BB%8Dc" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-flask text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Nghiên cứu khoa học</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="news.html?category=experience&type=Kinh%20nghi%E1%BB%87m%20th%E1%BB%B1c%20t%E1%BA%BF" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-star text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Kinh nghiệm thực tế</span>
+                    </a>
+                  </li>
+                </ul>
               </div>
             </div>
             
@@ -1592,43 +1618,7 @@
 
     // Share modal functions
     
-    // Load sidebar news articles
-    async function loadSidebarNews() {
-      const container = document.getElementById('sidebar-news-container');
-      
-      try {
-        const response = await fetch('/api/news');
-        const data = await response.json();
-        
-        if (data.success && data.articles && data.articles.length > 0) {
-          // Get top 5 articles
-          const topArticles = data.articles.slice(0, 5);
-          
-          container.innerHTML = topArticles.map(article => {
-            const publishDate = new Date(article.created_at).toLocaleDateString('vi-VN');
-            const image = article.image_url || '/static/placeholder.png';
-            const title = (article.title || 'Bài báo').substring(0, 50);
-            
-            return `
-              <a href="/news" class="block p-2 hover:bg-green-50 rounded-lg transition-colors group">
-                <div class="flex gap-2 items-start">
-                  <img src="${image}" alt="" class="w-12 h-12 rounded object-cover flex-shrink-0 group-hover:opacity-80 transition-opacity">
-                  <div class="flex-1 min-w-0">
-                    <h4 class="text-xs font-semibold text-gray-800 group-hover:text-green-600 transition-colors line-clamp-2">${escapeHtml(title)}</h4>
-                    <p class="text-xs text-gray-500 mt-0.5">${publishDate}</p>
-                  </div>
-                </div>
-              </a>
-            `;
-          }).join('');
-        } else {
-          container.innerHTML = '<p class="text-gray-500 text-xs text-center py-2">Không có bài báo nào</p>';
-        }
-      } catch (error) {
-        console.error('Error loading sidebar news:', error);
-        container.innerHTML = '<p class="text-gray-500 text-xs text-center py-2">Không thể tải tin tức</p>';
-      }
-    }
+
     
     // Close modal on background click
     document.getElementById('create-post-modal').addEventListener('click', function(e) {
@@ -1638,7 +1628,6 @@
     // Initialize
     checkUserSession().then(() => {
       loadPosts();
-      loadSidebarNews();
     });
   </script>
   

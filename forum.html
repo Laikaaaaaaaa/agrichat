@@ -933,16 +933,20 @@
     
     function closeCreatePostModal() {
       document.getElementById('create-post-modal').classList.remove('active');
-      // Reset form
-      document.getElementById('post-title').value = '';
+      // Reset form - nhưng KHÔNG xóa pollData vì nó có thể được dùng lại
       document.getElementById('post-content').value = '';
       document.getElementById('post-tags').value = '';
       removeImage();
-      // Clear all data
-      pollData = null;
+      // Remove poll preview
+      const pollContainer = document.getElementById('poll-preview-container');
+      if (pollContainer) pollContainer.remove();
+      // Clear other data
       selectedLocation = null;
       mentionedUsers = [];
       hashtags = [];
+      allUsersCache = [];
+      // Clear poll data on actual close
+      pollData = null;
     }
     
     function selectPostImage() {
@@ -982,12 +986,36 @@
     
     function closePollModal() {
       document.getElementById('poll-modal').classList.add('hidden');
-      document.getElementById('poll-question').value = '';
+      
+      // Reset poll options container to 2 default options with remove buttons
       document.getElementById('poll-options-container').innerHTML = `
-        <input type="text" placeholder="Tùy chọn 1" class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base" />
-        <input type="text" placeholder="Tùy chọn 2" class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base" />
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            placeholder="Lựa chọn 1"
+            class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+          />
+          <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            placeholder="Lựa chọn 2"
+            class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+          />
+          <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       `;
+      
+      // Reset poll settings
       document.getElementById('poll-multiple').checked = false;
+      document.getElementById('poll-settings').classList.add('hidden');
+      
+      // Clear poll data only when modal is closed for real
       pollData = null;
     }
     
@@ -1037,12 +1065,24 @@
       
       pollData = { question: '', options, allowMultiple, votes: options.map(() => 0) };
       
-      // Close poll modal and open create post modal
-      closePollModal();
+      // Close poll modal
+      document.getElementById('poll-modal').classList.add('hidden');
+      
+      // Open create post modal
+      if (!isUserLoggedIn) {
+        alert('Vui lòng đăng nhập để đăng bài');
+        window.location.href = '/login';
+        return;
+      }
+      
       document.getElementById('create-post-modal').classList.add('active');
       
-      // Show poll preview in create post modal
-      showPollPreview();
+      // Setup autocomplete
+      setTimeout(() => {
+        setupMentionAutocomplete();
+        setupHashtagAutocomplete();
+        showPollPreview();
+      }, 100);
       
       showAlert('Khảo sát đã được thêm!', 'success');
     }

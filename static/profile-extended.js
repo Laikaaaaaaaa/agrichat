@@ -44,7 +44,7 @@ function displayPhotos(photos) {
       <img src="${photo.photo_url}" alt="${photo.caption || 'Photo'}" class="w-full h-40 object-cover">
       <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
         <div class="opacity-0 group-hover:opacity-100 text-white text-sm space-x-3">
-          <span><i class="fas fa-heart"></i> ${photo.likes_count}</span>
+          <span><i class="fas fa-thumbs-up"></i> ${photo.likes_count}</span>
           <span><i class="fas fa-comment"></i> ${photo.comments_count}</span>
         </div>
       </div>
@@ -126,7 +126,7 @@ function displayPhotoModal(photo) {
           
           <!-- Stats -->
           <div class="p-4 border-b border-gray-200 flex gap-4 text-sm text-gray-600">
-            <span><i class="fas fa-heart text-red-600"></i> <span id="photo-likes-count">${photo.likes_count}</span> lượt thích</span>
+            <span><i class="fas fa-thumbs-up text-blue-600"></i> <span id="photo-likes-count">${photo.likes_count}</span> lượt thích</span>
             <span><i class="fas fa-comment text-blue-600"></i> <span id="photo-comments-count">${photo.comments_count}</span> bình luận</span>
           </div>
           
@@ -140,8 +140,8 @@ function displayPhotoModal(photo) {
           <!-- Actions -->
           <div class="p-4 border-t border-gray-200">
             <div class="flex gap-4 mb-3">
-              <button onclick="togglePhotoLike(${photo.id})" id="photo-like-btn" class="flex items-center gap-2 ${likeButtonClass} hover:text-red-600 transition-colors">
-                <i class="fas fa-heart"></i>
+              <button onclick="togglePhotoLike(${photo.id})" id="photo-like-btn" class="flex items-center gap-2 ${likeButtonClass} hover:text-blue-600 transition-colors">
+                <i class="fas fa-thumbs-up"></i>
                 <span>Thích</span>
               </button>
               <button onclick="focusPhotoComment()" class="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors">

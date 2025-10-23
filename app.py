@@ -4753,6 +4753,9 @@ def create_forum_post():
         content = data.get('content', '').strip()
         image_url = data.get('image_url')
         tags = data.get('tags', [])
+        poll = data.get('poll')  # Poll data
+        location = data.get('location')  # Location data
+        mentioned_users = data.get('mentioned_users', [])  # Mentioned users
         
         if not content:
             return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
@@ -4760,12 +4763,36 @@ def create_forum_post():
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            INSERT INTO forum_posts (user_id, title, content, image_url, tags, created_at)
-            VALUES (?, ?, ?, ?, ?, datetime('now'))
-        ''', (session['user_id'], title, content, image_url, json.dumps(tags)))
+        # Try to insert with new columns (poll, location, mentioned_users)
+        # If they don't exist, they'll be stored as metadata
+        try:
+            cursor.execute('''
+                INSERT INTO forum_posts (user_id, title, content, image_url, tags, poll_data, location, mentioned_users, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            ''', (session['user_id'], title, content, image_url, json.dumps(tags), 
+                  json.dumps(poll) if poll else None, 
+                  json.dumps(location) if location else None,
+                  json.dumps(mentioned_users)))
+        except:
+            # Fallback: store poll/location in tags or as separate entry
+            cursor.execute('''
+                INSERT INTO forum_posts (user_id, title, content, image_url, tags, created_at)
+                VALUES (?, ?, ?, ?, ?, datetime('now'))
+            ''', (session['user_id'], title, content, image_url, json.dumps(tags)))
         
         post_id = cursor.lastrowid
+        
+        # If poll exists, store poll votes in separate table
+        if poll:
+            for idx, option in enumerate(poll.get('options', [])):
+                try:
+                    cursor.execute('''
+                        INSERT INTO forum_poll_options (post_id, option_text, votes)
+                        VALUES (?, ?, 0)
+                    ''', (post_id, option))
+                except:
+                    pass
+        
         conn.commit()
         conn.close()
         
@@ -5605,6 +5632,45 @@ def remove_friend(friend_id):
         return jsonify({'success': True, 'message': 'Đã hủy kết bạn'})
     except Exception as e:
         logging.error(f"Error removing friend: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/users/search', methods=['GET'])
+def search_users():
+    """Search users by name"""
+    try:
+        name = request.args.get('name', '').strip()
+        
+        if not name or len(name) < 1:
+            return jsonify({'success': False, 'message': 'Nhập tên người dùng'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Search for users with partial name match (case-insensitive)
+        cursor.execute('''
+            SELECT id, name, avatar
+            FROM users
+            WHERE LOWER(name) LIKE LOWER(?)
+            LIMIT 5
+        ''', (f'%{name}%',))
+        
+        users = cursor.fetchall()
+        conn.close()
+        
+        if not users:
+            return jsonify({'success': False, 'message': 'Không tìm thấy người dùng'}), 404
+        
+        # Return first match (or you could return multiple results)
+        user = users[0]
+        return jsonify({
+            'success': True,
+            'user_id': user['id'],
+            'name': user['name'],
+            'avatar': user['avatar']
+        })
+    except Exception as e:
+        logging.error(f"Error searching users: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

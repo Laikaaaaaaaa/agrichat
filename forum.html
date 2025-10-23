@@ -99,6 +99,10 @@
       animation: fadeIn 0.2s;
     }
     
+    .modal.hidden {
+      display: none !important;
+    }
+    
     .modal.active {
       display: flex;
       align-items: center;
@@ -384,12 +388,12 @@
               <i class="fas fa-image text-green-600 text-sm"></i>
               <span class="text-xs sm:text-sm">Ảnh</span>
             </button>
-            <button class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button onclick="openPollModal()" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
               <i class="fas fa-poll text-blue-600 text-sm"></i>
               <span class="text-xs sm:text-sm hidden xs:inline">Khảo sát</span>
               <span class="text-xs sm:text-sm xs:hidden">Poll</span>
             </button>
-            <button class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button onclick="openLocationPicker()" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
               <i class="fas fa-map-marker-alt text-red-600 text-sm"></i>
               <span class="text-xs sm:text-sm hidden xs:inline">Vị trí</span>
             </button>
@@ -407,12 +411,131 @@
   <!-- Hidden File Input -->
   <input type="file" id="post-image-input" accept="image/*" class="hidden" />
   
+  <!-- Poll Modal -->
+  <div id="poll-modal" class="modal hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Tạo khảo sát</h2>
+          <button onclick="closePollModal()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times text-lg sm:text-xl"></i>
+          </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-3 sm:p-4">
+          <!-- Poll Question -->
+          <div class="mb-3 sm:mb-4">
+            <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Câu hỏi</label>
+            <input 
+              type="text" 
+              id="poll-question" 
+              placeholder="Bạn muốn hỏi cái gì?"
+              class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+            />
+          </div>
+          
+          <!-- Poll Options -->
+          <div class="mb-3 sm:mb-4">
+            <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Các tùy chọn</label>
+            <div id="poll-options-container" class="space-y-2">
+              <input 
+                type="text" 
+                placeholder="Tùy chọn 1"
+                class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+              />
+              <input 
+                type="text" 
+                placeholder="Tùy chọn 2"
+                class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+              />
+            </div>
+            <button onclick="addPollOption()" class="mt-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs sm:text-sm">
+              + Thêm tùy chọn
+            </button>
+          </div>
+          
+          <!-- Poll Settings -->
+          <div class="mb-3 sm:mb-4 p-2 sm:p-3 bg-gray-50 rounded-lg">
+            <label class="flex items-center gap-2">
+              <input type="checkbox" id="poll-multiple" class="w-4 h-4">
+              <span class="text-xs sm:text-sm text-gray-700">Cho phép chọn nhiều tùy chọn</span>
+            </label>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex gap-2">
+            <button onclick="closePollModal()" class="flex-1 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm sm:text-base">
+              Hủy
+            </button>
+            <button onclick="addPollToPost()" class="flex-1 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
+              Thêm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Location Modal -->
+  <div id="location-modal" class="modal hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Thêm vị trí</h2>
+          <button onclick="closeLocationModal()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times text-lg sm:text-xl"></i>
+          </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-3 sm:p-4">
+          <!-- Location Search -->
+          <div class="mb-3 sm:mb-4">
+            <input 
+              type="text" 
+              id="location-search" 
+              placeholder="Tìm vị trí..."
+              class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600 text-sm sm:text-base"
+            />
+          </div>
+          
+          <!-- Current Location -->
+          <button onclick="useCurrentLocation()" class="w-full mb-3 sm:mb-4 py-2 sm:py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm sm:text-base">
+            <i class="fas fa-crosshairs mr-2"></i>Sử dụng vị trí hiện tại
+          </button>
+          
+          <!-- Location List -->
+          <div id="location-list" class="space-y-2 max-h-60 overflow-y-auto mb-3 sm:mb-4">
+            <p class="text-center text-gray-500 text-xs sm:text-sm">Nhập địa chỉ để tìm kiếm</p>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex gap-2">
+            <button onclick="closeLocationModal()" class="flex-1 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm sm:text-base">
+              Hủy
+            </button>
+            <button id="location-confirm-btn" onclick="addLocationToPost()" class="flex-1 py-2 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base" disabled>
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script>
     let isUserLoggedIn = false;
     let currentUser = null;
     let selectedImage = null;
     let allPosts = [];
     let currentFilter = 'latest';
+    let pollData = null;
+    let selectedLocation = null;
+    let mentionedUsers = [];
+    let hashtags = [];
     
     // Back button
     function goBack() {
@@ -628,7 +751,7 @@
       
       const tagsHTML = post.tags && post.tags.length > 0
         ? `<div class="flex gap-2 mb-3 flex-wrap">
-            ${post.tags.map(tag => `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">#${tag}</span>`).join('')}
+            ${post.tags.map(tag => `<a href="javascript:searchByTag('${tag}')" class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 cursor-pointer transition-colors">#${tag}</a>`).join('')}
            </div>`
         : '';
       
@@ -661,7 +784,7 @@
           <!-- Post Content -->
           <div class="mb-2 sm:mb-3">
             ${titleHTML}
-            <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${escapeHtml(post.content)}</p>
+            <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${processContent(post.content)}</p>
           </div>
           
           ${imageHTML}
@@ -726,6 +849,42 @@
       return div.innerHTML;
     }
     
+    // Process content to highlight hashtags and @mentions
+    function processContent(text) {
+      if (!text) return '';
+      
+      // Escape HTML first
+      let processed = escapeHtml(text);
+      
+      // Highlight hashtags: #word -> <a href="/forum?tag=word" class="...">
+      processed = processed.replace(/#(\w+)/g, (match, tag) => {
+        return `<a href="javascript:searchByTag('${tag}')" class="text-green-600 hover:underline font-semibold cursor-pointer">${match}</a>`;
+      });
+      
+      // Highlight @mentions: @Name -> <a href="/profile/...">
+      processed = processed.replace(/@([\w\s]+?)(?=\s|$|[,.!?])/g, (match, user) => {
+        const userName = user.trim();
+        return `<a href="javascript:goToUserProfile('${userName}')" class="text-blue-600 hover:underline font-semibold cursor-pointer">${match}</a>`;
+      });
+      
+      return processed;
+    }
+    
+    // Navigate to user profile
+    function goToUserProfile(userName) {
+      // Fetch user ID by name
+      fetch(`/api/users/search?name=${encodeURIComponent(userName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.user_id) {
+            window.location.href = `/profile/${data.user_id}`;
+          } else {
+            alert('Không tìm thấy người dùng');
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
     // Get time ago
     function getTimeAgo(dateString) {
       const date = new Date(dateString);
@@ -759,6 +918,13 @@
         return;
       }
       document.getElementById('create-post-modal').classList.add('active');
+      
+      // Setup autocomplete
+      setTimeout(() => {
+        setupMentionAutocomplete();
+        setupHashtagAutocomplete();
+      }, 100);
+      
       if (type === 'image') {
         selectPostImage();
       }
@@ -771,6 +937,11 @@
       document.getElementById('post-content').value = '';
       document.getElementById('post-tags').value = '';
       removeImage();
+      // Clear all data
+      pollData = null;
+      selectedLocation = null;
+      mentionedUsers = [];
+      hashtags = [];
     }
     
     function selectPostImage() {
@@ -803,6 +974,198 @@
       document.getElementById('post-image-input').value = '';
     }
     
+    // Poll Modal Functions
+    function openPollModal() {
+      document.getElementById('poll-modal').classList.remove('hidden');
+    }
+    
+    function closePollModal() {
+      document.getElementById('poll-modal').classList.add('hidden');
+      document.getElementById('poll-question').value = '';
+      document.getElementById('poll-options-container').innerHTML = `
+        <input type="text" placeholder="Tùy chọn 1" class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base" />
+        <input type="text" placeholder="Tùy chọn 2" class="poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base" />
+      `;
+      document.getElementById('poll-multiple').checked = false;
+      pollData = null;
+    }
+    
+    function addPollOption() {
+      const container = document.getElementById('poll-options-container');
+      const optionCount = container.querySelectorAll('.poll-option').length;
+      const newOption = document.createElement('input');
+      newOption.type = 'text';
+      newOption.className = 'poll-option w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base';
+      newOption.placeholder = `Tùy chọn ${optionCount + 1}`;
+      container.appendChild(newOption);
+    }
+    
+    function addPollToPost() {
+      const question = document.getElementById('poll-question').value.trim();
+      const options = Array.from(document.querySelectorAll('.poll-option'))
+        .map(input => input.value.trim())
+        .filter(value => value);
+      const allowMultiple = document.getElementById('poll-multiple').checked;
+      
+      if (!question) {
+        alert('Vui lòng nhập câu hỏi');
+        return;
+      }
+      
+      if (options.length < 2) {
+        alert('Cần ít nhất 2 tùy chọn');
+        return;
+      }
+      
+      pollData = { question, options, allowMultiple, votes: options.map(() => 0) };
+      
+      // Update UI to show poll added
+      const postContent = document.getElementById('post-content');
+      postContent.value += `\n\n[POLL: ${question}]`;
+      
+      closePollModal();
+      showAlert('Khảo sát đã được thêm!', 'success');
+    }
+    
+    // Location Modal Functions
+    function openLocationPicker() {
+      document.getElementById('location-modal').classList.remove('hidden');
+    }
+    
+    function closeLocationModal() {
+      document.getElementById('location-modal').classList.add('hidden');
+      document.getElementById('location-search').value = '';
+      selectedLocation = null;
+      document.getElementById('location-confirm-btn').disabled = true;
+    }
+    
+    function useCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const { latitude, longitude } = position.coords;
+          
+          // Reverse geocode (đơn giản, trong thực tế cần API)
+          selectedLocation = { latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` };
+          document.getElementById('location-confirm-btn').disabled = false;
+          
+          const locationList = document.getElementById('location-list');
+          locationList.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700">✓ Vị trí hiện tại: ${selectedLocation.address}</div>`;
+        });
+      } else {
+        alert('Trình duyệt không hỗ trợ định vị địa chỉ');
+      }
+    }
+    
+    function addLocationToPost() {
+      if (!selectedLocation) {
+        alert('Vui lòng chọn vị trí');
+        return;
+      }
+      
+      const postContent = document.getElementById('post-content');
+      postContent.value += `\n📍 Vị trí: ${selectedLocation.address}`;
+      
+      closeLocationModal();
+      showAlert('Vị trí đã được thêm!', 'success');
+    }
+    
+    // @mention Functions
+    function setupMentionAutocomplete() {
+      const postContent = document.getElementById('post-content');
+      
+      postContent.addEventListener('input', function() {
+        const text = this.value;
+        const lastAtIndex = text.lastIndexOf('@');
+        
+        if (lastAtIndex === -1) return;
+        
+        const afterAt = text.substring(lastAtIndex + 1);
+        if (afterAt.includes(' ')) return;
+        
+        showMentionSuggestions(this, afterAt, lastAtIndex);
+      });
+    }
+    
+    function showMentionSuggestions(textArea, searchText, atIndex) {
+      // Lấy danh sách bạn bè hoặc người dùng ngẫu nhiên
+      const friends = ['Nguyễn Văn A', 'Trần Thị B', 'Phạm Văn C', 'Lê Thị D'];
+      const filtered = friends.filter(f => f.toLowerCase().includes(searchText.toLowerCase()));
+      
+      if (filtered.length === 0) return;
+      
+      // Tạo suggestion box (đơn giản)
+      let suggestionList = document.getElementById('mention-suggestions');
+      if (!suggestionList) {
+        suggestionList = document.createElement('div');
+        suggestionList.id = 'mention-suggestions';
+        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto';
+        textArea.parentElement.appendChild(suggestionList);
+      }
+      
+      suggestionList.innerHTML = filtered.map(name => 
+        `<div class="px-3 py-2 hover:bg-blue-100 cursor-pointer text-sm" onclick="insertMention('${name}')">${name}</div>`
+      ).join('');
+    }
+    
+    function insertMention(name) {
+      const postContent = document.getElementById('post-content');
+      const lastAtIndex = postContent.value.lastIndexOf('@');
+      
+      postContent.value = postContent.value.substring(0, lastAtIndex) + `@${name} `;
+      mentionedUsers.push(name);
+      
+      const suggestionList = document.getElementById('mention-suggestions');
+      if (suggestionList) suggestionList.innerHTML = '';
+    }
+    
+    // Hashtag Functions
+    function setupHashtagAutocomplete() {
+      const postTags = document.getElementById('post-tags');
+      
+      postTags.addEventListener('input', function() {
+        const text = this.value;
+        const lastHashIndex = text.lastIndexOf('#');
+        
+        if (lastHashIndex === -1) return;
+        
+        const afterHash = text.substring(lastHashIndex + 1);
+        if (afterHash.includes(',')) return;
+        
+        showHashtagSuggestions(this, afterHash);
+      });
+    }
+    
+    function showHashtagSuggestions(input, searchText) {
+      const popularTags = ['lúa', 'trồng trọt', 'chăn nuôi', 'phân bón', 'tưới tiêu', 'sâu bệnh'];
+      const filtered = popularTags.filter(tag => tag.toLowerCase().includes(searchText.toLowerCase()));
+      
+      if (filtered.length === 0) return;
+      
+      let suggestionList = document.getElementById('hashtag-suggestions');
+      if (!suggestionList) {
+        suggestionList = document.createElement('div');
+        suggestionList.id = 'hashtag-suggestions';
+        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto mt-1';
+        input.parentElement.style.position = 'relative';
+        input.parentElement.appendChild(suggestionList);
+      }
+      
+      suggestionList.innerHTML = filtered.map(tag => 
+        `<div class="px-3 py-2 hover:bg-green-100 cursor-pointer text-sm" onclick="insertHashtag('#${tag}')">#${tag}</div>`
+      ).join('');
+    }
+    
+    function insertHashtag(tag) {
+      const postTags = document.getElementById('post-tags');
+      const lastHashIndex = postTags.value.lastIndexOf('#');
+      
+      postTags.value = postTags.value.substring(0, lastHashIndex) + tag + ', ';
+      hashtags.push(tag.substring(1)); // Remove #
+      
+      const suggestionList = document.getElementById('hashtag-suggestions');
+      if (suggestionList) suggestionList.innerHTML = '';
+    }
+    
     // Submit post
     async function submitPost() {
       const title = document.getElementById('post-title').value.trim();
@@ -818,7 +1181,10 @@
         title,
         content,
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
-        image_url: selectedImage
+        image_url: selectedImage,
+        poll: pollData,
+        location: selectedLocation,
+        mentioned_users: mentionedUsers
       };
       
       try {
@@ -834,6 +1200,11 @@
           closeCreatePostModal();
           loadPosts(); // Reload posts
           showAlert('Đăng bài thành công!', 'success');
+          // Reset all
+          pollData = null;
+          selectedLocation = null;
+          mentionedUsers = [];
+          hashtags = [];
         } else {
           showAlert(data.message || 'Đăng bài thất bại', 'error');
         }
@@ -842,6 +1213,7 @@
         showAlert('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
       }
     }
+    
     
     // Toggle like
     async function toggleLike(postId) {

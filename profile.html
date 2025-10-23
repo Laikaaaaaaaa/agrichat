@@ -1351,7 +1351,7 @@
       
       const tagsHTML = post.tags && post.tags.length > 0
         ? `<div class="flex gap-2 mb-3 flex-wrap">
-            ${post.tags.map(tag => `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">#${tag}</span>`).join('')}
+            ${post.tags.map(tag => `<a href="javascript:searchByTag('${tag}')" class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 transition-colors cursor-pointer font-semibold">#${tag}</a>`).join('')}
            </div>`
         : '';
       
@@ -1387,7 +1387,7 @@
           <!-- Post Content -->
           <div class="px-4 pb-3">
             ${titleHTML}
-            <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${escapeHtml(post.content)}</p>
+            <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${processContent(post.content)}</p>
           </div>
           
           ${imageHTML ? `<div class="px-0 mb-3">${imageHTML}</div>` : ''}
@@ -1467,6 +1467,46 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Process content with hashtag and mention highlights
+    function processContent(text) {
+      let processed = escapeHtml(text);
+      
+      // Highlight hashtags - clickable links to search
+      processed = processed.replace(/#(\w+)/g, (match, tag) => {
+        return `<a href="javascript:searchByTag('${tag}')" class="text-green-600 hover:underline font-semibold cursor-pointer">${match}</a>`;
+      });
+      
+      // Highlight @mentions - clickable links to user profile
+      processed = processed.replace(/@([\w\s]+?)(?=\s|$|[,.!?])/g, (match, user) => {
+        return `<a href="javascript:goToUserProfile('${user.trim()}')" class="text-blue-600 hover:underline font-semibold cursor-pointer">${match}</a>`;
+      });
+      
+      return processed;
+    }
+
+    // Navigate to user profile by name
+    function goToUserProfile(userName) {
+      fetch(`/api/users/search?name=${encodeURIComponent(userName)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.location.href = `/profile/${data.user_id}`;
+          } else {
+            alert('Không tìm thấy người dùng: ' + userName);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Lỗi tìm kiếm người dùng');
+        });
+    }
+
+    // Search posts by tag
+    function searchByTag(tag) {
+      // Navigate to forum with tag filter
+      window.location.href = `/forum?tag=${encodeURIComponent(tag)}`;
     }
     
     // Get time ago

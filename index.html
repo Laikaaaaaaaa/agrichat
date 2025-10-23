@@ -4322,6 +4322,10 @@
       });
       console.log('✅ Chat box scroll listener attached');
     }
+
+    // Load weather info on page load - will request geolocation permission
+    console.log('🌦️ Starting weather info fetch on page load...');
+    getWeatherInfo();
   });
 
   // Data analysis keywords for different categories - Enhanced with more specific detection

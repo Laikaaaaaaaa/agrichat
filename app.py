@@ -4596,14 +4596,13 @@ def view_forum_post(username_slug, post_identifier):
         
         post_data = {
             'id': row[0],
-            'user_id': row[1],
+            'user_id': row[8],
             'title': row[2],
             'content': row[3],
             'image_url': row[4],
             'tags': json.loads(row[5]) if row[5] else [],
             'created_at': created_at,
             'poll_data': json.loads(row[7]) if row[7] else None,
-            'user_id': row[8],
             'user_name': row[9],
             'user_email': row[10],
             'user_avatar': row[11],

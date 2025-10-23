@@ -2590,33 +2590,33 @@
     /* Slide down animation for forum notification */
     @keyframes slideDown {
       from {
-        transform: translateY(-100%);
         opacity: 0;
+        visibility: hidden;
       }
       to {
-        transform: translateY(0);
         opacity: 1;
+        visibility: visible;
       }
     }
     
     /* Slide up animation for forum notification exit */
     @keyframes slideUp {
       from {
-        transform: translateY(0);
         opacity: 1;
+        visibility: visible;
       }
       to {
-        transform: translateY(-100%);
         opacity: 0;
+        visibility: hidden;
       }
     }
     
     .animate-slide-down {
-      animation: slideDown 0.4s ease-out;
+      animation: slideDown 0.5s ease-out forwards;
     }
     
     .animate-slide-up {
-      animation: slideUp 0.4s ease-in;
+      animation: slideUp 0.5s ease-in forwards;
     }
     
     /* Clock visibility only - removed force sidebar visibility */
@@ -2683,12 +2683,12 @@
 </head>
 <body class="bg-green-50 font-sans text-gray-700">
   <!-- Forum Notification Banner -->
-  <div id="forum-notification" class="fixed top-20 left-0 right-0 z-50 bg-green-600 text-white px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-4 animate-slide-down" style="display: none;">
+  <div id="forum-notification" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-40 bg-green-600 text-white rounded-lg shadow-lg px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-4 animate-slide-down" style="display: none; max-width: 600px; width: 90%;">
     <div class="flex items-center gap-3 flex-1">
       <p class="text-sm md:text-base font-medium">Chia sẻ kinh nghiệm hoặc câu hỏi của bạn lên diễn đàn</p>
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <a href="/forum" class="bg-white text-green-600 hover:bg-gray-100 px-4 py-2 rounded font-semibold text-sm transition-colors">
+      <a href="/forum" class="bg-white text-green-600 hover:bg-gray-100 px-3 md:px-4 py-2 rounded font-semibold text-xs md:text-sm transition-colors whitespace-nowrap">
         Thử ngay
       </a>
       <button id="close-forum-notification" class="text-white hover:text-gray-200 text-lg leading-none p-1" title="Đóng">
@@ -8171,6 +8171,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       
       if (notification) {
         notification.style.display = 'flex';
+        notification.classList.add('animate-slide-down');
         
         let hideTimeout;
         
@@ -8187,10 +8188,11 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
           notification.classList.remove('animate-slide-down');
           notification.classList.add('animate-slide-up');
           
-          // Hide element after animation completes
+          // Wait for animation to complete before hiding
           setTimeout(() => {
             notification.style.display = 'none';
-          }, 400);
+            notification.classList.remove('animate-slide-up');
+          }, 500);
         };
         
         // Close button click handler

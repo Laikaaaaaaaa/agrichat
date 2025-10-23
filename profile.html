@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <title>Hồ sơ - AgriSense AI</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?v=3.4.0"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  
+  <style>
+    body {
+      min-height: 100vh;
+      background-color: #ffffff;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-white">
+  
+  <!-- Header -->
+  <header class="bg-green-100 border-b border-green-200 shadow-sm">
+    <div class="h-20 flex items-center px-4 md:px-6 gap-3">
+      <a href="/" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500">
+        <i class="fas fa-home"></i>
+      </a>
+      <img src="/static/logo/logo.png" alt="AgriSense AI" class="h-12 md:h-14 w-auto object-contain">
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="max-w-2xl mx-auto px-4 py-8">
+    
+    <!-- Profile Info -->
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-4">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Thông tin cá nhân</h2>
+      
+      <!-- Alert Message -->
+      <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
+      
+      <form id="profile-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input 
+            type="email" 
+            id="email" 
+            disabled 
+            class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-600"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
+          <input 
+            type="text" 
+            id="name" 
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
+          />
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-gray-600">Ngày tạo:</span>
+            <span id="created-at" class="ml-2 font-medium"></span>
+          </div>
+          <div>
+            <span class="text-gray-600">Đăng nhập lần cuối:</span>
+            <span id="last-login" class="ml-2 font-medium"></span>
+          </div>
+        </div>
+        
+        <button 
+          type="submit" 
+          class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
+        >
+          Cập nhật thông tin
+        </button>
+      </form>
+    </div>
+    
+    <!-- Change Password -->
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-4">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Đổi mật khẩu</h3>
+      
+      <div id="password-alert" class="hidden mb-4 p-3 rounded text-sm"></div>
+      
+      <form id="password-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu hiện tại</label>
+          <input 
+            type="password" 
+            id="old-password" 
+            required 
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
+          <input 
+            type="password" 
+            id="new-password" 
+            required 
+            minlength="6"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
+            placeholder="Tối thiểu 6 ký tự"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
+          <input 
+            type="password" 
+            id="confirm-new-password" 
+            required 
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
+          />
+        </div>
+        
+        <button 
+          type="submit" 
+          class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
+        >
+          Đổi mật khẩu
+        </button>
+      </form>
+    </div>
+    
+    <!-- Logout -->
+    <div class="text-center">
+      <button 
+        id="logout-btn" 
+        class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium"
+      >
+        <i class="fas fa-sign-out-alt mr-2"></i>Đăng xuất
+      </button>
+    </div>
+    
+  </div>
+  
+  <script>
+    // Show alert message
+    function showAlert(message, type = 'error', elementId = 'alert-message') {
+      const alertDiv = document.getElementById(elementId);
+      alertDiv.className = `mb-4 p-3 rounded text-sm ${
+        type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 
+        type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+        'bg-blue-50 text-blue-700 border border-blue-200'
+      }`;
+      alertDiv.textContent = message;
+      alertDiv.classList.remove('hidden');
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          alertDiv.classList.add('hidden');
+        }, 3000);
+      }
+    }
+    
+    // Load user profile
+    async function loadProfile() {
+      try {
+        const response = await fetch('/api/auth/profile');
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+          document.getElementById('email').value = data.user.email || '';
+          document.getElementById('name').value = data.user.name || '';
+          document.getElementById('created-at').textContent = data.user.created_at ? new Date(data.user.created_at).toLocaleDateString('vi-VN') : '';
+          document.getElementById('last-login').textContent = data.user.last_login ? new Date(data.user.last_login).toLocaleDateString('vi-VN') : '';
+        } else {
+          window.location.href = '/login';
+        }
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    }
+    
+    // Update profile
+    document.getElementById('profile-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('name').value;
+      
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Đang cập nhật...';
+      
+      try {
+        const response = await fetch('/api/auth/update-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Cập nhật thông tin thành công!', 'success');
+        } else {
+          showAlert(data.message || 'Cập nhật thất bại', 'error');
+        }
+      } catch (error) {
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
+      
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    });
+    
+    // Change password
+    document.getElementById('password-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const oldPassword = document.getElementById('old-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-new-password').value;
+      
+      if (newPassword.length < 6) {
+        showAlert('Mật khẩu mới phải có ít nhất 6 ký tự', 'error', 'password-alert');
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        showAlert('Mật khẩu xác nhận không khớp', 'error', 'password-alert');
+        return;
+      }
+      
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Đang xử lý...';
+      
+      try {
+        const response = await fetch('/api/auth/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Đổi mật khẩu thành công!', 'success', 'password-alert');
+          this.reset();
+        } else {
+          showAlert(data.message || 'Đổi mật khẩu thất bại', 'error', 'password-alert');
+        }
+      } catch (error) {
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error', 'password-alert');
+      }
+      
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    });
+    
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', async function() {
+      if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
+      
+      try {
+        const response = await fetch('/api/auth/logout', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+          window.location.href = '/login?message=' + encodeURIComponent('Đăng xuất thành công') + '&type=success';
+        }
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    });
+    
+    // Load profile on page load
+    loadProfile();
+  </script>
+  
+</body>
+</html>

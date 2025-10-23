@@ -2661,6 +2661,21 @@
     <!-- Sidebar -->
   <aside id="sidebar" class="flex-none bg-white shadow-lg overflow-y-auto open closed">
       <div class="p-4 md:p-6 space-y-6 md:space-y-8">
+      
+      <!-- User Profile Section -->
+      <div id="user-section" class="pb-4 border-b border-gray-200">
+        <div id="user-avatar" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors" onclick="handleUserClick()">
+          <div class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="flex-1">
+            <p id="user-name" class="text-sm font-semibold text-gray-800">Đăng nhập</p>
+            <p id="user-status" class="text-xs text-gray-500">Để lưu lịch sử</p>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+        </div>
+      </div>
+      
       <!-- Bảng điều khiển -->
       <nav class="space-y-3 md:space-y-4">
         <h2 class="text-base md:text-lg font-semibold text-green-700 flex items-center gap-2">
@@ -2851,14 +2866,14 @@
               type: 'wind',
               severity: 'danger',
               icon: 'fa-wind',
-              message: `🌪️ <strong>Cảnh báo gió rất mạnh:</strong> Tốc độ gió ${windSpeed.toFixed(0)} km/h. Nguy hiểm cho cây trồng, nhà kính và công trình. Hạn chế di chuyển và bảo vệ tài sản.`
+              message: `Gió rất mạnh ${windSpeed.toFixed(0)} km/h`
             });
           } else if (windSpeed >= 50) {
             alerts.push({
               type: 'wind',
               severity: 'warning',
               icon: 'fa-wind',
-              message: `💨 <strong>Cảnh báo gió mạnh:</strong> Tốc độ gió ${windSpeed.toFixed(0)} km/h. Ảnh hưởng đến cây trồng và công trình. Cần gia cố nhà kính và bảo vệ cây non.`
+              message: `Gió mạnh ${windSpeed.toFixed(0)} km/h`
             });
           }
           
@@ -2869,14 +2884,14 @@
               type: 'storm',
               severity: 'danger',
               icon: 'fa-cloud-showers-heavy',
-              message: `⛈️ <strong>Cảnh báo mưa rất to/Bão:</strong> Lượng mưa ${precip} mm. Nguy cơ ngập úng và thiệt hại nặng. Dừng hoạt động nông nghiệp, bảo vệ cây trồng và gia súc.`
+              message: `Mưa rất to ${precip} mm`
             });
           } else if (precip >= 50) {
             alerts.push({
               type: 'storm',
               severity: 'warning',
               icon: 'fa-cloud-rain',
-              message: `🌧️ <strong>Cảnh báo mưa lớn:</strong> Lượng mưa ${precip} mm. Nguy cơ ngập úng. Chuẩn bị thoát nước và bảo vệ cây trồng.`
+              message: `Mưa lớn ${precip} mm`
             });
           }
           
@@ -2888,14 +2903,14 @@
                 type: 'heat',
                 severity: 'danger',
                 icon: 'fa-temperature-high',
-                message: `🌡️ <strong>Cảnh báo nắng nóng gay gắt:</strong> Nhiệt độ ${temp}°C. Nguy hiểm cho cây trồng và gia súc. Tăng cường tưới nước, che chắn và bảo vệ động vật.`
+                message: `Nắng nóng gay gắt ${temp}°C`
               });
             } else if (temp >= 35) {
               alerts.push({
                 type: 'heat',
                 severity: 'warning',
                 icon: 'fa-sun',
-                message: `☀️ <strong>Cảnh báo nắng nóng:</strong> Nhiệt độ ${temp}°C. Ảnh hưởng đến cây trồng và gia súc. Cần tưới nước và che chắn thích hợp.`
+                message: `Nắng nóng ${temp}°C`
               });
             }
           }
@@ -2906,7 +2921,7 @@
               type: 'cold',
               severity: temp <= 5 ? 'danger' : 'warning',
               icon: 'fa-temperature-low',
-              message: `❄️ <strong>Cảnh báo rét ${temp <= 5 ? 'đậm' : ''}:</strong> Nhiệt độ ${temp}°C. Nguy cơ hại cây trồng. Cần che phủ và bảo vệ cây trồng nhạy cảm.`
+              message: `Rét ${temp <= 5 ? 'đậm' : ''} ${temp}°C`
             });
           }
           
@@ -2917,7 +2932,7 @@
               type: 'drought',
               severity: 'advisory',
               icon: 'fa-tint-slash',
-              message: `🏜️ <strong>Cảnh báo khô hạn:</strong> Độ ẩm ${humidity}% và không có mưa. Nguy cơ hạn hán. Cần quản lý nước tưới tiêu hợp lý.`
+              message: `Khô hạn, độ ẩm ${humidity}%`
             });
           }
           
@@ -2930,8 +2945,14 @@
           if (!container) return;
           
           if (!alerts || alerts.length === 0) {
-            container.classList.add('hidden');
-            container.innerHTML = '';
+            // No alerts - show stable weather message
+            container.innerHTML = `
+              <div class="bg-green-100 border-green-500 border-l-4 rounded-lg p-2 text-sm text-green-900">
+                <i class="fas fa-check-circle mr-1"></i>
+                <span>Thời tiết ổn định</span>
+              </div>
+            `;
+            container.classList.remove('hidden');
             return;
           }
           
@@ -2942,8 +2963,8 @@
           };
           
           container.innerHTML = alerts.map(alert => `
-            <div class="${severityStyles[alert.severity]} border-l-4 rounded-lg p-3 shadow-sm">
-              <i class="fas ${alert.icon} mr-2"></i>
+            <div class="${severityStyles[alert.severity]} border-l-4 rounded-lg p-2 text-sm">
+              <i class="fas ${alert.icon} mr-1"></i>
               <span>${alert.message}</span>
             </div>
           `).join('');
@@ -3844,6 +3865,54 @@
         openSidebar();
       }
     });
+    </script>
+    
+    <!-- User Authentication Script -->
+    <script>
+      // Check if user is logged in
+      async function checkUserSession() {
+        try {
+          const response = await fetch('/api/auth/profile');
+          const data = await response.json();
+          
+          if (data.success && data.user) {
+            // User is logged in
+            const userName = data.user.name || data.user.email.split('@')[0];
+            const userAvatar = document.querySelector('#user-avatar .w-10');
+            const userNameEl = document.getElementById('user-name');
+            const userStatusEl = document.getElementById('user-status');
+            
+            // Update avatar with first letter of name
+            const firstLetter = userName.charAt(0).toUpperCase();
+            userAvatar.innerHTML = firstLetter;
+            
+            // Update name and status
+            userNameEl.textContent = userName;
+            userStatusEl.textContent = data.user.email;
+          }
+        } catch (error) {
+          // User not logged in, keep default state
+          console.log('User not logged in');
+        }
+      }
+      
+      // Handle user avatar click
+      function handleUserClick() {
+        // Check if user is logged in by checking the user name text
+        const userNameEl = document.getElementById('user-name');
+        if (userNameEl.textContent === 'Đăng nhập') {
+          // Not logged in, go to login page
+          window.location.href = '/login';
+        } else {
+          // Logged in, go to profile page
+          window.location.href = '/profile';
+        }
+      }
+      
+      // Check session on page load
+      document.addEventListener('DOMContentLoaded', () => {
+        checkUserSession();
+      });
     </script>
 </body>
 

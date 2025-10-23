@@ -13,10 +13,11 @@ from types import SimpleNamespace
 from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session
 from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh mới
 from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
+import auth  # Import authentication module
 
 # Thiết lập logging
 logging.basicConfig(
@@ -33,6 +34,11 @@ app = Flask(__name__,
             template_folder=os.path.join(HERE, 'templates'),
             static_folder=os.path.join(HERE, 'static'), 
             static_url_path='/static')
+
+# Configure session for authentication
+app.secret_key = os.getenv('SECRET_KEY', os.urandom(24).hex())
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours
 
 class Api:
     def __init__(self):
@@ -3976,6 +3982,184 @@ Trả lời chi tiết, khoa học và dễ hiểu. Giữ nguyên định dạng
 api = Api()
 
 # Flask routes
+# ==================== AUTHENTICATION ROUTES ====================
+
+@app.route('/login')
+def login():
+    """Trang đăng nhập"""
+    return send_from_directory(HERE, 'login.html')
+
+
+@app.route('/register')
+def register():
+    """Trang đăng ký"""
+    return send_from_directory(HERE, 'register.html')
+
+
+@app.route('/forgot_password')
+def forgot_password():
+    """Trang quên mật khẩu"""
+    return send_from_directory(HERE, 'forgot_password.html')
+
+
+@app.route('/otp')
+def otp():
+    """Trang xác thực OTP"""
+    return send_from_directory(HERE, 'otp.html')
+
+
+@app.route('/profile')
+@auth.login_required
+def profile():
+    """Trang hồ sơ người dùng"""
+    return send_from_directory(HERE, 'profile.html')
+
+
+# ==================== AUTHENTICATION API ROUTES ====================
+
+@app.route('/api/auth/register', methods=['POST'])
+def api_register():
+    """API đăng ký tài khoản"""
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    name = data.get('name')
+    
+    if not email or not password:
+        return jsonify({'success': False, 'message': 'Email và mật khẩu là bắt buộc'})
+    
+    result = auth.register_user(email, password, name)
+    return jsonify(result)
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    """API đăng nhập"""
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not email or not password:
+        return jsonify({'success': False, 'message': 'Email và mật khẩu là bắt buộc'})
+    
+    result = auth.login_user(email, password)
+    
+    if result['success']:
+        # Set session
+        session['user_id'] = result['user']['id']
+        session['user_email'] = result['user']['email']
+        session.permanent = True
+    
+    return jsonify(result)
+
+
+@app.route('/api/auth/google-login', methods=['POST'])
+def api_google_login():
+    """API đăng nhập bằng Google"""
+    data = request.get_json()
+    credential = data.get('credential')
+    
+    if not credential:
+        return jsonify({'success': False, 'message': 'Credential Google là bắt buộc'})
+    
+    result = auth.google_login(credential)
+    
+    if result['success']:
+        # Set session
+        session['user_id'] = result['user']['id']
+        session['user_email'] = result['user']['email']
+        session.permanent = True
+    
+    return jsonify(result)
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_logout():
+    """API đăng xuất"""
+    session.clear()
+    return jsonify({'success': True, 'message': 'Đăng xuất thành công'})
+
+
+@app.route('/api/auth/forgot-password', methods=['POST'])
+def api_forgot_password():
+    """API gửi OTP quên mật khẩu"""
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'success': False, 'message': 'Email là bắt buộc'})
+    
+    result = auth.request_password_reset(email)
+    return jsonify(result)
+
+
+@app.route('/api/auth/verify-otp', methods=['POST'])
+def api_verify_otp():
+    """API xác thực OTP"""
+    data = request.get_json()
+    email = data.get('email')
+    otp_code = data.get('otp_code')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'message': 'Email và mã OTP là bắt buộc'})
+    
+    result = auth.verify_otp(email, otp_code)
+    return jsonify(result)
+
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+def api_reset_password():
+    """API đặt lại mật khẩu"""
+    data = request.get_json()
+    email = data.get('email')
+    new_password = data.get('new_password')
+    
+    if not email or not new_password:
+        return jsonify({'success': False, 'message': 'Email và mật khẩu mới là bắt buộc'})
+    
+    result = auth.reset_password(email, new_password)
+    return jsonify(result)
+
+
+@app.route('/api/auth/profile', methods=['GET'])
+@auth.login_required
+def api_get_profile():
+    """API lấy thông tin profile"""
+    user_id = session.get('user_id')
+    result = auth.get_user_profile(user_id)
+    return jsonify(result)
+
+
+@app.route('/api/auth/update-profile', methods=['POST'])
+@auth.login_required
+def api_update_profile():
+    """API cập nhật profile"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    name = data.get('name')
+    
+    result = auth.update_user_profile(user_id, name)
+    return jsonify(result)
+
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@auth.login_required
+def api_change_password():
+    """API đổi mật khẩu"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+    
+    if not old_password or not new_password:
+        return jsonify({'success': False, 'message': 'Mật khẩu cũ và mật khẩu mới là bắt buộc'})
+    
+    result = auth.change_password(user_id, old_password, new_password)
+    return jsonify(result)
+
+
+# ==================== MAIN APP ROUTES ====================
+
 @app.route('/')
 def index():
     """Trang chủ"""

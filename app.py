@@ -4823,6 +4823,51 @@ def toggle_forum_like(post_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/forum/posts/<int:post_id>/likes', methods=['GET'])
+def get_forum_likes(post_id):
+    """Get list of users who liked a post"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                u.id as user_id,
+                u.name as user_name,
+                u.email as user_email,
+                u.avatar_url as user_avatar,
+                u.username_slug,
+                fl.created_at
+            FROM forum_likes fl
+            JOIN users u ON fl.user_id = u.id
+            WHERE fl.post_id = ?
+            ORDER BY fl.created_at DESC
+        ''', (post_id,))
+        
+        likes_data = cursor.fetchall()
+        conn.close()
+        
+        likes = []
+        for row in likes_data:
+            likes.append({
+                'user_id': row[0],
+                'user_name': row[1],
+                'user_email': row[2],
+                'user_avatar': row[3],
+                'username_slug': row[4],
+                'created_at': row[5]
+            })
+        
+        return jsonify({
+            'success': True,
+            'likes': likes,
+            'count': len(likes)
+        })
+    except Exception as e:
+        logging.error(f"Error getting likes list: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/forum/posts/<int:post_id>/comments', methods=['GET'])
 def get_forum_comments(post_id):
     """Get comments for a post"""
@@ -4838,7 +4883,8 @@ def get_forum_comments(post_id):
                 c.created_at,
                 u.name as user_name,
                 u.email as user_email,
-                u.avatar_url as user_avatar
+                u.avatar_url as user_avatar,
+                u.username_slug as username_slug
             FROM forum_comments c
             LEFT JOIN users u ON c.user_id = u.id
             WHERE c.post_id = ?
@@ -4854,7 +4900,8 @@ def get_forum_comments(post_id):
                 'created_at': row[3],
                 'user_name': row[4],
                 'user_email': row[5],
-                'user_avatar': row[6]
+                'user_avatar': row[6],
+                'username_slug': row[7]
             })
         
         conn.close()

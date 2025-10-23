@@ -112,6 +112,49 @@
       transform: translateY(-2px);
       box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
+    
+    /* Mobile navigation tabs improvements */
+    @media (max-width: 640px) {
+      .profile-tab {
+        min-width: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .profile-tab i {
+        font-size: 1.1rem;
+      }
+      
+      /* Hide scrollbar on mobile tabs */
+      .flex.overflow-x-auto::-webkit-scrollbar {
+        display: none;
+      }
+      
+      .flex.overflow-x-auto {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    }
+    
+    /* Smooth transitions for sections */
+    #posts-section,
+    #photos-section, 
+    #friends-section,
+    #intro-section {
+      animation: fadeInUp 0.3s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -155,20 +198,20 @@
   <div class="max-w-7xl mx-auto bg-white">
     
     <!-- Cover Background -->
-    <div class="h-48 md:h-64 bg-gradient-to-r from-green-400 to-green-600 relative">
+    <div class="h-40 sm:h-48 md:h-64 bg-gradient-to-r from-green-400 to-green-600 relative">
       <!-- Removed edit cover button -->
     </div>
     
     <!-- Profile Info Container -->
-    <div class="px-4 md:px-6 pb-4 border-b border-gray-300">
+    <div class="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 border-b border-gray-300">
       <!-- Avatar and Name Row -->
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between -mt-12 md:-mt-16 gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-10 sm:-mt-12 md:-mt-16 gap-3 sm:gap-4">
         <!-- Left: Avatar + Name (horizontal) -->
-        <div class="flex items-end gap-4">
+        <div class="flex items-end gap-3 sm:gap-4">
           <!-- Avatar -->
           <div class="avatar-wrapper flex-shrink-0">
-            <img id="profile-avatar" src="" alt="Avatar" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
-            <div id="avatar-placeholder" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
+            <img id="profile-avatar" src="" alt="Avatar" class="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
+            <div id="avatar-placeholder" class="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
               ?
             </div>
             <div id="avatar-edit-btn" class="avatar-edit-btn" onclick="showAvatarOptions()" style="display:none;">
@@ -177,10 +220,10 @@
           </div>
           
           <!-- Name and Stats (right of avatar, aligned to bottom) -->
-          <div class="pb-2 flex-1">
-            <h1 id="profile-name" class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Đang tải...</h1>
-            <p id="profile-email" class="text-gray-600 text-sm mb-2">email@example.com</p>
-            <div class="flex gap-2 text-sm text-gray-600">
+          <div class="pb-1 sm:pb-2 flex-1 min-w-0">
+            <h1 id="profile-name" class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 truncate">Đang tải...</h1>
+            <p id="profile-email" class="text-gray-600 text-xs sm:text-sm mb-2 truncate">email@example.com</p>
+            <div class="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
               <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
               <span>•</span>
               <span><span class="friends-count font-semibold">0</span> bạn bè</span>
@@ -191,7 +234,7 @@
         </div>
         
         <!-- Right: Action Buttons -->
-        <div class="flex gap-2 pb-2">
+        <div class="flex gap-2 pb-2 flex-shrink-0">
           <!-- Action Buttons (Owner View) -->
           <div id="owner-actions" class="relative" style="display:none;">
             <button onclick="toggleSettingsMenu()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
@@ -265,112 +308,116 @@
       </div>
       
       <!-- Navigation Tabs -->
-      <div class="mt-4">
-        <div class="flex gap-1 border-t border-gray-300 -mb-px">
-          <button onclick="switchTab('posts')" class="profile-tab px-4 py-3 border-b-4 border-green-600 text-green-600 font-semibold -mb-px">
-            Bài viết
+      <div class="mt-3 sm:mt-4">
+        <div class="flex gap-0.5 sm:gap-1 border-t border-gray-300 -mb-px overflow-x-auto">
+          <button onclick="switchTab('posts')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 border-b-4 border-green-600 text-green-600 font-semibold -mb-px text-sm sm:text-base whitespace-nowrap">
+            <i class="fas fa-newspaper sm:hidden"></i>
+            <span class="hidden sm:inline">Bài viết</span>
           </button>
-          <button onclick="switchTab('intro')" class="profile-tab px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
-            Giới thiệu
+          <button onclick="switchTab('intro')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+            <i class="fas fa-info-circle sm:hidden"></i>
+            <span class="hidden sm:inline">Giới thiệu</span>
           </button>
-          <button onclick="switchTab('friends')" class="profile-tab px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
-            Bạn bè
+          <button onclick="switchTab('friends')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+            <i class="fas fa-user-friends sm:hidden"></i>
+            <span class="hidden sm:inline">Bạn bè</span>
           </button>
-          <button onclick="switchTab('photos')" class="profile-tab px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
-            Ảnh
+          <button onclick="switchTab('photos')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+            <i class="fas fa-images sm:hidden"></i>
+            <span class="hidden sm:inline">Ảnh</span>
           </button>
         </div>
       </div>
     </div>
     <!-- Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 md:p-6 bg-gray-50">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 bg-gray-50">
       
-      <!-- Left Sidebar -->
-      <div class="lg:col-span-5 xl:col-span-4 space-y-4">
+      <!-- Left Sidebar - Hidden on mobile by default, shown when switching to intro tab -->
+      <div class="hidden lg:block lg:col-span-5 xl:col-span-4 space-y-3 sm:space-y-4">
         
         <!-- Intro Card -->
-        <div class="bg-white rounded-xl shadow p-4">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">Giới thiệu</h2>
+        <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Giới thiệu</h2>
           
-          <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
+          <div id="alert-message" class="hidden mb-3 sm:mb-4 p-3 rounded text-sm"></div>
           
           <!-- Bio/Description -->
-          <div class="mb-4">
-            <p id="user-bio" class="text-gray-600 text-center py-3">Chưa có giới thiệu</p>
-            <button onclick="openEditProfileModal()" class="w-full mt-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-sm transition-colors">
+          <div class="mb-3 sm:mb-4">
+            <p id="user-bio" class="text-gray-600 text-center py-2 sm:py-3 text-sm sm:text-base">Chưa có giới thiệu</p>
+            <button onclick="openEditProfileModal()" class="w-full mt-2 px-3 sm:px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-xs sm:text-sm transition-colors">
               Chỉnh sửa tiểu sử
             </button>
           </div>
           
           <!-- Info List -->
-          <div class="space-y-3 pt-3 border-t border-gray-200">
-            <div class="flex items-center gap-3 text-gray-700">
-              <i class="fas fa-envelope w-5 text-gray-500"></i>
-              <span id="profile-email-sidebar" class="text-sm">email@example.com</span>
+          <div class="space-y-2.5 sm:space-y-3 pt-3 border-t border-gray-200">
+            <div class="flex items-center gap-2.5 sm:gap-3 text-gray-700">
+              <i class="fas fa-envelope w-4 sm:w-5 text-gray-500 text-sm sm:text-base"></i>
+              <span id="profile-email-sidebar" class="text-xs sm:text-sm truncate">email@example.com</span>
             </div>
             
-            <div class="flex items-center gap-3 text-gray-700">
-              <i class="fas fa-calendar-alt w-5 text-gray-500"></i>
-              <span class="text-sm">Tham gia <span id="created-at" class="font-medium">-</span></span>
+            <div class="flex items-center gap-2.5 sm:gap-3 text-gray-700">
+              <i class="fas fa-calendar-alt w-4 sm:w-5 text-gray-500 text-sm sm:text-base"></i>
+              <span class="text-xs sm:text-sm">Tham gia <span id="created-at" class="font-medium">-</span></span>
             </div>
             
-            <div class="flex items-center gap-3 text-gray-700">
-              <i class="fas fa-clock w-5 text-gray-500"></i>
-              <span class="text-sm">Hoạt động <span id="last-login" class="font-medium">-</span></span>
+            <div class="flex items-center gap-2.5 sm:gap-3 text-gray-700">
+              <i class="fas fa-clock w-4 sm:w-5 text-gray-500 text-sm sm:text-base"></i>
+              <span class="text-xs sm:text-sm">Hoạt động <span id="last-login" class="font-medium">-</span></span>
             </div>
           </div>
         </div>
         
         <!-- Friends Card -->
-        <div class="bg-white rounded-xl shadow p-4">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-gray-900">Bạn bè</h2>
-            <a href="#" onclick="switchTab('friends'); return false;" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
+        <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-900">Bạn bè</h2>
+            <a href="#" onclick="switchTab('friends'); return false;" class="text-green-600 hover:underline text-xs sm:text-sm font-medium">Xem tất cả</a>
           </div>
-          <div id="friends-preview" class="grid grid-cols-3 gap-2">
+          <div id="friends-preview" class="grid grid-cols-3 gap-1.5 sm:gap-2">
             <!-- Will be populated by JavaScript -->
           </div>
-          <p id="no-friends-preview" class="text-gray-500 text-sm text-center py-4 hidden">Chưa có bạn bè</p>
+          <p id="no-friends-preview" class="text-gray-500 text-xs sm:text-sm text-center py-3 sm:py-4 hidden">Chưa có bạn bè</p>
         </div>
         
         <!-- Photos Card -->
-        <div class="bg-white rounded-xl shadow p-4">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-gray-900">Ảnh</h2>
-            <a href="#" onclick="switchTab('photos'); return false;" class="text-green-600 hover:underline text-sm font-medium">Xem tất cả</a>
+        <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-900">Ảnh</h2>
+            <a href="#" onclick="switchTab('photos'); return false;" class="text-green-600 hover:underline text-xs sm:text-sm font-medium">Xem tất cả</a>
           </div>
-          <div id="photos-preview" class="grid grid-cols-3 gap-2">
+          <div id="photos-preview" class="grid grid-cols-3 gap-1.5 sm:gap-2">
             <!-- Will be populated by JavaScript -->
           </div>
-          <p id="no-photos-preview" class="text-gray-500 text-sm text-center py-4 hidden">Chưa có ảnh</p>
+          <p id="no-photos-preview" class="text-gray-500 text-xs sm:text-sm text-center py-3 sm:py-4 hidden">Chưa có ảnh</p>
         </div>
         
       </div>
       
       <!-- Right Content - Posts -->
-      <div class="lg:col-span-7 xl:col-span-8 space-y-4">
+      <div class="lg:col-span-7 xl:col-span-8 space-y-3 sm:space-y-4">
         
         <!-- Posts Section (default) -->
         <div id="posts-section">
-          <!-- Create Post Card -->
-          <div class="bg-white rounded-xl shadow p-4 mb-4">
-            <div class="flex gap-3 items-center mb-3">
-              <div id="small-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+          <!-- Create Post Card - Only show for own profile -->
+          <div id="create-post-card" class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4 mb-3 sm:mb-4" style="display: none;">
+            <div class="flex gap-2.5 sm:gap-3 items-center mb-3">
+              <div id="small-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0 text-sm">
                 <i class="fas fa-user"></i>
               </div>
-              <a href="/forum" class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-left">
+              <button onclick="openCreatePostModal()" class="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-left text-sm sm:text-base">
                 Bạn đang nghĩ gì?
-              </a>
+              </button>
             </div>
-            <div class="flex gap-2 pt-3 border-t border-gray-200">
-              <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-                <i class="fas fa-image text-green-600"></i>
-                <span class="font-medium text-sm">Ảnh/Video</span>
-              </a>
-              <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-                <i class="fas fa-smile text-yellow-500"></i>
-                <span class="font-medium text-sm">Cảm xúc</span>
-              </a>
+            <div class="flex gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-gray-200">
+              <button onclick="openCreatePostModal('image')" class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                <i class="fas fa-image text-green-600 text-sm sm:text-base"></i>
+                <span class="font-medium text-xs sm:text-sm">Ảnh/Video</span>
+              </button>
+              <button onclick="openCreatePostModal()" class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                <i class="fas fa-smile text-yellow-500 text-sm sm:text-base"></i>
+                <span class="font-medium text-xs sm:text-sm">Cảm xúc</span>
+              </button>
             </div>
           </div>
           
@@ -384,14 +431,14 @@
         
         <!-- Photos Section (hidden by default) -->
         <div id="photos-section" class="hidden">
-          <div class="bg-white rounded-xl shadow p-4">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-2xl font-bold text-gray-900">Ảnh</h2>
-              <button onclick="openUploadPhotoModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <i class="fas fa-upload"></i> Tải ảnh lên
+          <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Ảnh</h2>
+              <button onclick="openUploadPhotoModal()" class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm whitespace-nowrap">
+                <i class="fas fa-upload"></i> <span class="hidden sm:inline">Tải ảnh lên</span>
               </button>
             </div>
-            <div id="photos-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div id="photos-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-3">
               <div class="col-span-full flex justify-center py-8">
                 <div class="loading-spinner"></div>
               </div>
@@ -401,14 +448,14 @@
         
         <!-- Friends Section (hidden by default) -->
         <div id="friends-section" class="hidden">
-          <div class="bg-white rounded-xl shadow p-4">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-2xl font-bold text-gray-900">Bạn bè (<span class="friends-count">0</span>)</h2>
-              <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                <i class="fas fa-search"></i> Tìm kiếm
+          <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Bạn bè (<span class="friends-count">0</span>)</h2>
+              <button class="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-xs sm:text-sm">
+                <i class="fas fa-search"></i> <span class="hidden sm:inline">Tìm kiếm</span>
               </button>
             </div>
-            <div id="friends-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div id="friends-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
               <div class="col-span-full flex justify-center py-8">
                 <div class="loading-spinner"></div>
               </div>
@@ -418,29 +465,29 @@
         
         <!-- Intro Section (hidden by default) -->
         <div id="intro-section" class="hidden">
-          <div class="bg-white rounded-xl shadow p-4">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Giới thiệu</h2>
+          <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">Giới thiệu</h2>
             
-            <div class="space-y-4">
+            <div class="space-y-3 sm:space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Tiểu sử</label>
-                <p id="bio-detail" class="text-gray-600 p-3 bg-gray-50 rounded-lg">Chưa có thông tin</p>
+                <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Tiểu sử</label>
+                <p id="bio-detail" class="text-gray-600 p-3 bg-gray-50 rounded-lg text-sm sm:text-base">Chưa có thông tin</p>
               </div>
               
-              <div class="border-t border-gray-200 pt-4">
-                <h3 class="font-semibold mb-3">Thông tin liên hệ</h3>
-                <div class="space-y-3">
-                  <div class="flex items-center gap-3">
-                    <i class="fas fa-envelope w-6 text-gray-400"></i>
-                    <span id="email-detail" class="text-gray-700">-</span>
+              <div class="border-t border-gray-200 pt-3 sm:pt-4">
+                <h3 class="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">Thông tin liên hệ</h3>
+                <div class="space-y-2.5 sm:space-y-3">
+                  <div class="flex items-center gap-2.5 sm:gap-3">
+                    <i class="fas fa-envelope w-5 sm:w-6 text-gray-400 text-sm"></i>
+                    <span id="email-detail" class="text-gray-700 text-xs sm:text-sm truncate">-</span>
                   </div>
-                  <div class="flex items-center gap-3">
-                    <i class="fas fa-calendar-alt w-6 text-gray-400"></i>
-                    <span>Tham gia <span id="joined-detail">-</span></span>
+                  <div class="flex items-center gap-2.5 sm:gap-3">
+                    <i class="fas fa-calendar-alt w-5 sm:w-6 text-gray-400 text-sm"></i>
+                    <span class="text-xs sm:text-sm">Tham gia <span id="joined-detail">-</span></span>
                   </div>
-                  <div class="flex items-center gap-3">
-                    <i class="fas fa-clock w-6 text-gray-400"></i>
-                    <span>Hoạt động <span id="active-detail">-</span></span>
+                  <div class="flex items-center gap-2.5 sm:gap-3">
+                    <i class="fas fa-clock w-5 sm:w-6 text-gray-400 text-sm"></i>
+                    <span class="text-xs sm:text-sm">Hoạt động <span id="active-detail">-</span></span>
                   </div>
                 </div>
               </div>
@@ -603,6 +650,118 @@
       </form>
     </div>
   </div>
+  
+  <!-- Likes List Modal -->
+  <div id="likes-modal" class="modal" onclick="if(event.target === this) closeLikesModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h3 class="text-lg font-bold text-gray-900">Người đã thích</h3>
+        <button onclick="closeLikesModal()" class="text-gray-400 hover:text-gray-600 p-1">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Content -->
+      <div id="likes-list-content" class="flex-1 overflow-y-auto p-4">
+        <div class="flex justify-center py-8">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Post Modal -->
+  <div id="create-post-modal" class="modal" onclick="if(event.target === this) closeCreatePostModal()">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-2xl w-full mx-3 sm:mx-4 max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800">Tạo bài viết</h2>
+        <button onclick="closeCreatePostModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-lg sm:text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-3 sm:p-4">
+        <!-- User Info -->
+        <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div id="modal-user-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+            <i class="fas fa-user text-sm sm:text-base"></i>
+          </div>
+          <div>
+            <h3 id="modal-user-name" class="font-semibold text-gray-800 text-sm sm:text-base">Đang tải...</h3>
+          </div>
+        </div>
+        
+        <!-- Post Title -->
+        <div class="mb-2 sm:mb-3">
+          <input 
+            type="text" 
+            id="post-title" 
+            placeholder="Tiêu đề bài viết (tùy chọn)"
+            class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm sm:text-base"
+          />
+        </div>
+        
+        <!-- Post Content -->
+        <textarea 
+          id="post-content" 
+          rows="6" 
+          placeholder="Chia sẻ suy nghĩ của bạn về nông nghiệp..."
+          class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base"
+        ></textarea>
+        
+        <!-- Image Upload Preview -->
+        <div id="image-preview-container" class="hidden mb-2 sm:mb-3">
+          <div class="relative">
+            <img id="image-preview" src="" alt="Preview" class="w-full rounded-lg max-h-60 sm:max-h-96 object-cover" />
+            <button onclick="removePostImage()" class="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100">
+              <i class="fas fa-times text-gray-600 text-sm"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Tags Input -->
+        <div class="mb-2 sm:mb-3">
+          <input 
+            type="text" 
+            id="post-tags" 
+            placeholder="Thêm thẻ (cách nhau bằng dấu phẩy). VD: lúa, trồng trọt"
+            class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-xs sm:text-sm"
+          />
+        </div>
+        
+        <!-- Add to Post -->
+        <div class="border border-gray-300 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4">
+          <p class="text-xs sm:text-sm font-medium text-gray-700 mb-2">Thêm vào bài viết</p>
+          <div class="flex gap-1 sm:gap-2">
+            <button onclick="selectPostImage()" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <i class="fas fa-image text-green-600 text-sm"></i>
+              <span class="text-xs sm:text-sm">Ảnh</span>
+            </button>
+            <button class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <i class="fas fa-poll text-blue-600 text-sm"></i>
+              <span class="text-xs sm:text-sm hidden xs:inline">Khảo sát</span>
+              <span class="text-xs sm:text-sm xs:hidden">Poll</span>
+            </button>
+            <button class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <i class="fas fa-map-marker-alt text-red-600 text-sm"></i>
+              <span class="text-xs sm:text-sm hidden xs:inline">Vị trí</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Submit Button -->
+        <button onclick="submitPost()" class="w-full py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
+          Đăng bài
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden File Input -->
+  <input type="file" id="post-image-input" accept="image/*" class="hidden" />
   
   <script>
     let cropper = null;
@@ -814,6 +973,7 @@
         document.getElementById('visitor-actions').style.display = 'none';
         document.getElementById('avatar-edit-btn').style.display = 'flex';
         document.getElementById('name').value = user.name || '';
+        document.getElementById('create-post-card').style.display = 'block';
         
         // Enable edit buttons in sidebar
         const editButtons = document.querySelectorAll('button[onclick="openEditProfileModal()"]');
@@ -824,6 +984,7 @@
         document.getElementById('owner-actions').style.display = 'none';
         document.getElementById('visitor-actions').style.display = 'flex';
         document.getElementById('avatar-edit-btn').style.display = 'none';
+        document.getElementById('create-post-card').style.display = 'none';
         
         // Hide edit buttons
         const editButtons = document.querySelectorAll('button[onclick="openEditProfileModal()"]');
@@ -1149,24 +1310,25 @@
         : '';
       
       return `
-        <div class="bg-white rounded-xl shadow">
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow post-card mb-4">
           <!-- Post Header -->
           <div class="p-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <a href="/profile/${post.user_id}" class="hover:opacity-80 transition-opacity">
+              <a href="/profile/${post.user_id}" class="hover:opacity-80 transition-opacity flex-shrink-0">
                 ${userAvatar}
               </a>
-              <div>
+              <div class="min-w-0 flex-1">
                 <a href="/profile/${post.user_id}" class="hover:underline">
-                  <h4 class="font-semibold text-gray-900">${escapeHtml(userName)}</h4>
+                  <h4 class="font-semibold text-gray-900 truncate">${escapeHtml(userName)}</h4>
                 </a>
-                <p class="text-sm text-gray-500">
-                  <i class="far fa-clock mr-1"></i>${getTimeAgo(post.created_at)}
+                <p class="text-sm text-gray-500 flex items-center gap-1.5">
+                  <i class="far fa-clock"></i>
+                  <span>${getTimeAgo(post.created_at)}</span>
                 </p>
               </div>
             </div>
             ${isOwnProfile ? `
-              <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors p-2">
+              <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors p-2 flex-shrink-0">
                 <i class="fas fa-trash"></i>
               </button>
             ` : ''}
@@ -1175,35 +1337,76 @@
           <!-- Post Content -->
           <div class="px-4 pb-3">
             ${titleHTML}
-            <p class="text-gray-800 whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+            <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">${escapeHtml(post.content)}</p>
           </div>
           
-          ${imageHTML ? `<div class="px-0">${imageHTML}</div>` : ''}
+          ${imageHTML ? `<div class="px-0 mb-3">${imageHTML}</div>` : ''}
           
           ${tagsHTML ? `<div class="px-4 pb-3">${tagsHTML}</div>` : ''}
           
-          <!-- Post Stats -->
-          <div class="px-4 py-2 border-t border-b border-gray-200">
-            <div class="flex items-center justify-between text-sm text-gray-500">
-              <span><i class="fas fa-thumbs-up text-green-600"></i> ${post.likes_count || 0}</span>
-              <span>${post.comments_count || 0} bình luận</span>
+          <!-- Post Stats - Clickable -->
+          <div class="px-4 py-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-sm">
+              <button 
+                onclick="showLikesList(${post.id})" 
+                class="flex items-center gap-1.5 text-gray-600 hover:text-green-600 hover:underline transition-colors"
+              >
+                ${post.likes_count > 0 ? `
+                  <span class="flex items-center gap-1">
+                    <i class="fas fa-thumbs-up text-green-600"></i>
+                    <span class="font-medium text-gray-700">${post.likes_count}</span>
+                  </span>
+                ` : '<span class="text-gray-500">Chưa có lượt thích</span>'}
+              </button>
+              <button 
+                onclick="toggleComments(${post.id})" 
+                class="text-gray-600 hover:text-blue-600 hover:underline transition-colors"
+              >
+                ${post.comments_count > 0 
+                  ? `<span class="font-medium">${post.comments_count}</span> bình luận` 
+                  : 'Chưa có bình luận'}
+              </button>
             </div>
           </div>
           
           <!-- Post Actions -->
-          <div class="p-2 flex gap-1">
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-medium">
-              <i class="far fa-thumbs-up"></i>
-              <span>Thích</span>
+          <div class="px-2 pb-2 flex gap-1 border-t border-gray-100 pt-1">
+            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium">
+              <i class="far fa-thumbs-up text-lg"></i>
+              <span class="text-sm">Thích</span>
             </a>
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-medium">
-              <i class="far fa-comment"></i>
-              <span>Bình luận</span>
+            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium">
+              <i class="far fa-comment text-lg"></i>
+              <span class="text-sm">Bình luận</span>
             </a>
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-medium">
-              <i class="far fa-share-square"></i>
-              <span>Chia sẻ</span>
+            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium">
+              <i class="far fa-share-square text-lg"></i>
+              <span class="text-sm">Chia sẻ</span>
             </a>
+          </div>
+          
+          <!-- Comments Section (Hidden by default) -->
+          <div id="comments-${post.id}" class="hidden border-t border-gray-100 bg-gray-50">
+            <div class="p-4">
+              <div class="flex items-start gap-3 mb-3">
+                <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                  ${currentUserId ? 'U' : '?'}
+                </div>
+                <div class="flex-1">
+                  <textarea 
+                    placeholder="Viết bình luận..." 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                    rows="2"
+                  ></textarea>
+                  <button class="mt-2 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                    Gửi
+                  </button>
+                </div>
+              </div>
+              <div id="comments-list-${post.id}" class="space-y-3">
+                <p class="text-center text-gray-500 text-sm py-4">Đang tải bình luận...</p>
+              </div>
+            </div>
           </div>
         </div>
       `;
@@ -1569,7 +1772,237 @@
       // Refresh notifications every 30 seconds
       setInterval(loadNotifications, 30000);
     });
+    
+    // Show likes list modal
+    async function showLikesList(postId) {
+      const modal = document.getElementById('likes-modal');
+      const content = document.getElementById('likes-list-content');
+      
+      modal.classList.add('active');
+      content.innerHTML = '<div class="flex justify-center py-8"><div class="loading-spinner"></div></div>';
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/likes`);
+        const data = await response.json();
+        
+        if (data.success && data.likes && data.likes.length > 0) {
+          content.innerHTML = data.likes.map(like => {
+            const userName = like.user_name || like.user_email?.split('@')[0] || 'Người dùng';
+            const userAvatar = like.user_avatar 
+              ? `<img src="${like.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+              : `<div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-semibold text-lg">
+                  ${userName.charAt(0).toUpperCase()}
+                </div>`;
+            
+            return `
+              <a href="/profile/${like.username_slug || like.user_id}" class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <div class="w-12 h-12 flex-shrink-0">
+                  ${userAvatar}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h4 class="font-semibold text-gray-900 truncate">${userName}</h4>
+                  <p class="text-sm text-gray-500 truncate">${like.user_email || ''}</p>
+                </div>
+                <i class="fas fa-thumbs-up text-green-600"></i>
+              </a>
+            `;
+          }).join('');
+        } else {
+          content.innerHTML = `
+            <div class="text-center py-8">
+              <i class="far fa-heart text-gray-300 text-5xl mb-3"></i>
+              <p class="text-gray-500">Chưa có ai thích bài viết này</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading likes:', error);
+        content.innerHTML = `
+          <div class="text-center py-8">
+            <i class="fas fa-exclamation-circle text-red-400 text-5xl mb-3"></i>
+            <p class="text-gray-500">Không thể tải danh sách</p>
+          </div>
+        `;
+      }
+    }
+    
+    function closeLikesModal() {
+      document.getElementById('likes-modal').classList.remove('active');
+    }
+    
+    // Toggle comments section
+    async function toggleComments(postId) {
+      const commentsSection = document.getElementById(`comments-${postId}`);
+      const commentsList = document.getElementById(`comments-list-${postId}`);
+      
+      if (commentsSection.classList.contains('hidden')) {
+        commentsSection.classList.remove('hidden');
+        
+        // Load comments if not already loaded
+        if (commentsList.innerHTML.includes('Đang tải')) {
+          try {
+            const response = await fetch(`/api/forum/posts/${postId}/comments`);
+            const data = await response.json();
+            
+            if (data.success && data.comments && data.comments.length > 0) {
+              commentsList.innerHTML = data.comments.map(comment => {
+                const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+                const userAvatar = comment.user_avatar
+                  ? `<img src="${comment.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+                  : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                      ${userName.charAt(0).toUpperCase()}
+                    </div>`;
+                
+                return `
+                  <div class="flex items-start gap-3">
+                    <a href="/profile/${comment.username_slug || comment.user_id}" class="flex-shrink-0">
+                      ${userAvatar}
+                    </a>
+                    <div class="flex-1">
+                      <div class="bg-white rounded-2xl px-4 py-2.5 inline-block">
+                        <a href="/profile/${comment.username_slug || comment.user_id}" class="font-semibold text-gray-900 hover:underline text-sm">
+                          ${userName}
+                        </a>
+                        <p class="text-gray-800 mt-1 text-sm">${comment.content}</p>
+                      </div>
+                      <div class="flex items-center gap-4 mt-1 px-4 text-xs text-gray-500">
+                        <span>${getTimeAgo(comment.created_at)}</span>
+                        <button class="hover:underline">Thích</button>
+                        <button class="hover:underline">Trả lời</button>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('');
+            } else {
+              commentsList.innerHTML = `
+                <div class="text-center py-8">
+                  <i class="far fa-comment text-gray-300 text-4xl mb-2"></i>
+                  <p class="text-gray-500 text-sm">Chưa có bình luận nào</p>
+                  <p class="text-gray-400 text-xs mt-1">Hãy là người đầu tiên bình luận!</p>
+                </div>
+              `;
+            }
+          } catch (error) {
+            console.error('Error loading comments:', error);
+            commentsList.innerHTML = `
+              <div class="text-center py-4">
+                <p class="text-red-500 text-sm">Không thể tải bình luận</p>
+              </div>
+            `;
+          }
+        }
+      } else {
+        commentsSection.classList.add('hidden');
+      }
+    }
+
+    // Create Post Modal Functions
+    function openCreatePostModal(type) {
+      const modal = document.getElementById('create-post-modal');
+      if (modal) {
+        modal.classList.add('active');
+        // Load user info
+        if (currentUserId) {
+          const avatarEl = document.getElementById('modal-user-avatar');
+          const nameEl = document.getElementById('modal-user-name');
+          
+          if (document.getElementById('profile-avatar').style.display !== 'none') {
+            avatarEl.innerHTML = `<img src="${document.getElementById('profile-avatar').src}" class="w-full h-full rounded-full object-cover" />`;
+          } else {
+            const initial = document.getElementById('profile-name').textContent.charAt(0).toUpperCase();
+            avatarEl.innerHTML = initial;
+          }
+          nameEl.textContent = document.getElementById('profile-name').textContent;
+        }
+      }
+    }
+
+    function closeCreatePostModal() {
+      const modal = document.getElementById('create-post-modal');
+      if (modal) {
+        modal.classList.remove('active');
+        // Clear form
+        document.getElementById('post-title').value = '';
+        document.getElementById('post-content').value = '';
+        document.getElementById('post-tags').value = '';
+        document.getElementById('image-preview-container').classList.add('hidden');
+      }
+    }
+
+    function selectPostImage() {
+      document.getElementById('post-image-input').click();
+    }
+
+    document.getElementById('post-image-input')?.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const preview = document.getElementById('image-preview');
+          const container = document.getElementById('image-preview-container');
+          preview.src = event.target.result;
+          container.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function removePostImage() {
+      document.getElementById('image-preview-container').classList.add('hidden');
+      document.getElementById('post-image-input').value = '';
+    }
+
+    async function submitPost() {
+      const title = document.getElementById('post-title').value.trim();
+      const content = document.getElementById('post-content').value.trim();
+      const tags = document.getElementById('post-tags').value.trim();
+      const imagePreview = document.getElementById('image-preview');
+      
+      if (!content) {
+        alert('Vui lòng nhập nội dung bài viết');
+        return;
+      }
+
+      try {
+        // Create FormData to handle image upload
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('content', content);
+        
+        if (tags) {
+          const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+          formData.append('tags', JSON.stringify(tagArray));
+        }
+
+        // Add image if exists
+        if (imagePreview.src && !imagePreview.src.startsWith('data:image')) {
+          formData.append('image_url', imagePreview.src);
+        } else if (document.getElementById('post-image-input').files.length > 0) {
+          formData.append('image', document.getElementById('post-image-input').files[0]);
+        }
+
+        const response = await fetch('/api/forum/posts', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('Đăng bài thành công!');
+          closeCreatePostModal();
+          loadUserPosts(currentUserId);
+        } else {
+          alert('Có lỗi: ' + (data.message || 'Không thể đăng bài'));
+        }
+      } catch (error) {
+        console.error('Error submitting post:', error);
+        alert('Có lỗi khi đăng bài');
+      }
+    }
   </script>
   
 </body>
 </html>
+

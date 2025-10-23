@@ -139,6 +139,17 @@
       }
     }
     
+    /* Global scrollbar hiding for overflow-x-auto */
+    .overflow-x-auto::-webkit-scrollbar {
+      display: none !important;
+      height: 0 !important;
+    }
+    
+    .overflow-x-auto {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+    
     /* Smooth transitions for sections */
     #posts-section,
     #photos-section, 
@@ -165,9 +176,9 @@
   <header class="bg-green-100 border-b border-green-200 shadow-sm">
     <div class="h-20 flex items-center justify-between px-4 md:px-6">
       <div class="flex items-center gap-3">
-        <a href="/" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500">
-          <i class="fas fa-home"></i>
-        </a>
+        <button onclick="window.history.back()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500" title="Quay lại">
+          <i class="fas fa-arrow-left"></i>
+        </button>
         <img src="/static/logo/logo.png" alt="AgriSense AI" class="h-12 md:h-14 w-auto object-contain">
       </div>
       
@@ -1019,6 +1030,13 @@
     function updateOnlineStatus(lastLogin) {
       const indicator = document.getElementById('online-indicator');
       if (!indicator) return;
+      
+      // If viewing own profile, always show green (current user is definitely online)
+      if (isOwnProfile) {
+        indicator.style.backgroundColor = '#10B981'; // Green
+        indicator.title = 'Đang hoạt động';
+        return;
+      }
       
       const now = new Date();
       const lastLoginDate = new Date(lastLogin);

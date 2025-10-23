@@ -4639,13 +4639,19 @@ def weather():
 
 @app.route('/api/forum/posts', methods=['GET'])
 def get_forum_posts():
-    """Get all forum posts"""
+    """Get all forum posts with optional filtering"""
     try:
+        # Get query parameters
+        sort = request.args.get('sort', 'latest')  # latest, popular, likes, questions
+        search = request.args.get('search', '').strip()
+        tag = request.args.get('tag', '').strip()
+        category = request.args.get('category', '').strip()
+        
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        # Get all posts with user info and counts
-        cursor.execute('''
+        # Base query
+        query = '''
             SELECT 
                 p.id,
                 p.user_id,
@@ -4661,8 +4667,35 @@ def get_forum_posts():
                 (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) as comments_count
             FROM forum_posts p
             LEFT JOIN users u ON p.user_id = u.id
-            ORDER BY p.created_at DESC
-        ''')
+            WHERE 1=1
+        '''
+        
+        params = []
+        
+        # Apply filters
+        if search:
+            query += ' AND (p.title LIKE ? OR p.content LIKE ?)'
+            search_param = f'%{search}%'
+            params.extend([search_param, search_param])
+        
+        if tag:
+            query += ' AND p.tags LIKE ?'
+            params.append(f'%{tag}%')
+        
+        if category:
+            query += ' AND p.tags LIKE ?'
+            params.append(f'%{category}%')
+        
+        # Apply sorting
+        if sort == 'popular' or sort == 'likes':
+            query += ' ORDER BY likes_count DESC, p.created_at DESC'
+        elif sort == 'questions':
+            query += ' AND p.title LIKE ? ORDER BY p.created_at DESC'
+            params.append('%?%')  # Posts with question mark in title
+        else:  # latest
+            query += ' ORDER BY p.created_at DESC'
+        
+        cursor.execute(query, params)
         
         posts = []
         for row in cursor.fetchall():
@@ -4987,6 +5020,45 @@ def delete_forum_comment(post_id, comment_id):
         })
     except Exception as e:
         logging.error(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/trending-tags', methods=['GET'])
+def get_trending_tags():
+    """Get trending tags from forum posts"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all tags from posts and count occurrences
+        cursor.execute('SELECT tags FROM forum_posts WHERE tags IS NOT NULL')
+        
+        tag_counts = {}
+        for row in cursor.fetchall():
+            if row[0]:
+                try:
+                    tags = json.loads(row[0])
+                    if isinstance(tags, list):
+                        for tag in tags:
+                            tag_lower = tag.lower()
+                            tag_counts[tag_lower] = tag_counts.get(tag_lower, 0) + 1
+                except:
+                    pass
+        
+        # Sort by count and get top 10
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        # Format response
+        tags = [{'tag': tag, 'count': count} for tag, count in sorted_tags]
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'tags': tags
+        })
+    except Exception as e:
+        logging.error(f"Error getting trending tags: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

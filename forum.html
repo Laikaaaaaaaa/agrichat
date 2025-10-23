@@ -214,7 +214,7 @@
             <!-- Search Box -->
             <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
               <div class="relative">
-                <input type="text" placeholder="Tìm kiếm bài viết..." class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm">
+                <input type="text" id="search-input" placeholder="Tìm kiếm bài viết..." class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm" onkeyup="searchPosts(this.value)">
                 <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
               </div>
             </div>
@@ -223,36 +223,24 @@
             <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
               <h3 class="font-bold text-gray-900 mb-3 text-base">📁 Danh mục</h3>
               <div class="space-y-2 text-sm">
-                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌾 Trồng trọt</button>
-                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🐄 Chăn nuôi</button>
-                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌱 Bệnh sâu hại</button>
-                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">💧 Tưới tiêu</button>
-                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🧑‍🌾 Kinh nghiệm</button>
-                <button class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">❓ Hỏi đáp</button>
+                <button onclick="filterByCategory('trồng trọt')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌾 Trồng trọt</button>
+                <button onclick="filterByCategory('chăn nuôi')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🐄 Chăn nuôi</button>
+                <button onclick="filterByCategory('bệnh sâu hại')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌱 Bệnh sâu hại</button>
+                <button onclick="filterByCategory('tưới tiêu')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">💧 Tưới tiêu</button>
+                <button onclick="filterByCategory('kinh nghiệm')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🧑‍🌾 Kinh nghiệm</button>
+                <button onclick="filterByCategory('hỏi đáp')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">❓ Hỏi đáp</button>
               </div>
             </div>
             
             <!-- Trending Topics -->
             <div class="bg-white rounded-xl shadow-sm p-4">
               <h3 class="font-bold text-gray-900 mb-3 text-base">🔥 Xu hướng</h3>
-              <div class="space-y-2 text-sm">
-                <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                  <div class="font-medium text-gray-800">#Lúa tẻ</div>
-                  <div class="text-xs text-gray-500">245 bài viết</div>
-                </div>
-                <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                  <div class="font-medium text-gray-800">#Phòng chống sâu bệnh</div>
-                  <div class="text-xs text-gray-500">189 bài viết</div>
-                </div>
-                <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                  <div class="font-medium text-gray-800">#Tưới tiêu thông minh</div>
-                  <div class="text-xs text-gray-500">127 bài viết</div>
-                </div>
+              <div id="trending-topics-container" class="space-y-2 text-sm">
+                <!-- Trending topics will be loaded dynamically -->
               </div>
             </div>
           </div>
         </div>
-        
         <!-- Main Content - Takes full width on mobile, 3 cols on desktop -->
         <div class="lg:col-span-3">
     
@@ -281,13 +269,13 @@
     
     <!-- Filter Tabs -->
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm mb-4 sm:mb-6 p-1.5 sm:p-2 flex gap-1 sm:gap-2 overflow-x-auto">
-      <button class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 bg-green-600 text-white rounded-lg font-medium text-xs sm:text-sm min-w-[80px]">
+      <button onclick="setFilter('latest'); loadPosts()" id="filter-latest" class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 bg-green-600 text-white rounded-lg font-medium text-xs sm:text-sm min-w-[80px] transition-colors">
         <i class="fas fa-fire mr-1 sm:mr-2"></i><span class="hidden xs:inline">Mới nhất</span><span class="xs:hidden">Mới</span>
       </button>
-      <button class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600 text-xs sm:text-sm min-w-[80px]">
+      <button onclick="setFilter('popular'); loadPosts()" id="filter-popular" class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600 text-xs sm:text-sm min-w-[80px] transition-colors">
         <i class="fas fa-star mr-1 sm:mr-2"></i><span class="hidden xs:inline">Phổ biến</span><span class="xs:hidden">Hot</span>
       </button>
-      <button class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600 text-xs sm:text-sm min-w-[80px]">
+      <button onclick="setFilter('questions'); loadPosts()" id="filter-questions" class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600 text-xs sm:text-sm min-w-[80px] transition-colors">
         <i class="fas fa-question-circle mr-1 sm:mr-2"></i>Câu hỏi
       </button>
     </div>
@@ -476,13 +464,28 @@
     // Load all posts
     async function loadPosts() {
       try {
-        const response = await fetch('/api/forum/posts');
+        // Build query based on current filter
+        let url = '/api/forum/posts';
+        const params = new URLSearchParams();
+        
+        if (currentFilter === 'popular') {
+          params.append('sort', 'likes');
+        } else if (currentFilter === 'questions') {
+          params.append('sort', 'questions');
+        }
+        
+        if (params.toString()) {
+          url += '?' + params.toString();
+        }
+        
+        const response = await fetch(url);
         const data = await response.json();
         
         if (data.success) {
-          allPosts = data.posts;
+          allPosts = data.posts || [];
           renderPosts(allPosts);
           updateOnlineCount(data.total_users || 0);
+          loadTrendingTopics(); // Load trending after posts
         }
       } catch (error) {
         console.error('Error loading posts:', error);
@@ -492,6 +495,101 @@
             <p class="text-red-800">Không thể tải bài viết. Vui lòng thử lại sau.</p>
           </div>
         `;
+      }
+    }
+    
+    // Load trending topics based on actual data
+    async function loadTrendingTopics() {
+      try {
+        const response = await fetch('/api/forum/trending-tags');
+        const data = await response.json();
+        
+        if (data.success && data.tags) {
+          const container = document.getElementById('trending-topics-container');
+          if (container) {
+            const tagsHTML = data.tags.slice(0, 3).map(tag => `
+              <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" onclick="searchByTag('${tag.tag}')">
+                <div class="font-medium text-gray-800">#${tag.tag}</div>
+                <div class="text-xs text-gray-500">${tag.count} bài viết</div>
+              </div>
+            `).join('');
+            
+            container.innerHTML = tagsHTML;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading trending topics:', error);
+      }
+    }
+    
+    // Search by tag or keyword
+    async function searchByTag(tag) {
+      try {
+        const response = await fetch(`/api/forum/posts?tag=${encodeURIComponent(tag)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts || [];
+          renderPosts(allPosts);
+        }
+      } catch (error) {
+        console.error('Error searching:', error);
+      }
+    }
+    
+    // Search posts
+    async function searchPosts(keyword) {
+      if (!keyword.trim()) {
+        loadPosts();
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts?search=${encodeURIComponent(keyword)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts || [];
+          renderPosts(allPosts);
+        }
+      } catch (error) {
+        console.error('Error searching:', error);
+      }
+    }
+    
+    // Set filter and update UI
+    function setFilter(filter) {
+      currentFilter = filter;
+      
+      // Update button styles
+      document.getElementById('filter-latest').classList.toggle('bg-green-600', filter === 'latest');
+      document.getElementById('filter-latest').classList.toggle('text-white', filter === 'latest');
+      document.getElementById('filter-latest').classList.toggle('text-gray-600', filter !== 'latest');
+      document.getElementById('filter-latest').classList.toggle('hover:bg-gray-100', filter !== 'latest');
+      
+      document.getElementById('filter-popular').classList.toggle('bg-green-600', filter === 'popular');
+      document.getElementById('filter-popular').classList.toggle('text-white', filter === 'popular');
+      document.getElementById('filter-popular').classList.toggle('text-gray-600', filter !== 'popular');
+      document.getElementById('filter-popular').classList.toggle('hover:bg-gray-100', filter !== 'popular');
+      
+      document.getElementById('filter-questions').classList.toggle('bg-green-600', filter === 'questions');
+      document.getElementById('filter-questions').classList.toggle('text-white', filter === 'questions');
+      document.getElementById('filter-questions').classList.toggle('text-gray-600', filter !== 'questions');
+      document.getElementById('filter-questions').classList.toggle('hover:bg-gray-100', filter !== 'questions');
+    }
+    
+    // Filter by category
+    async function filterByCategory(category) {
+      try {
+        const response = await fetch(`/api/forum/posts?category=${encodeURIComponent(category)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts || [];
+          renderPosts(allPosts);
+        }
+      } catch (error) {
+        console.error('Error filtering:', error);
       }
     }
     

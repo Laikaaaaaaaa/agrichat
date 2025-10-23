@@ -2587,6 +2587,38 @@
       }
     }
     
+    /* Slide down animation for forum notification */
+    @keyframes slideDown {
+      from {
+        transform: translate(-50%, -100%);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+    
+    /* Slide up animation for forum notification exit */
+    @keyframes slideUp {
+      from {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+      to {
+        transform: translate(-50%, -100%);
+        opacity: 0;
+      }
+    }
+    
+    .animate-slide-down {
+      animation: slideDown 0.5s ease-out;
+    }
+    
+    .animate-slide-up {
+      animation: slideUp 0.5s ease-in;
+    }
+    
     /* Clock visibility only - removed force sidebar visibility */
     #clock, #connection-status {
       display: inline-block !important;
@@ -2650,6 +2682,20 @@
   </script>
 </head>
 <body class="bg-green-50 font-sans text-gray-700">
+  <!-- Forum Notification Banner -->
+  <div id="forum-notification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-lg p-4 max-w-md mx-4 flex items-center justify-between gap-3 animate-slide-down" style="display: none;">
+    <div class="flex items-center gap-3 flex-1">
+      <i class="fas fa-lightbulb text-yellow-300 text-xl flex-shrink-0"></i>
+      <div class="flex-1">
+        <p class="font-semibold text-sm">Chia sẻ kinh nghiệm của bạn!</p>
+        <p class="text-xs text-green-100">Hãy đặt câu hỏi hoặc chia sẻ kinh nghiệm lên diễn đàn</p>
+      </div>
+    </div>
+    <a href="/forum" class="bg-white text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-colors flex-shrink-0">
+      Thử ngay
+    </a>
+  </div>
+
   <!-- Header -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0 h-20 relative">
     <div class="h-full flex justify-between items-center px-4 md:px-6">
@@ -8111,5 +8157,33 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
   function initializeEconomicsCharts(focus) {
     // Implementation for economics charts
   }
+
+  // Forum Notification Logic - Show only once on first page load
+  document.addEventListener('DOMContentLoaded', () => {
+    // Check if user has already seen the notification in this session
+    const notificationShown = sessionStorage.getItem('forumNotificationShown');
+    
+    if (!notificationShown) {
+      // Show the notification
+      const notification = document.getElementById('forum-notification');
+      if (notification) {
+        notification.style.display = 'flex';
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          notification.classList.remove('animate-slide-down');
+          notification.classList.add('animate-slide-up');
+          
+          // Hide element after animation completes
+          setTimeout(() => {
+            notification.style.display = 'none';
+          }, 500);
+        }, 5000);
+      }
+      
+      // Mark notification as shown in this session
+      sessionStorage.setItem('forumNotificationShown', 'true');
+    }
+  });
 </script>
 </html>

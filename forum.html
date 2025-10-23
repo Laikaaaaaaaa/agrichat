@@ -223,16 +223,17 @@
               </div>
             </div>
             
-            <!-- Categories -->
+            <!-- News Articles Section -->
             <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
-              <h3 class="font-bold text-gray-900 mb-3 text-base">📁 Danh mục</h3>
-              <div class="space-y-2 text-sm">
-                <button onclick="filterByCategory('trồng trọt')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌾 Trồng trọt</button>
-                <button onclick="filterByCategory('chăn nuôi')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🐄 Chăn nuôi</button>
-                <button onclick="filterByCategory('bệnh sâu hại')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🌱 Bệnh sâu hại</button>
-                <button onclick="filterByCategory('tưới tiêu')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">💧 Tưới tiêu</button>
-                <button onclick="filterByCategory('kinh nghiệm')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">🧑‍🌾 Kinh nghiệm</button>
-                <button onclick="filterByCategory('hỏi đáp')" class="w-full text-left px-3 py-2 hover:bg-green-50 rounded-lg text-gray-700 transition-colors">❓ Hỏi đáp</button>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-gray-900 text-base">📰 Tin tức</h3>
+                <a href="/news" class="text-xs text-blue-600 hover:text-blue-700 font-medium">Xem tất cả</a>
+              </div>
+              <div id="sidebar-news-container" class="space-y-2 text-sm">
+                <!-- News articles will be loaded dynamically -->
+                <div class="flex justify-center py-4">
+                  <div class="loading-spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>
+                </div>
               </div>
             </div>
             
@@ -1591,6 +1592,44 @@
 
     // Share modal functions
     
+    // Load sidebar news articles
+    async function loadSidebarNews() {
+      const container = document.getElementById('sidebar-news-container');
+      
+      try {
+        const response = await fetch('/api/news');
+        const data = await response.json();
+        
+        if (data.success && data.articles && data.articles.length > 0) {
+          // Get top 5 articles
+          const topArticles = data.articles.slice(0, 5);
+          
+          container.innerHTML = topArticles.map(article => {
+            const publishDate = new Date(article.created_at).toLocaleDateString('vi-VN');
+            const image = article.image_url || '/static/placeholder.png';
+            const title = (article.title || 'Bài báo').substring(0, 50);
+            
+            return `
+              <a href="/news" class="block p-2 hover:bg-green-50 rounded-lg transition-colors group">
+                <div class="flex gap-2 items-start">
+                  <img src="${image}" alt="" class="w-12 h-12 rounded object-cover flex-shrink-0 group-hover:opacity-80 transition-opacity">
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-xs font-semibold text-gray-800 group-hover:text-green-600 transition-colors line-clamp-2">${escapeHtml(title)}</h4>
+                    <p class="text-xs text-gray-500 mt-0.5">${publishDate}</p>
+                  </div>
+                </div>
+              </a>
+            `;
+          }).join('');
+        } else {
+          container.innerHTML = '<p class="text-gray-500 text-xs text-center py-2">Không có bài báo nào</p>';
+        }
+      } catch (error) {
+        console.error('Error loading sidebar news:', error);
+        container.innerHTML = '<p class="text-gray-500 text-xs text-center py-2">Không thể tải tin tức</p>';
+      }
+    }
+    
     // Close modal on background click
     document.getElementById('create-post-modal').addEventListener('click', function(e) {
       if (e.target === this) closeCreatePostModal();
@@ -1599,6 +1638,7 @@
     // Initialize
     checkUserSession().then(() => {
       loadPosts();
+      loadSidebarNews();
     });
   </script>
   

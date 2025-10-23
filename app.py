@@ -5278,12 +5278,14 @@ def get_user_photos():
             SELECT 
                 p.id, p.photo_url, p.photo_type, p.caption, p.created_at,
                 u.name, u.email, u.avatar_url, p.user_id,
-                (SELECT COUNT(*) FROM photo_likes WHERE photo_id = p.id) as likes_count,
-                (SELECT COUNT(*) FROM photo_comments WHERE photo_id = p.id) as comments_count,
-                (SELECT COUNT(*) > 0 FROM photo_likes WHERE photo_id = p.id AND user_id = ?) as user_liked
+                COALESCE(COUNT(DISTINCT pl.id), 0) as likes_count,
+                0 as comments_count,
+                MAX(CASE WHEN pl.user_id = ? THEN 1 ELSE 0 END) as user_liked
             FROM user_photos p
             JOIN users u ON p.user_id = u.id
+            LEFT JOIN photo_likes pl ON pl.photo_id = p.id
             WHERE p.user_id = ?
+            GROUP BY p.id, p.photo_url, p.photo_type, p.caption, p.created_at, u.name, u.email, u.avatar_url, p.user_id
             ORDER BY p.created_at DESC
             {limit_clause}
         ''', (session.get('user_id', 0), user_id))

@@ -31,6 +31,10 @@
       box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
     }
     
+    #cover-photo {
+      background-blend-mode: overlay;
+    }
+    
     .avatar-wrapper {
       position: relative;
       display: inline-block;
@@ -211,7 +215,7 @@
   <div class="max-w-7xl mx-auto bg-white">
     
     <!-- Cover Background -->
-    <div id="cover-photo" class="h-40 sm:h-48 md:h-64 bg-gradient-to-r from-green-400 to-green-600 relative">
+    <div id="cover-photo" class="h-40 sm:h-48 md:h-64 relative" style="background-size: cover; background-position: center; background-repeat: no-repeat; background-color: #4ade80;">
       <!-- Removed edit cover button -->
     </div>
     
@@ -1082,13 +1086,17 @@
       
       // Update cover photo background
       if (profileData.cover_photo_url) {
+        console.log('Setting cover photo:', profileData.cover_photo_url);
         const coverDiv = document.getElementById('cover-photo');
         if (coverDiv) {
           coverDiv.style.backgroundImage = `url('${profileData.cover_photo_url}')`;
           coverDiv.style.backgroundSize = 'cover';
           coverDiv.style.backgroundPosition = 'center';
           coverDiv.style.backgroundRepeat = 'no-repeat';
+          console.log('Cover photo applied:', coverDiv.style.backgroundImage);
         }
+      } else {
+        console.log('No cover photo URL found for user:', profileData);
       }
       
       // Update small avatar

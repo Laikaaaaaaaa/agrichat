@@ -248,7 +248,6 @@
       const hint = document.getElementById('password-hint');
       
       let strength = 0;
-      let message = '';
       
       if (password.length >= 6) strength++;
       if (password.length >= 10) strength++;
@@ -256,8 +255,11 @@
       if (/\d/.test(password)) strength++;
       if (/[^a-zA-Z\d]/.test(password)) strength++;
       
+      // Ensure strength doesn't exceed array bounds
+      strength = Math.min(strength, 4);
+      
       const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-lime-500', 'bg-green-500'];
-      const messages = ['Rất yếu', 'Yếu', 'Trung bình', 'Tốt', 'Mạnh'];
+      const messages = ['Rất yếu', 'Yếu', 'Trung bình', 'Tốt', 'Rất mạnh'];
       const widths = ['20%', '40%', '60%', '80%', '100%'];
       
       if (password.length === 0) {

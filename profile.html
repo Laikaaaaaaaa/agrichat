@@ -13,17 +13,79 @@
   <script src="https://cdn.tailwindcss.com?v=3.4.0"></script>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <!-- Cropper.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   
   <style>
     body {
       min-height: 100vh;
-      background-color: #ffffff;
+      background-color: #f9fafb;
     }
     
     input:focus {
       outline: none;
       border-color: #16a34a;
       box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+    }
+    
+    .avatar-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .avatar-edit-btn {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #16a34a;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: all 0.3s;
+    }
+    
+    .avatar-edit-btn:hover {
+      background: #15803d;
+      transform: scale(1.1);
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.2s;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .crop-container {
+      max-width: 90vw;
+      max-height: 70vh;
+    }
+    
+    .crop-container img {
+      max-width: 100%;
     }
   </style>
 </head>
@@ -40,119 +102,110 @@
   </header>
 
   <!-- Main Content -->
-  <div class="max-w-2xl mx-auto px-4 py-8">
+  <div class="max-w-4xl mx-auto px-4 py-8">
     
-    <!-- Profile Info -->
-    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-4">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6">Thông tin cá nhân</h2>
+    <!-- Profile Header Card -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+      <!-- Cover Background -->
+      <div class="h-32 bg-gradient-to-r from-green-400 to-green-600"></div>
       
-      <!-- Alert Message -->
-      <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
-      
-      <!-- Avatar Section -->
-      <div class="text-center mb-6">
-        <div class="relative inline-block">
-          <img id="profile-avatar" src="" alt="Avatar" class="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-green-100" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
-          <div id="avatar-placeholder" class="w-24 h-24 rounded-full bg-green-600 text-white flex items-center justify-center text-3xl font-bold mx-auto mb-3" style="display:none;">
-            ?
+      <!-- Profile Info Section -->
+      <div class="px-6 pb-6">
+        <!-- Avatar Section -->
+        <div class="flex flex-col md:flex-row items-center md:items-end -mt-16 mb-6">
+          <div class="avatar-wrapper mb-4 md:mb-0">
+            <img id="profile-avatar" src="" alt="Avatar" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
+            <div id="avatar-placeholder" class="w-32 h-32 rounded-full bg-green-600 text-white flex items-center justify-center text-4xl font-bold border-4 border-white shadow-lg" style="display:none;">
+              ?
+            </div>
+            <div class="avatar-edit-btn" onclick="showAvatarOptions()">
+              <i class="fas fa-camera"></i>
+            </div>
+          </div>
+          
+          <div class="md:ml-6 text-center md:text-left flex-1">
+            <h2 id="profile-name" class="text-2xl font-bold text-gray-800 mb-1">Đang tải...</h2>
+            <p id="profile-email" class="text-gray-600 mb-2">email@example.com</p>
+            <div class="flex flex-wrap gap-4 text-sm text-gray-500 justify-center md:justify-start">
+              <span><i class="far fa-calendar mr-1"></i>Tham gia: <span id="created-at">-</span></span>
+              <span><i class="far fa-clock mr-1"></i>Hoạt động: <span id="last-login">-</span></span>
+            </div>
           </div>
         </div>
         
-        <!-- Upload Buttons -->
-        <input type="file" id="avatar-upload" accept="image/*" class="hidden" />
-        <input type="file" id="avatar-camera" accept="image/*" capture="environment" class="hidden" />
-        <div class="flex gap-2 justify-center mt-3">
-          <button type="button" onclick="document.getElementById('avatar-upload').click()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
-            <i class="fas fa-image mr-1"></i>Chọn ảnh
-          </button>
-          <button type="button" onclick="document.getElementById('avatar-camera').click()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm">
-            <i class="fas fa-camera mr-1"></i>Chụp ảnh
-          </button>
-        </div>
+        <!-- Alert Message -->
+        <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
+        
+        <!-- Edit Name Form -->
+        <form id="profile-form" class="border-t pt-6">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Họ và tên</label>
+            <div class="flex gap-2">
+              <input 
+                type="text" 
+                id="name" 
+                class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:border-green-600"
+                placeholder="Nhập tên của bạn"
+              />
+              <button 
+                type="submit" 
+                class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Lưu
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
-      
-      <form id="profile-form" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input 
-            type="email" 
-            id="email" 
-            disabled 
-            class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-600"
-          />
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
-          <input 
-            type="text" 
-            id="name" 
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
-          />
-        </div>
-        
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span class="text-gray-600">Ngày tạo:</span>
-            <span id="created-at" class="ml-2 font-medium"></span>
-          </div>
-          <div>
-            <span class="text-gray-600">Đăng nhập lần cuối:</span>
-            <span id="last-login" class="ml-2 font-medium"></span>
-          </div>
-        </div>
-        
-        <button 
-          type="submit" 
-          class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
-        >
-          Cập nhật thông tin
-        </button>
-      </form>
     </div>
     
-    <!-- Change Password -->
-    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-4">
-      <h3 class="text-xl font-bold text-gray-800 mb-4">Đổi mật khẩu</h3>
+    <!-- Change Password Card -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+      <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <i class="fas fa-lock mr-2 text-green-600"></i>
+        Đổi mật khẩu
+      </h3>
       
       <div id="password-alert" class="hidden mb-4 p-3 rounded text-sm"></div>
       
       <form id="password-form" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu hiện tại</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Mật khẩu hiện tại</label>
           <input 
             type="password" 
             id="old-password" 
             required 
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-green-600"
+            placeholder="Nhập mật khẩu hiện tại"
           />
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Mật khẩu mới</label>
           <input 
             type="password" 
             id="new-password" 
             required 
             minlength="6"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-green-600"
             placeholder="Tối thiểu 6 ký tự"
           />
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Xác nhận mật khẩu mới</label>
           <input 
             type="password" 
             id="confirm-new-password" 
             required 
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-green-600"
+            placeholder="Nhập lại mật khẩu mới"
           />
         </div>
         
         <button 
           type="submit" 
-          class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
+          class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
         >
           Đổi mật khẩu
         </button>
@@ -160,22 +213,66 @@
     </div>
     
     <!-- Logout -->
-    <div class="text-center">
+    <div class="text-center pb-6">
       <button 
         id="logout-btn" 
-        class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium"
+        class="text-red-600 hover:text-red-700 underline font-medium text-sm"
       >
-        <i class="fas fa-sign-out-alt mr-2"></i>Đăng xuất
+        Đăng xuất
       </button>
     </div>
     
   </div>
   
+  <!-- Avatar Options Modal -->
+  <div id="avatar-options-modal" class="modal">
+    <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">Chọn ảnh đại diện</h3>
+      <div class="space-y-3">
+        <button onclick="selectFromGallery()" class="w-full flex items-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-green-600 hover:bg-green-50 transition-all">
+          <i class="fas fa-image text-green-600 text-xl"></i>
+          <span class="font-medium">Chọn từ thư viện</span>
+        </button>
+        <button onclick="selectFromCamera()" class="w-full flex items-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all">
+          <i class="fas fa-camera text-blue-600 text-xl"></i>
+          <span class="font-medium">Chụp ảnh mới</span>
+        </button>
+        <button onclick="closeAvatarOptions()" class="w-full px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-all font-medium">
+          Hủy
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Crop Image Modal -->
+  <div id="crop-modal" class="modal">
+    <div class="bg-white rounded-2xl shadow-xl p-6 max-w-2xl mx-4 w-full">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">Chỉnh sửa ảnh đại diện</h3>
+      <div class="crop-container mb-4">
+        <img id="crop-image" src="" alt="Crop" />
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeCropModal()" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
+          Hủy
+        </button>
+        <button onclick="applyCrop()" class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">
+          <i class="fas fa-check mr-2"></i>Áp dụng
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Hidden File Inputs -->
+  <input type="file" id="avatar-upload" accept="image/*" class="hidden" />
+  <input type="file" id="avatar-camera" accept="image/*" capture="environment" class="hidden" />
+  
   <script>
+    let cropper = null;
+    
     // Show alert message
     function showAlert(message, type = 'error', elementId = 'alert-message') {
       const alertDiv = document.getElementById(elementId);
-      alertDiv.className = `mb-4 p-3 rounded text-sm ${
+      alertDiv.className = `mb-4 p-3 rounded-lg text-sm ${
         type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 
         type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
         'bg-blue-50 text-blue-700 border border-blue-200'
@@ -197,10 +294,13 @@
         const data = await response.json();
         
         if (data.success && data.user) {
-          document.getElementById('email').value = data.user.email || '';
+          const userName = data.user.name || data.user.email.split('@')[0];
+          
+          document.getElementById('profile-name').textContent = userName;
+          document.getElementById('profile-email').textContent = data.user.email;
           document.getElementById('name').value = data.user.name || '';
-          document.getElementById('created-at').textContent = data.user.created_at ? new Date(data.user.created_at).toLocaleDateString('vi-VN') : '';
-          document.getElementById('last-login').textContent = data.user.last_login ? new Date(data.user.last_login).toLocaleDateString('vi-VN') : '';
+          document.getElementById('created-at').textContent = data.user.created_at ? new Date(data.user.created_at).toLocaleDateString('vi-VN') : '-';
+          document.getElementById('last-login').textContent = data.user.last_login ? new Date(data.user.last_login).toLocaleDateString('vi-VN') : '-';
           
           // Load avatar
           if (data.user.avatar_url) {
@@ -208,7 +308,6 @@
             document.getElementById('profile-avatar').style.display = 'block';
             document.getElementById('avatar-placeholder').style.display = 'none';
           } else {
-            const userName = data.user.name || data.user.email.split('@')[0];
             const firstLetter = userName.charAt(0).toUpperCase();
             document.getElementById('avatar-placeholder').textContent = firstLetter;
             document.getElementById('profile-avatar').style.display = 'none';
@@ -222,10 +321,32 @@
       }
     }
     
-    // Handle avatar upload
-    async function handleAvatarUpload(event) {
+    // Show avatar options modal
+    function showAvatarOptions() {
+      document.getElementById('avatar-options-modal').classList.add('active');
+    }
+    
+    function closeAvatarOptions() {
+      document.getElementById('avatar-options-modal').classList.remove('active');
+    }
+    
+    function selectFromGallery() {
+      closeAvatarOptions();
+      document.getElementById('avatar-upload').click();
+    }
+    
+    function selectFromCamera() {
+      closeAvatarOptions();
+      document.getElementById('avatar-camera').click();
+    }
+    
+    // Handle file selection and show crop modal
+    function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
+      
+      // Reset input
+      event.target.value = '';
       
       // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
@@ -233,60 +354,105 @@
         return;
       }
       
-      // Compress and convert to base64
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const maxSize = 400;
-        let width = img.width, height = img.height;
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        showAlert('Vui lòng chọn file ảnh', 'error');
+        return;
+      }
+      
+      // Show crop modal with image
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const cropImage = document.getElementById('crop-image');
+        cropImage.src = e.target.result;
         
-        // Resize if too large
-        if (width > maxSize || height > maxSize) {
-          if (width > height) {
-            height = (height / width) * maxSize;
-            width = maxSize;
-          } else {
-            width = (width / height) * maxSize;
-            height = maxSize;
-          }
+        // Destroy old cropper if exists
+        if (cropper) {
+          cropper.destroy();
         }
         
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+        // Show modal
+        document.getElementById('crop-modal').classList.add('active');
         
-        // Convert to base64
-        const avatar_url = canvas.toDataURL('image/jpeg', 0.8);
-        
-        // Upload to server
-        fetch('/api/auth/update-avatar', {
+        // Initialize cropper
+        setTimeout(() => {
+          cropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 1,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+          });
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function closeCropModal() {
+      document.getElementById('crop-modal').classList.remove('active');
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+    }
+    
+    async function applyCrop() {
+      if (!cropper) return;
+      
+      // Get cropped canvas
+      const canvas = cropper.getCroppedCanvas({
+        width: 400,
+        height: 400,
+        imageSmoothingQuality: 'high'
+      });
+      
+      // Convert to base64
+      const avatar_url = canvas.toDataURL('image/jpeg', 0.85);
+      
+      // Close modal
+      closeCropModal();
+      
+      // Upload to server
+      try {
+        const response = await fetch('/api/auth/update-avatar', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ avatar_url })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            document.getElementById('profile-avatar').src = avatar_url;
-            document.getElementById('profile-avatar').style.display = 'block';
-            document.getElementById('avatar-placeholder').style.display = 'none';
-            showAlert('Cập nhật avatar thành công!', 'success');
-          } else {
-            showAlert(data.message || 'Cập nhật avatar thất bại', 'error');
-          }
-        })
-        .catch(error => {
-          showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
         });
-      };
-      
-      img.src = URL.createObjectURL(file);
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          document.getElementById('profile-avatar').src = avatar_url;
+          document.getElementById('profile-avatar').style.display = 'block';
+          document.getElementById('avatar-placeholder').style.display = 'none';
+          showAlert('Cập nhật avatar thành công!', 'success');
+        } else {
+          showAlert(data.message || 'Cập nhật avatar thất bại', 'error');
+        }
+      } catch (error) {
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
     }
     
-    // Attach event listeners for avatar upload
-    document.getElementById('avatar-upload').addEventListener('change', handleAvatarUpload);
-    document.getElementById('avatar-camera').addEventListener('change', handleAvatarUpload);
+    // Attach event listeners
+    document.getElementById('avatar-upload').addEventListener('change', handleFileSelect);
+    document.getElementById('avatar-camera').addEventListener('change', handleFileSelect);
+    
+    // Close modals on background click
+    document.getElementById('avatar-options-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeAvatarOptions();
+    });
+    
+    document.getElementById('crop-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeCropModal();
+    });
     
     // Update profile
     document.getElementById('profile-form').addEventListener('submit', async function(e) {

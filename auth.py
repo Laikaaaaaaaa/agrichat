@@ -114,13 +114,55 @@ def send_otp_email(email, otp_code):
 
 # Authentication Functions
 
-def register_user(email, password, name=None):
-    """Register a new user"""
+def register_user_init(email, password, name=None):
+    """Initialize registration - validate and send OTP"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
         # Check if email already exists
+        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        if cursor.fetchone():
+            conn.close()
+            return {'success': False, 'message': 'Email đã được đăng ký'}
+        
+        conn.close()
+        
+        # Generate and send OTP
+        otp_code = generate_otp()
+        if not send_otp_email(email, otp_code):
+            return {'success': False, 'message': 'Không thể gửi mã OTP'}
+        
+        # Save OTP to database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO otp_codes (email, code, expires_at) VALUES (?, ?, datetime("now", "+10 minutes"))',
+            (email, otp_code)
+        )
+        conn.commit()
+        conn.close()
+        
+        return {
+            'success': True,
+            'message': 'Mã OTP đã được gửi đến email của bạn',
+            'email': email
+        }
+    
+    except Exception as e:
+        return {'success': False, 'message': f'Lỗi: {str(e)}'}
+
+def register_user_complete(email, otp_code, password, name=None):
+    """Complete registration after OTP verification"""
+    try:
+        # Verify OTP
+        if not verify_otp(email, otp_code):
+            return {'success': False, 'message': 'Mã OTP không hợp lệ hoặc đã hết hạn'}
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if email already exists (double check)
         cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
         if cursor.fetchone():
             conn.close()
@@ -137,13 +179,21 @@ def register_user(email, password, name=None):
         user_id = cursor.lastrowid
         conn.close()
         
-        return {'success': True, 'message': 'Đăng ký thành công', 'user_id': user_id}
+        return {
+            'success': True,
+            'message': 'Đăng ký thành công',
+            'user': {
+                'id': user_id,
+                'email': email,
+                'name': name
+            }
+        }
     
     except Exception as e:
         return {'success': False, 'message': f'Lỗi: {str(e)}'}
 
-def login_user(email, password):
-    """Authenticate user and return user info"""
+def login_user_init(email, password):
+    """Verify credentials and send OTP for manual login"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -175,6 +225,55 @@ def login_user(email, password):
         if hash_password(password) != password_hash:
             conn.close()
             return {'success': False, 'message': 'Email hoặc mật khẩu không đúng'}
+        
+        conn.close()
+        
+        # Generate and send OTP
+        otp_code = generate_otp()
+        if not send_otp_email(email, otp_code):
+            return {'success': False, 'message': 'Không thể gửi mã OTP'}
+        
+        # Save OTP to database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO otp_codes (email, code, expires_at) VALUES (?, ?, datetime("now", "+10 minutes"))',
+            (email, otp_code)
+        )
+        conn.commit()
+        conn.close()
+        
+        return {
+            'success': True,
+            'message': 'Mã OTP đã được gửi đến email của bạn',
+            'email': email
+        }
+    
+    except Exception as e:
+        return {'success': False, 'message': f'Lỗi: {str(e)}'}
+
+def login_user_complete(email, otp_code):
+    """Complete login after OTP verification"""
+    try:
+        # Verify OTP
+        if not verify_otp(email, otp_code):
+            return {'success': False, 'message': 'Mã OTP không hợp lệ hoặc đã hết hạn'}
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get user info
+        cursor.execute(
+            'SELECT id, email, name FROM users WHERE email = ?',
+            (email,)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return {'success': False, 'message': 'Không tìm thấy người dùng'}
+        
+        user_id, user_email, name = user
         
         # Update last login
         cursor.execute(
@@ -411,7 +510,7 @@ def verify_google_token(credential):
         return None
 
 def google_login(credential):
-    """Login or register user with Google"""
+    """Login or register user with Google - No OTP required"""
     try:
         # Verify Google token
         user_info = verify_google_token(credential)

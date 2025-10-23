@@ -196,7 +196,7 @@
   <script>
     // Handle Google Sign-In
     function handleCredentialResponse(response) {
-      // Send Google token to backend
+      // Send Google token to backend - No OTP required for Google registration
       fetch('/api/auth/google-login', {
         method: 'POST',
         headers: {
@@ -319,10 +319,11 @@
       const submitBtn = this.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
       submitBtn.disabled = true;
-      submitBtn.innerHTML = 'Đang đăng ký...';
+      submitBtn.innerHTML = 'Đang xử lý...';
       
       try {
-        const response = await fetch('/api/auth/register', {
+        // Step 1: Validate and send OTP
+        const response = await fetch('/api/auth/register-init', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -333,10 +334,10 @@
         const data = await response.json();
         
         if (data.success) {
-          showAlert('Đăng ký thành công! Đang chuyển đến trang đăng nhập...', 'success');
+          showAlert('Mã OTP đã được gửi đến email! Đang chuyển hướng...', 'success');
           setTimeout(() => {
-            window.location.href = '/login?message=' + encodeURIComponent('Đăng ký thành công! Vui lòng đăng nhập.') + '&type=success';
-          }, 1500);
+            window.location.href = '/otp?type=register&email=' + encodeURIComponent(data.email);
+          }, 1000);
         } else {
           showAlert(data.message || 'Đăng ký thất bại', 'error');
           submitBtn.disabled = false;

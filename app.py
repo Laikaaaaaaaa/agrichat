@@ -4019,9 +4019,9 @@ def profile():
 
 # ==================== AUTHENTICATION API ROUTES ====================
 
-@app.route('/api/auth/register', methods=['POST'])
-def api_register():
-    """API đăng ký tài khoản"""
+@app.route('/api/auth/register-init', methods=['POST'])
+def api_register_init():
+    """API khởi tạo đăng ký - gửi OTP"""
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -4030,13 +4030,53 @@ def api_register():
     if not email or not password:
         return jsonify({'success': False, 'message': 'Email và mật khẩu là bắt buộc'})
     
-    result = auth.register_user(email, password, name)
+    result = auth.register_user_init(email, password, name)
+    
+    if result['success']:
+        # Store registration data in session temporarily
+        session['register_pending'] = {
+            'email': email,
+            'password': password,
+            'name': name
+        }
+    
     return jsonify(result)
 
 
-@app.route('/api/auth/login', methods=['POST'])
-def api_login():
-    """API đăng nhập"""
+@app.route('/api/auth/register-complete', methods=['POST'])
+def api_register_complete():
+    """API hoàn tất đăng ký sau khi xác thực OTP"""
+    data = request.get_json()
+    otp_code = data.get('otp_code')
+    
+    if not otp_code:
+        return jsonify({'success': False, 'message': 'Mã OTP là bắt buộc'})
+    
+    # Get registration data from session
+    register_pending = session.get('register_pending')
+    if not register_pending:
+        return jsonify({'success': False, 'message': 'Phiên đăng ký đã hết hạn'})
+    
+    email = register_pending['email']
+    password = register_pending['password']
+    name = register_pending.get('name')
+    
+    result = auth.register_user_complete(email, otp_code, password, name)
+    
+    if result['success']:
+        # Set session
+        session['user_id'] = result['user']['id']
+        session['user_email'] = result['user']['email']
+        session.permanent = True
+        # Clear pending registration
+        session.pop('register_pending', None)
+    
+    return jsonify(result)
+
+
+@app.route('/api/auth/login-init', methods=['POST'])
+def api_login_init():
+    """API khởi tạo đăng nhập thủ công - gửi OTP"""
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -4044,20 +4084,47 @@ def api_login():
     if not email or not password:
         return jsonify({'success': False, 'message': 'Email và mật khẩu là bắt buộc'})
     
-    result = auth.login_user(email, password)
+    result = auth.login_user_init(email, password)
+    
+    if result['success']:
+        # Store login pending in session
+        session['login_pending'] = {'email': email}
+    
+    return jsonify(result)
+
+
+@app.route('/api/auth/login-complete', methods=['POST'])
+def api_login_complete():
+    """API hoàn tất đăng nhập sau khi xác thực OTP"""
+    data = request.get_json()
+    otp_code = data.get('otp_code')
+    
+    if not otp_code:
+        return jsonify({'success': False, 'message': 'Mã OTP là bắt buộc'})
+    
+    # Get email from session
+    login_pending = session.get('login_pending')
+    if not login_pending:
+        return jsonify({'success': False, 'message': 'Phiên đăng nhập đã hết hạn'})
+    
+    email = login_pending['email']
+    
+    result = auth.login_user_complete(email, otp_code)
     
     if result['success']:
         # Set session
         session['user_id'] = result['user']['id']
         session['user_email'] = result['user']['email']
         session.permanent = True
+        # Clear pending login
+        session.pop('login_pending', None)
     
     return jsonify(result)
 
 
 @app.route('/api/auth/google-login', methods=['POST'])
 def api_google_login():
-    """API đăng nhập bằng Google"""
+    """API đăng nhập Google - Không cần OTP"""
     data = request.get_json()
     credential = data.get('credential')
     

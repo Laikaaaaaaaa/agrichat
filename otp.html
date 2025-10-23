@@ -129,14 +129,30 @@
   </div>
   
   <script>
-    // Get email from URL params
+    // Get email and type from URL params
     const urlParams = new URLSearchParams(window.location.search);
     const email = urlParams.get('email');
+    const type = urlParams.get('type'); // 'forgot', 'login', or 'register'
     
     if (email) {
       document.getElementById('email-display').textContent = email;
     } else {
       window.location.href = '/forgot_password';
+    }
+    
+    // Hide password fields for login and register (only show for forgot password)
+    if (type === 'login' || type === 'register') {
+      document.querySelector('label[for="new-password"]').parentElement.style.display = 'none';
+      document.querySelector('label[for="confirm-password"]').parentElement.style.display = 'none';
+      document.querySelector('button[type="submit"]').textContent = 'Xác thực và tiếp tục';
+      
+      if (type === 'login') {
+        document.querySelector('h2').textContent = 'Xác thực đăng nhập';
+        document.querySelector('p').innerHTML = 'Nhập mã OTP đã được gửi đến email <span id="email-display" class="font-medium">' + email + '</span>';
+      } else if (type === 'register') {
+        document.querySelector('h2').textContent = 'Xác thực đăng ký';
+        document.querySelector('p').innerHTML = 'Nhập mã OTP đã được gửi đến email <span id="email-display" class="font-medium">' + email + '</span>';
+      }
     }
     
     // Toggle password visibility
@@ -183,22 +199,10 @@
       e.preventDefault();
       
       const otpCode = document.getElementById('otp-code').value;
-      const newPassword = document.getElementById('new-password').value;
-      const confirmPassword = document.getElementById('confirm-password').value;
       
       // Validation
       if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
         showAlert('Mã OTP phải là 6 chữ số', 'error');
-        return;
-      }
-      
-      if (newPassword.length < 6) {
-        showAlert('Mật khẩu phải có ít nhất 6 ký tự', 'error');
-        return;
-      }
-      
-      if (newPassword !== confirmPassword) {
-        showAlert('Mật khẩu xác nhận không khớp', 'error');
         return;
       }
       
@@ -209,44 +213,108 @@
       submitBtn.innerHTML = 'Đang xử lý...';
       
       try {
-        // First verify OTP
-        const verifyResponse = await fetch('/api/auth/verify-otp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email, otp_code: otpCode })
-        });
-        
-        const verifyData = await verifyResponse.json();
-        
-        if (!verifyData.success) {
-          showAlert(verifyData.message || 'Mã OTP không đúng', 'error');
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalText;
-          return;
-        }
-        
-        // Then reset password
-        const resetResponse = await fetch('/api/auth/reset-password', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email, new_password: newPassword })
-        });
-        
-        const resetData = await resetResponse.json();
-        
-        if (resetData.success) {
-          showAlert('Đổi mật khẩu thành công! Đang chuyển hướng...', 'success');
-          setTimeout(() => {
-            window.location.href = '/login?message=' + encodeURIComponent('Đổi mật khẩu thành công! Vui lòng đăng nhập.') + '&type=success';
-          }, 1500);
+        if (type === 'login') {
+          // Manual login flow
+          const response = await fetch('/api/auth/login-complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ otp_code: otpCode })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showAlert('Đăng nhập thành công! Đang chuyển hướng...', 'success');
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1000);
+          } else {
+            showAlert(data.message || 'Xác thực thất bại', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        } else if (type === 'register') {
+          // Manual register flow
+          const response = await fetch('/api/auth/register-complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ otp_code: otpCode })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showAlert('Đăng ký thành công! Đang chuyển hướng...', 'success');
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1000);
+          } else {
+            showAlert(data.message || 'Xác thực thất bại', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
         } else {
-          showAlert(resetData.message || 'Đổi mật khẩu thất bại', 'error');
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalText;
+          // Forgot password flow
+          const newPassword = document.getElementById('new-password').value;
+          const confirmPassword = document.getElementById('confirm-password').value;
+          
+          if (newPassword.length < 6) {
+            showAlert('Mật khẩu phải có ít nhất 6 ký tự', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+          
+          if (newPassword !== confirmPassword) {
+            showAlert('Mật khẩu xác nhận không khớp', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+          
+          // First verify OTP
+          const verifyResponse = await fetch('/api/auth/verify-otp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, otp_code: otpCode })
+          });
+          
+          const verifyData = await verifyResponse.json();
+          
+          if (!verifyData.success) {
+            showAlert(verifyData.message || 'Mã OTP không đúng', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+          
+          // Then reset password
+          const resetResponse = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, new_password: newPassword })
+          });
+          
+          const resetData = await resetResponse.json();
+          
+          if (resetData.success) {
+            showAlert('Đổi mật khẩu thành công! Đang chuyển hướng...', 'success');
+            setTimeout(() => {
+              window.location.href = '/login?message=' + encodeURIComponent('Đổi mật khẩu thành công! Vui lòng đăng nhập.') + '&type=success';
+            }, 1500);
+          } else {
+            showAlert(resetData.message || 'Đổi mật khẩu thất bại', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
         }
       } catch (error) {
         showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');

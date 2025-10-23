@@ -130,6 +130,10 @@
       word-wrap: break-word;
       text-align: left !important;
       direction: ltr !important;
+      user-select: text;
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
     }
 
     .message-bubble,
@@ -1450,6 +1454,16 @@
     }
     
     .message-wrapper::-moz-selection {
+      background-color: #3b82f6;
+      color: white;
+    }
+
+    .message-bubble::selection {
+      background-color: #3b82f6;
+      color: white;
+    }
+    
+    .message-bubble::-moz-selection {
       background-color: #3b82f6;
       color: white;
     }

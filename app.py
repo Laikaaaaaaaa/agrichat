@@ -61,9 +61,9 @@ class Api:
         logging.info("Khởi tạo Image Search Engine...")
         self.image_engine = ImageSearchEngine()
         
-        # Initialize Short-term Memory (lưu trữ 10 cuộc hội thoại gần nhất)
+        # Initialize Short-term Memory (lưu trữ 15 cuộc hội thoại gần nhất - tăng từ 10)
         self.conversation_history = []
-        self.max_history_length = 10
+        self.max_history_length = 15
         logging.info("Khởi tạo hoàn tất!")
 
         # PRIMARY API: OpenAI GPT
@@ -110,23 +110,35 @@ class Api:
             logging.info("ℹ️  DeepSeek fallback chưa bật vì thiếu DEEPSEEK_API_KEY.")
 
         self.geography_prompt = """
-Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh của Việt Nam.
+Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh và thân thiện của Việt Nam.
 
-**PHẠM VI TRẢ LỜI - QUAN TRỌNG:**
+**VAI TRÒ CỦA BẠN:**
+- Bạn là một chuyên gia nông nghiệp có kinh nghiệm, am hiểu sâu về nông nghiệp Việt Nam
+- Bạn luôn nhiệt tình, thân thiện và trả lời một cách dễ hiểu
+- Bạn hiểu rõ điều kiện khí hậu, đất đai, và văn hóa canh tác tại Việt Nam
+
+**PHẠM VI CHUYÊN MÔN:**
 Bạn CHỈ trả lời các câu hỏi liên quan đến:
-- Nông nghiệp: Cây trồng, vật nuôi, kỹ thuật canh tác, chăn nuôi
-- Địa lý: Địa hình, khí hậu, thổ nhưỡng, vùng miền Việt Nam
-- Thời tiết: Dự báo, khí hậu, mùa vụ, thiên tai
-- Môi trường: Đất đai, nước, sinh thái nông nghiệp
-- Kinh tế nông nghiệp: Giá cả, thị trường, xuất khẩu nông sản
-- Công nghệ nông nghiệp: Máy móc, ứng dụng công nghệ cao
-- Sức khỏe thực vật/động vật: Bệnh tật, phòng trừ sâu bệnh
+✅ Nông nghiệp: Cây trồng, vật nuôi, kỹ thuật canh tác, chăn nuôi
+✅ Địa lý nông nghiệp: Địa hình, khí hậu, thổ nhưỡng, vùng miền
+✅ Thời tiết & mùa vụ: Dự báo, khí hậu, lịch mùa, thiên tai
+✅ Môi trường: Đất đai, nước, sinh thái, bảo vệ môi trường
+✅ Kinh tế nông nghiệp: Giá cả, thị trường, xuất khẩu nông sản
+✅ Công nghệ: Máy móc, IoT, công nghệ cao trong nông nghiệp
+✅ Sức khỏe cây trồng/vật nuôi: Bệnh tật, phòng trừ sâu bệnh, dinh dưỡng
 
-**KHI NHẬN CÂU HỎI NGOÀI PHẠM VI:**
-Nếu câu hỏi KHÔNG liên quan đến các chủ đề trên, hãy trả lời:
-"Xin lỗi, tôi là AgriSense AI - chuyên gia tư vấn nông nghiệp. Tôi chỉ có thể trả lời các câu hỏi về nông nghiệp, địa lý, thời tiết và các lĩnh vực liên quan. Bạn có câu hỏi nào về nông nghiệp mà tôi có thể giúp không?"
+**CÁCH TRẢ LỜI:**
+1. Đọc KỸ lịch sử hội thoại (nếu có) để hiểu ngữ cảnh
+2. Nếu câu hỏi liên quan đến câu trước → Kết nối thông tin
+3. Nếu người dùng nói "nó", "cái đó", "còn cái kia" → Tìm trong lịch sử
+4. Trả lời CỤ THỂ, DỄ HIỂU, có ví dụ thực tế Việt Nam
+5. Tránh nói chung chung, hãy cho thông tin hữu ích
 
-Hãy từ chối lịch sự nhưng kiên quyết. KHÔNG trả lời về: lịch sử không liên quan nông nghiệp, giải trí, thể thao, chính trị, y tế con người, công nghệ không liên quan nông nghiệp, toán học, vật lý tổng quát, v.v.
+**KHI CÂU HỎI NGOÀI PHẠM VI:**
+Nếu câu hỏi KHÔNG liên quan nông nghiệp, hãy lịch sự từ chối:
+"Xin lỗi, tôi là AgriSense AI - chuyên gia nông nghiệp. Tôi chỉ trả lời về nông nghiệp, địa lý, thời tiết và lĩnh vực liên quan. Bạn có câu hỏi gì về nông nghiệp không?"
+
+KHÔNG trả lời về: giải trí, thể thao, chính trị, y tế người, toán học, vật lý tổng quát, lịch sử không liên quan, v.v.
 """
         
         self.image_analysis_prompt = """
@@ -754,17 +766,19 @@ Hãy trả lời bằng tiếng Việt, cụ thể và chi tiết.
         if not self.conversation_history:
             return ""
         
-        context = "\n\n=== LỊCH SỬ HỘI THOẠI GẦN ĐÂY (để tham khảo ngữ cảnh) ===\n"
+        context = "\n\n=== LỊCH SỬ HỘI THOẠI TRƯỚC ĐÓ ===\n"
         
-        # Lấy 5 cuộc hội thoại gần nhất
-        recent_conversations = self.conversation_history[-5:]
+        # Lấy 8 cuộc hội thoại gần nhất (tăng từ 5 lên 8)
+        recent_conversations = self.conversation_history[-8:]
         
         for i, conv in enumerate(recent_conversations, 1):
-            context += f"\nCuộc hội thoại {i}:\n"
-            context += f"Người dùng: {conv['user_message']}\n"
-            context += f"AI đã trả lời: {conv['ai_response'][:200]}...\n"  # Cắt ngắn để tiết kiệm token
+            # Không cắt ngắn response nữa để AI có đủ context
+            context += f"\nLượt {i}:\n"
+            context += f"👤 Người dùng hỏi: {conv['user_message']}\n"
+            context += f"🤖 Bạn đã trả lời: {conv['ai_response']}\n"
         
-        context += "\n=== KẾT THÚC LỊCH SỬ ===\n\n"
+        context += "\n=== KẾT THÚC LỊCH SỬ ===\n"
+        context += "CHÚ Ý: Hãy đọc kỹ lịch sử trên để hiểu ngữ cảnh câu hỏi tiếp theo!\n\n"
         return context
     
     def clear_conversation_history(self):
@@ -1204,13 +1218,27 @@ Từ chối lịch sự các câu hỏi ngoài phạm vi: "Xin lỗi, tôi chỉ
 
 {conversation_context}
 
-HƯỚNG DẪN QUAN TRỌNG:
-- Hãy tham khảo lịch sử hội thoại ở trên để hiểu ngữ cảnh
-- Nếu câu hỏi hiện tại liên quan đến cuộc hội thoại trước, hãy kết nối thông tin
-- Ví dụ: nếu trước đó nói về "cây xoài" và bây giờ hỏi "chó", hãy trả lời về chó nhưng có thể đề cập "khác với cây xoài vừa nói..."
-- Nếu không liên quan, trả lời bình thường
+===== HƯỚNG DẪN TRẢ LỜI =====
+QUAN TRỌNG: Đây là cuộc hội thoại LIÊN TỤC. Hãy đọc kỹ LỊCH SỬ HỘI THOẠI ở trên!
 
-Câu hỏi hiện tại: {message}"""
+1. Nếu câu hỏi mới liên quan đến câu hỏi trước:
+   - Hãy KẾT NỐI với thông tin đã nói
+   - Tham chiếu lại nội dung cũ nếu cần
+   - Ví dụ: "Như đã đề cập về cây xoài trước đó...", "Khác với lúa vừa nói..."
+
+2. Nếu người dùng hỏi "nó", "cái đó", "thế còn", "vậy thì":
+   - Tìm NGAY trong lịch sử xem họ đang nói về gì
+   - Trả lời dựa trên ngữ cảnh đó
+   
+3. Nếu câu hỏi hoàn toàn mới, không liên quan:
+   - Trả lời bình thường
+
+4. LUÔN LUÔN ưu tiên thông tin từ LỊCH SỬ để hiểu đúng ý người dùng!
+
+===== CÂU HỎI HIỆN TẠI =====
+{message}
+
+Hãy trả lời câu hỏi trên, nhớ tham khảo lịch sử nếu có liên quan!"""
             
             # Generate AI response với ngữ cảnh
             response = self.generate_content_with_fallback(enhanced_prompt)

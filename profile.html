@@ -447,9 +447,6 @@
           <div class="bg-white rounded-lg sm:rounded-xl shadow p-3 sm:p-4">
             <div class="flex items-center justify-between mb-3 sm:mb-4 gap-2">
               <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Ảnh</h2>
-              <button onclick="openUploadPhotoModal()" class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm whitespace-nowrap">
-                <i class="fas fa-upload"></i> <span class="hidden sm:inline">Tải ảnh lên</span>
-              </button>
             </div>
             <div id="photos-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-3">
               <div class="col-span-full flex justify-center py-8">
@@ -973,12 +970,6 @@
     function togglePrivacy() {
       alert('Chức năng quyền riêng tư đang được phát triển');
       document.getElementById('settings-menu').classList.add('hidden');
-    }
-    
-    // Upload photo modal placeholder
-    function openUploadPhotoModal() {
-      alert('Tính năng tải ảnh lên đang được phát triển. Hiện tại bạn có thể thêm ảnh từ URL trong forum.');
-      window.location.href = '/forum';
     }
     
     // Logout

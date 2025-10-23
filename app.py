@@ -5247,36 +5247,9 @@ def update_cover_photo():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/profile/sync-photos', methods=['POST'])
-def sync_photos_endpoint():
-    """Sync user photos from avatar and forum posts - called when viewing photos tab"""
-    try:
-        user_id = request.args.get('user_id')
-        if not user_id:
-            return jsonify({'success': False, 'message': 'User ID required'}), 400
-        
-        try:
-            user_id = int(user_id)
-        except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'Invalid user ID'}), 400
-        
-        conn = auth.get_db_connection()
-        cursor = conn.cursor()
-        
-        # Sync photos from avatar and forum posts
-        sync_user_photos(user_id, cursor)
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'Photos synced'})
-    except Exception as e:
-        logging.error(f"Error syncing photos: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
 @app.route('/api/profile/photos', methods=['GET'])
 def get_user_photos():
-    """Get user's photos - automatically collects from avatar, forum posts, etc."""
+    """Get user's photos - returns from cache (synced during profile load)"""
     try:
         # MUST have user_id param - no fallback to current user!
         user_id = request.args.get('user_id')

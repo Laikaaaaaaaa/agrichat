@@ -2083,14 +2083,28 @@
       // Show selected section
       document.getElementById(tabName + '-section').classList.remove('hidden');
       
-      // Update tab buttons
+      // Remove highlight from all tabs
       document.querySelectorAll('.profile-tab').forEach(tab => {
         tab.classList.remove('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
         tab.classList.add('text-gray-600', 'hover:bg-gray-100');
       });
       
-      // Highlight active tab
-      const activeTab = event ? event.currentTarget : document.querySelector(`.profile-tab[data-tab="${tabName}"]`);
+      // Highlight active tab - find by event.currentTarget or by position
+      let activeTab = null;
+      if (event && event.currentTarget && event.currentTarget.classList.contains('profile-tab')) {
+        activeTab = event.currentTarget;
+      } else {
+        // Find tab by tabName - check onclick attribute
+        const tabs = document.querySelectorAll('.profile-tab');
+        for (let tab of tabs) {
+          const onclick = tab.getAttribute('onclick') || '';
+          if (onclick.includes(`switchTab('${tabName}'`)) {
+            activeTab = tab;
+            break;
+          }
+        }
+      }
+      
       if (activeTab) {
         activeTab.classList.add('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
         activeTab.classList.remove('text-gray-600', 'hover:bg-gray-100');
@@ -2121,13 +2135,6 @@
         }
         
         console.log('loadAllPhotos called for user:', profileUserId);
-        
-        // First, trigger sync on backend (non-blocking)
-        try {
-          await fetch(`/api/profile/sync-photos?user_id=${profileUserId}`, { method: 'POST' });
-        } catch (e) {
-          console.warn('Sync photos request failed (non-blocking):', e);
-        }
         
         const url = `/api/profile/photos?user_id=${profileUserId}&t=${Date.now()}`;
         console.log('loadAllPhotos API URL:', url);

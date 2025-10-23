@@ -4007,10 +4007,9 @@
       // Handle user avatar click
       function handleUserClick() {
         if (isUserLoggedIn && currentUserData) {
-          // Build profile URL with username.userid format
-          const identifier = currentUserData.username_slug 
-            ? `${currentUserData.username_slug}.${currentUserData.id}`
-            : currentUserData.id;
+          // Build profile URL using username_slug which already includes the numeric ID
+          // Format: username.numericsuffix or fallback to just ID
+          const identifier = currentUserData.username_slug || currentUserData.id;
           window.location.href = `/profile/${identifier}`;
         } else if (isUserLoggedIn) {
           // Fallback if no username_slug

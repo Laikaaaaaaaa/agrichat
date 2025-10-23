@@ -2417,8 +2417,9 @@
 
     // Share profile link
     function shareProfile() {
-      // Build profile URL with username.userid format
-      const identifier = profileUserSlug ? `${profileUserSlug}.${profileUserId}` : profileUserId;
+      // Build profile URL with username slug (which already includes the numeric ID)
+      // Format: username.numericsuffix or just userid as fallback
+      const identifier = profileUserSlug || profileUserId;
       const profileUrl = `/profile/${identifier}`;
       const fullUrl = `${window.location.origin}${profileUrl}`;
       

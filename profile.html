@@ -2014,6 +2014,115 @@
       setInterval(loadNotifications, 30000);
     });
     
+    // Switch tabs
+    function switchTab(tabName) {
+      // Hide all sections
+      document.getElementById('posts-section').classList.add('hidden');
+      document.getElementById('intro-section').classList.add('hidden');
+      document.getElementById('friends-section').classList.add('hidden');
+      document.getElementById('photos-section').classList.add('hidden');
+      
+      // Show selected section
+      document.getElementById(tabName + '-section').classList.remove('hidden');
+      
+      // Update tab buttons
+      document.querySelectorAll('.profile-tab').forEach(tab => {
+        tab.classList.remove('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
+        tab.classList.add('text-gray-600', 'hover:bg-gray-100');
+      });
+      
+      // Highlight active tab
+      event.target.classList.add('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
+      event.target.classList.remove('text-gray-600', 'hover:bg-gray-100');
+      
+      // Load content based on tab
+      if (tabName === 'photos') {
+        loadAllPhotos();
+      } else if (tabName === 'friends') {
+        loadAllFriends();
+      } else if (tabName === 'intro') {
+        // Intro is static, no need to load
+      } else if (tabName === 'posts') {
+        // Posts are already loaded
+      }
+    }
+    
+    // Load all photos for photos tab
+    async function loadAllPhotos() {
+      const photosGrid = document.getElementById('photos-grid');
+      photosGrid.innerHTML = '<div class="col-span-full flex justify-center py-8"><div class="loading-spinner"></div></div>';
+      
+      try {
+        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}`);
+        const data = await response.json();
+        
+        if (data.success && data.photos && data.photos.length > 0) {
+          photosGrid.innerHTML = data.photos.map(photo => `
+            <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity relative group" onclick="openPhotoModal(${photo.id})">
+              <img src="${photo.photo_url}" class="w-full h-full object-cover" alt="${photo.caption || ''}" />
+              <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-end p-2">
+                <div class="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                  <i class="fas fa-heart"></i> ${photo.likes_count || 0}
+                  <i class="fas fa-comment ml-2"></i> ${photo.comments_count || 0}
+                </div>
+              </div>
+              ${photo.photo_type === 'avatar' ? '<div class="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded">Ảnh đại diện</div>' : ''}
+              ${photo.photo_type === 'cover' ? '<div class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">Ảnh bìa</div>' : ''}
+              ${photo.photo_type === 'post' ? '<div class="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">Bài viết</div>' : ''}
+            </div>
+          `).join('');
+        } else {
+          photosGrid.innerHTML = '<div class="col-span-full text-center py-12"><div class="text-gray-400 text-4xl mb-3"><i class="fas fa-images"></i></div><p class="text-gray-500">Chưa có ảnh nào</p></div>';
+        }
+      } catch (error) {
+        console.error('Error loading all photos:', error);
+        photosGrid.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">Lỗi tải ảnh</div>';
+      }
+    }
+    
+    // Load all friends for friends tab
+    async function loadAllFriends() {
+      const friendsGrid = document.getElementById('friends-grid');
+      if (!friendsGrid) return;
+      
+      friendsGrid.innerHTML = '<div class="col-span-full flex justify-center py-8"><div class="loading-spinner"></div></div>';
+      
+      try {
+        const response = await fetch(`/api/profile/friends?user_id=${profileUserId}`);
+        const data = await response.json();
+        
+        if (data.success && data.friends && data.friends.length > 0) {
+          // Update friends count
+          document.querySelector('.friends-count').textContent = data.friends.length;
+          
+          friendsGrid.innerHTML = data.friends.map(friend => {
+            const userName = friend.name || friend.email?.split('@')[0] || 'Người dùng';
+            const userAvatar = friend.avatar_url 
+              ? `<img src="${friend.avatar_url}" class="w-full h-full object-cover" />`
+              : `<div class="w-full h-full flex items-center justify-center bg-green-600 text-white font-bold text-2xl">
+                  ${userName.charAt(0).toUpperCase()}
+                </div>`;
+            
+            return `
+              <a href="/profile/${friend.username_slug || friend.id}" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+                <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-3">
+                  ${userAvatar}
+                </div>
+                <h4 class="font-semibold text-gray-900 truncate">${userName}</h4>
+                <p class="text-sm text-gray-500 truncate">${friend.email || ''}</p>
+              </a>
+            `;
+          }).join('');
+        } else {
+          document.querySelector('.friends-count').textContent = '0';
+          friendsGrid.innerHTML = '<div class="col-span-full text-center py-12"><div class="text-gray-400 text-4xl mb-3"><i class="fas fa-user-friends"></i></div><p class="text-gray-500">Chưa có bạn bè</p></div>';
+        }
+      } catch (error) {
+        console.error('Error loading all friends:', error);
+        friendsGrid.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">Lỗi tải danh sách bạn bè</div>';
+      }
+    }
+    
     // Show likes list modal
     async function showLikesList(postId) {
       const modal = document.getElementById('likes-modal');

@@ -110,8 +110,10 @@ def init_db():
             photo_url TEXT NOT NULL,
             photo_type TEXT NOT NULL,
             caption TEXT,
+            source_post_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (source_post_id) REFERENCES forum_posts (id)
         )
     ''')
     
@@ -178,6 +180,12 @@ def init_db():
     
     try:
         cursor.execute('ALTER TABLE forum_posts ADD COLUMN mentioned_users TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    # Migration: Add source_post_id to user_photos
+    try:
+        cursor.execute('ALTER TABLE user_photos ADD COLUMN source_post_id INTEGER')
     except sqlite3.OperationalError:
         pass  # Column already exists
     

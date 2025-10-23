@@ -5230,7 +5230,7 @@ def update_cover_photo():
 
 @app.route('/api/profile/photos', methods=['GET'])
 def get_user_photos():
-    """Get user's photos"""
+    """Get user's photos - automatically collects from avatar, forum posts, etc."""
     try:
         user_id = request.args.get('user_id', session.get('user_id'))
         if not user_id:
@@ -5239,7 +5239,15 @@ def get_user_photos():
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
+        # First, sync photos from various sources
+        sync_user_photos(user_id, cursor)
+        conn.commit()
+        
+        # Get limit parameter if provided
+        limit = request.args.get('limit')
+        limit_clause = f'LIMIT {int(limit)}' if limit else ''
+        
+        cursor.execute(f'''
             SELECT 
                 p.id, p.photo_url, p.photo_type, p.caption, p.created_at,
                 u.name, u.email, u.avatar_url,
@@ -5250,6 +5258,7 @@ def get_user_photos():
             JOIN users u ON p.user_id = u.id
             WHERE p.user_id = ?
             ORDER BY p.created_at DESC
+            {limit_clause}
         ''', (session.get('user_id', 0), user_id))
         
         photos = []
@@ -5274,6 +5283,55 @@ def get_user_photos():
     except Exception as e:
         logging.error(f"Error getting photos: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+def sync_user_photos(user_id, cursor):
+    """Sync user photos from avatar and forum posts"""
+    try:
+        # Get user's current avatar
+        cursor.execute('SELECT avatar_url FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+        if user and user[0]:
+            avatar_url = user[0]
+            # Check if avatar already exists in user_photos
+            cursor.execute('SELECT id FROM user_photos WHERE user_id = ? AND photo_url = ? AND photo_type = "avatar"', 
+                         (user_id, avatar_url))
+            if not cursor.fetchone():
+                cursor.execute('''
+                    INSERT INTO user_photos (user_id, photo_url, photo_type, caption)
+                    VALUES (?, ?, "avatar", "Ảnh đại diện")
+                ''', (user_id, avatar_url))
+        
+        # Get images from forum posts
+        cursor.execute('''
+            SELECT id, image_urls, content, created_at 
+            FROM forum_posts 
+            WHERE user_id = ? AND image_urls IS NOT NULL AND image_urls != ""
+            ORDER BY created_at DESC
+        ''', (user_id,))
+        
+        posts = cursor.fetchall()
+        for post in posts:
+            post_id, image_urls, content, created_at = post
+            if image_urls:
+                try:
+                    urls = json.loads(image_urls) if isinstance(image_urls, str) else image_urls
+                    if isinstance(urls, list):
+                        for img_url in urls:
+                            # Check if image already exists
+                            cursor.execute('SELECT id FROM user_photos WHERE user_id = ? AND photo_url = ?', 
+                                         (user_id, img_url))
+                            if not cursor.fetchone():
+                                # Extract caption from post content (first 100 chars)
+                                caption = content[:100] if content else f'Ảnh từ bài viết'
+                                cursor.execute('''
+                                    INSERT INTO user_photos (user_id, photo_url, photo_type, caption, created_at, source_post_id)
+                                    VALUES (?, ?, "post", ?, ?, ?)
+                                ''', (user_id, img_url, caption, created_at, post_id))
+                except:
+                    pass
+    except Exception as e:
+        logging.error(f"Error syncing user photos: {e}")
 
 
 @app.route('/api/profile/photos', methods=['POST'])

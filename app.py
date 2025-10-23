@@ -9,6 +9,7 @@ import requests
 import time
 import random
 import logging
+from datetime import timedelta
 from types import SimpleNamespace
 from PIL import Image
 import google.generativeai as genai
@@ -36,9 +37,10 @@ app = Flask(__name__,
             static_url_path='/static')
 
 # Configure session for authentication
-app.secret_key = os.getenv('SECRET_KEY', os.urandom(24).hex())
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours
+app.secret_key = os.getenv('SECRET_KEY', 'agrisense-ai-secret-key-2024')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7 days
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set True in production with HTTPS
 
 class Api:
     def __init__(self):

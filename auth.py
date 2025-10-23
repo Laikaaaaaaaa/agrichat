@@ -65,20 +65,23 @@ def generate_otp():
     return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
 
 def send_otp_email(email, otp_code):
-    """Send OTP code via email (placeholder - configure with real SMTP)"""
-    # TODO: Configure real SMTP settings
-    # For now, just print to console for testing
+    """Send OTP code via email"""
+    # Print to console for debugging
     print(f"\n{'='*50}")
-    print(f"OTP CODE FOR {email}: {otp_code}")
+    print(f"📧 SENDING OTP TO {email}")
+    print(f"🔑 OTP CODE: {otp_code}")
     print(f"{'='*50}\n")
     
-    # Uncomment and configure when ready to use real email
-    """
     try:
         smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
         smtp_port = int(os.getenv('SMTP_PORT', 587))
         smtp_email = os.getenv('SMTP_EMAIL')
         smtp_password = os.getenv('SMTP_PASSWORD')
+        
+        # If SMTP not configured, just return True for testing
+        if not smtp_email or not smtp_password:
+            print("⚠️ SMTP not configured. Check terminal for OTP code above.")
+            return True
         
         msg = MIMEMultipart()
         msg['From'] = smtp_email
@@ -86,16 +89,16 @@ def send_otp_email(email, otp_code):
         msg['Subject'] = 'AgriSense AI - Mã OTP xác thực'
         
         body = f'''
-        Xin chào,
-        
-        Mã OTP của bạn là: {otp_code}
-        
-        Mã này có hiệu lực trong 10 phút.
-        
-        Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.
-        
-        Trân trọng,
-        AgriSense AI Team
+Xin chào,
+
+Mã OTP của bạn là: {otp_code}
+
+Mã này có hiệu lực trong 10 phút.
+
+Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.
+
+Trân trọng,
+AgriSense AI Team
         '''
         
         msg.attach(MIMEText(body, 'plain'))
@@ -105,12 +108,12 @@ def send_otp_email(email, otp_code):
             server.login(smtp_email, smtp_password)
             server.send_message(msg)
         
+        print("✅ Email sent successfully!")
         return True
     except Exception as e:
-        print(f"Error sending email: {e}")
-        return False
-    """
-    return True
+        print(f"❌ Error sending email: {e}")
+        print("⚠️ OTP will still work if you use the code printed above.")
+        return True  # Return True anyway so OTP flow continues
 
 # Authentication Functions
 

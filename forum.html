@@ -758,6 +758,34 @@
         ? `<h2 class="text-lg font-semibold text-gray-800 mb-2">${escapeHtml(post.title)}</h2>`
         : '';
       
+      // Poll HTML
+      const pollHTML = post.poll && post.poll.options && post.poll.options.length > 0
+        ? `<div class="bg-blue-50 rounded-lg p-3 sm:p-4 mb-3 border border-blue-200">
+            <p class="text-sm font-semibold text-blue-700 mb-3">📊 ${escapeHtml(post.poll.question || 'Khảo sát')}</p>
+            <div class="space-y-2">
+              ${post.poll.options.map((option, idx) => `
+                <div class="flex items-center gap-2">
+                  <input type="radio" name="poll_${post.id}" value="${idx}" id="poll_${post.id}_${idx}" class="cursor-pointer" />
+                  <label for="poll_${post.id}_${idx}" class="flex-1 py-2 px-3 bg-white rounded border border-blue-200 text-sm text-gray-700 cursor-pointer hover:bg-blue-50 transition-colors">
+                    ${escapeHtml(option)}
+                  </label>
+                </div>
+              `).join('')}
+            </div>
+            <button onclick="submitPollVote(${post.id})" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium w-full">
+              Gửi phiếu bầu
+            </button>
+          </div>`
+        : '';
+      
+      // Location HTML
+      const locationHTML = post.location 
+        ? `<div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 py-2 px-3 bg-green-50 rounded-lg mb-3 border border-green-200">
+            <i class="fas fa-map-marker-alt text-green-600"></i>
+            <span>${escapeHtml(post.location.address || `${post.location.latitude?.toFixed(4)}, ${post.location.longitude?.toFixed(4)}`)}</span>
+          </div>`
+        : '';
+      
       return `
         <div class="post-card bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md p-3 sm:p-4 mb-3 sm:mb-4 fade-in-up" data-post-id="${post.id}">
           <!-- Post Header -->
@@ -786,7 +814,9 @@
             <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${processContent(post.content)}</p>
           </div>
           
+          ${locationHTML}
           ${imageHTML}
+          ${pollHTML}
           ${tagsHTML}
           
           <!-- Post Stats -->
@@ -1153,16 +1183,24 @@
             const address = data.address;
             let locationName = '';
             
-            // For Vietnam locations, extract province (state) and district (county)
+            // For Vietnam locations, try to get province (state)
             if (address.state) {
               locationName = address.state;
+              // Try to add district if available
               if (address.county) {
-                locationName = `${address.county}, ${locationName}`;
+                locationName = `${address.county}, ${address.state}`;
+              }
+            } else if (address.province) {
+              locationName = address.province;
+              if (address.county) {
+                locationName = `${address.county}, ${address.province}`;
               }
             } else if (address.county) {
               locationName = address.county;
+            } else if (data.name) {
+              locationName = data.name;
             } else {
-              locationName = data.address_components?.[0]?.long_name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+              locationName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
             }
             
             selectedLocation = { latitude, longitude, address: locationName };
@@ -1172,6 +1210,7 @@
             locationList.innerHTML = `<div class="p-2 bg-green-50 rounded-lg text-xs sm:text-sm text-green-700">✓ Vị trí hiện tại: ${selectedLocation.address}</div>`;
           } catch (error) {
             console.error('Reverse geocoding error:', error);
+            // Fallback: use coordinates if geocoding fails
             selectedLocation = { latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` };
             document.getElementById('location-confirm-btn').disabled = false;
             const locationList = document.getElementById('location-list');
@@ -1189,9 +1228,7 @@
         return;
       }
       
-      const postContent = document.getElementById('post-content');
-      postContent.value += `\n📍 Vị trí: ${selectedLocation.address}`;
-      
+      // Don't add to post content - location is kept separate
       closeLocationModal();
       showAlert('Vị trí đã được thêm!', 'success');
     }
@@ -1406,6 +1443,50 @@
       }
     }
     
+    // Submit poll vote
+    async function submitPollVote(postId) {
+      const selectedOption = document.querySelector(`input[name="poll_${postId}"]:checked`);
+      
+      if (!selectedOption) {
+        alert('Vui lòng chọn một lựa chọn');
+        return;
+      }
+      
+      const optionIndex = parseInt(selectedOption.value);
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/poll/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ option_index: optionIndex })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Disable voting after submission
+          const pollContainer = document.querySelector(`[data-post-id="${postId}"] .bg-blue-50`);
+          if (pollContainer) {
+            const inputs = pollContainer.querySelectorAll('input[type="radio"]');
+            inputs.forEach(input => input.disabled = true);
+            
+            const button = pollContainer.querySelector('button');
+            button.disabled = true;
+            button.textContent = '✓ Đã gửi phiếu bầu';
+            button.classList.add('opacity-50');
+          }
+          
+          // Reload posts to show updated poll results
+          loadPosts();
+          showAlert('Phiếu bầu của bạn đã được ghi nhận!', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi gửi phiếu bầu', 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting poll vote:', error);
+        showAlert('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
+      }
+    }
     
     // Toggle like
     async function toggleLike(postId) {

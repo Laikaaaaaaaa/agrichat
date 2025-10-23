@@ -4664,7 +4664,9 @@ def get_forum_posts():
                 u.email as user_email,
                 u.avatar_url as user_avatar,
                 (SELECT COUNT(*) FROM forum_likes WHERE post_id = p.id) as likes_count,
-                (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) as comments_count
+                (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) as comments_count,
+                p.poll_data,
+                p.location
             FROM forum_posts p
             LEFT JOIN users u ON p.user_id = u.id
             WHERE 1=1
@@ -4717,6 +4719,8 @@ def get_forum_posts():
                 'user_avatar': row[9],
                 'likes_count': row[10],
                 'comments_count': row[11],
+                'poll': json.loads(row[12]) if row[12] else None,
+                'location': json.loads(row[13]) if row[13] else None,
                 'user_liked': False
             }
             
@@ -4935,6 +4939,53 @@ def get_forum_likes(post_id):
         })
     except Exception as e:
         logging.error(f"Error getting likes list: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/posts/<int:post_id>/poll/vote', methods=['POST'])
+def submit_poll_vote(post_id):
+    """Submit a vote to a poll"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        option_index = data.get('option_index')
+        
+        if option_index is None:
+            return jsonify({'success': False, 'message': 'Lựa chọn không hợp lệ'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get the poll data
+        cursor.execute('SELECT poll_data FROM forum_posts WHERE id = ?', (post_id,))
+        row = cursor.fetchone()
+        
+        if not row or not row[0]:
+            return jsonify({'success': False, 'message': 'Bài viết không có khảo sát'}), 404
+        
+        # Check if user already voted
+        cursor.execute('''
+            SELECT id FROM forum_poll_votes 
+            WHERE post_id = ? AND user_id = ?
+        ''', (post_id, session['user_id']))
+        
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Bạn đã bầu chọn cho khảo sát này rồi'}), 400
+        
+        # Record the vote
+        cursor.execute('''
+            INSERT INTO forum_poll_votes (post_id, user_id, option_index, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+        ''', (post_id, session['user_id'], option_index))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Phiếu bầu đã được ghi nhận'})
+    except Exception as e:
+        logging.error(f"Error submitting poll vote: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

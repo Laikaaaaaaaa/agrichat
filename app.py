@@ -5248,6 +5248,12 @@ def get_user_photos():
         if not user_id:
             return jsonify({'success': False, 'message': 'User ID required'}), 400
         
+        # Convert to int to ensure proper database comparison
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Invalid user ID'}), 400
+        
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         

@@ -323,19 +323,19 @@
       <!-- Navigation Tabs -->
       <div class="mt-3 sm:mt-4">
         <div class="flex gap-0.5 sm:gap-1 border-t border-gray-300 -mb-px overflow-x-auto">
-          <button onclick="switchTab('posts')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 border-b-4 border-green-600 text-green-600 font-semibold -mb-px text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('posts', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 border-b-4 border-green-600 text-green-600 font-semibold -mb-px text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-newspaper sm:hidden"></i>
             <span class="hidden sm:inline">Bài viết</span>
           </button>
-          <button onclick="switchTab('intro')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('intro', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-info-circle sm:hidden"></i>
             <span class="hidden sm:inline">Giới thiệu</span>
           </button>
-          <button onclick="switchTab('friends')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('friends', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-user-friends sm:hidden"></i>
             <span class="hidden sm:inline">Bạn bè</span>
           </button>
-          <button onclick="switchTab('photos')" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
+          <button onclick="switchTab('photos', event)" class="profile-tab px-3 sm:px-4 py-2.5 sm:py-3 text-gray-600 hover:bg-gray-100 transition-colors text-sm sm:text-base whitespace-nowrap">
             <i class="fas fa-images sm:hidden"></i>
             <span class="hidden sm:inline">Ảnh</span>
           </button>
@@ -426,10 +426,6 @@
               <button onclick="openCreatePostModal('image')" class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
                 <i class="fas fa-image text-green-600 text-sm sm:text-base"></i>
                 <span class="font-medium text-xs sm:text-sm">Ảnh/Video</span>
-              </button>
-              <button onclick="openCreatePostModal()" class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-                <i class="fas fa-smile text-yellow-500 text-sm sm:text-base"></i>
-                <span class="font-medium text-xs sm:text-sm">Cảm xúc</span>
               </button>
             </div>
           </div>
@@ -1990,7 +1986,7 @@
     // Load photos preview for sidebar
     async function loadPhotosPreview() {
       try {
-        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}&limit=6`);
+        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}&limit=6&t=${Date.now()}`);
         const data = await response.json();
         
         const previewContainer = document.getElementById('photos-preview');
@@ -2023,7 +2019,9 @@
     });
     
     // Switch tabs
-    function switchTab(tabName) {
+    function switchTab(tabName, event) {
+      if (event) event.preventDefault();
+      
       // Hide all sections
       document.getElementById('posts-section').classList.add('hidden');
       document.getElementById('intro-section').classList.add('hidden');
@@ -2040,8 +2038,11 @@
       });
       
       // Highlight active tab
-      event.target.classList.add('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
-      event.target.classList.remove('text-gray-600', 'hover:bg-gray-100');
+      const activeTab = event ? event.currentTarget : document.querySelector(`.profile-tab[data-tab="${tabName}"]`);
+      if (activeTab) {
+        activeTab.classList.add('border-b-4', 'border-green-600', 'text-green-600', 'font-semibold', '-mb-px');
+        activeTab.classList.remove('text-gray-600', 'hover:bg-gray-100');
+      }
       
       // Load content based on tab
       if (tabName === 'photos') {
@@ -2061,7 +2062,7 @@
       photosGrid.innerHTML = '<div class="col-span-full flex justify-center py-8"><div class="loading-spinner"></div></div>';
       
       try {
-        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}`);
+        const response = await fetch(`/api/profile/photos?user_id=${profileUserId}&t=${Date.now()}`);
         const data = await response.json();
         
         if (data.success && data.photos && data.photos.length > 0) {

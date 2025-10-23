@@ -189,6 +189,33 @@ def init_db():
     except sqlite3.OperationalError:
         pass  # Column already exists
     
+    # Migration: Fix forum_poll_votes UNIQUE constraint for multiple choice polls
+    try:
+        # Check if old unique constraint exists by trying to insert a duplicate
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS forum_poll_votes_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                option_index INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(post_id, user_id, option_index),
+                FOREIGN KEY (post_id) REFERENCES forum_posts (id),
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        
+        # Try to copy data from old table if it exists
+        try:
+            cursor.execute('INSERT INTO forum_poll_votes_new SELECT * FROM forum_poll_votes')
+            cursor.execute('DROP TABLE forum_poll_votes')
+            cursor.execute('ALTER TABLE forum_poll_votes_new RENAME TO forum_poll_votes')
+        except:
+            # Old table doesn't exist or is already correct
+            pass
+    except:
+        pass
+    
     # Create poll votes table if it doesn't exist
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS forum_poll_votes (
@@ -197,7 +224,7 @@ def init_db():
             user_id INTEGER NOT NULL,
             option_index INTEGER NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(post_id, user_id),
+            UNIQUE(post_id, user_id, option_index),
             FOREIGN KEY (post_id) REFERENCES forum_posts (id),
             FOREIGN KEY (user_id) REFERENCES users (id)
         )

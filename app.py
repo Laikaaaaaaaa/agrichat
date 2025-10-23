@@ -5009,13 +5009,13 @@ def submit_poll_vote(post_id):
         if not row or not row[0]:
             return jsonify({'success': False, 'message': 'Bài viết không có khảo sát'}), 404
         
-        # Check if user already voted
+        # Check if user already voted on ANY option for this poll
         cursor.execute('''
-            SELECT id FROM forum_poll_votes 
+            SELECT COUNT(*) FROM forum_poll_votes 
             WHERE post_id = ? AND user_id = ?
         ''', (post_id, session['user_id']))
         
-        if cursor.fetchone():
+        if cursor.fetchone()[0] > 0:
             return jsonify({'success': False, 'message': 'Bạn đã bầu chọn cho khảo sát này rồi'}), 400
         
         # Record the vote(s) - one row per selected option

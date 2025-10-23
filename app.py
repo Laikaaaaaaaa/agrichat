@@ -4575,13 +4575,14 @@ def forum():
 def view_forum_post(username_slug, post_identifier):
     """Xem bài viết cụ thể dựa trên URL slug"""
     try:
-        # Parse post_identifier: format "posttype.postid"
+        # Parse post_identifier: format "posttype.12345678" (8-digit post ID)
         if '.' not in post_identifier:
             return "Post not found", 404
         
         post_type, post_id_str = post_identifier.rsplit('.', 1)
         
         try:
+            # Remove leading zeros: "00000001" -> 1
             post_id = int(post_id_str)
         except ValueError:
             return "Invalid post ID", 404
@@ -4605,11 +4606,11 @@ def view_forum_post(username_slug, post_identifier):
             conn.close()
             return "Post not found", 404
         
-        # Verify username_slug matches (row[12] is username_slug from users table)
+        # Get post's actual username_slug from database
         post_username_slug = row[12]
-        if not post_username_slug or post_username_slug != username_slug:
-            conn.close()
-            return "Post not found", 404
+        
+        # Validate that post exists (we already checked with fetchone)
+        # Note: URL username_slug can be anything, we use the real one from database
         
         # Get likes and comments count
         cursor.execute('SELECT COUNT(*) FROM forum_likes WHERE post_id = ?', (post_id,))

@@ -1535,10 +1535,11 @@
     
     // Generate post URL with username and post ID
     function getPostUrl(post) {
-      // Format: /forum/post/{username_slug}/{posttype}.{postid}
+      // Format: /forum/post/{username_slug}/{posttype}.{postid-8digits}
       // Post type is always 'post' for forum posts
       if (post.username_slug && post.id) {
-        return `/forum/post/${post.username_slug}/post.${post.id}`;
+        const postIdFormatted = String(post.id).padStart(8, '0');
+        return `/forum/post/${post.username_slug}/post.${postIdFormatted}`;
       }
       return '#';
     }
@@ -1939,7 +1940,8 @@
     
     // Share forum post from profile
     function shareForumPost(postId, postContent) {
-      const shareUrl = `${window.location.origin}/forum/post/${profileUserSlug}/${postId}`;
+      const postIdFormatted = String(postId).padStart(8, '0');
+      const shareUrl = `${window.location.origin}/forum/post/${profileUserSlug}/post.${postIdFormatted}`;
       const shareTitle = postContent || 'Bài viết từ AgriSense AI';
       
       const shareModal = document.getElementById('share-modal');

@@ -810,7 +810,7 @@
               <i class="far fa-comment text-sm sm:text-base"></i>
               <span class="font-medium text-xs sm:text-sm">Bình luận</span>
             </button>
-            <button onclick="openShareModal(${post.id}, '${escapeHtml(post.title || post.content.substring(0, 50))}')" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+            <button onclick="openShareModal(${post.id}, '${escapeHtml(post.title || post.content.substring(0, 50))}', '${post.username_slug}')" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
               <i class="far fa-share-square text-sm sm:text-base"></i>
               <span class="font-medium text-xs sm:text-sm">Chia sẻ</span>
             </button>
@@ -1609,8 +1609,9 @@
     }
 
     // Share modal functions
-    function openShareModal(postId, postTitle) {
-      const shareUrl = `${window.location.origin}/forum/post/${postId}`;
+    function openShareModal(postId, postTitle, userSlug) {
+      const postIdFormatted = String(postId).padStart(8, '0');
+      const shareUrl = `${window.location.origin}/forum/post/${userSlug}/post.${postIdFormatted}`;
       const shareModal = document.getElementById('share-modal');
       const shareOptions = document.getElementById('share-options');
       

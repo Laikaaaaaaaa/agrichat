@@ -1762,6 +1762,7 @@
       background:#fff;
       box-shadow:2px 0 12px rgba(0,0,0,0.08);
       overflow-y:auto;
+      overflow-x:hidden;
       transition:transform 0.36s cubic-bezier(0.25,0.46,0.45,0.94);
       will-change:transform;
       z-index:var(--z-sidebar);
@@ -1782,6 +1783,7 @@
         left:0; 
         transform:translateX(0);
         transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        clip-path: inset(0 0 0 0);
       }
       #sidebar.closed{ transform:translateX(calc(-1 * var(--sidebar-w))); }
       #sidebar.open{ transform:translateX(0); }
@@ -1821,16 +1823,16 @@
     @keyframes sidebarSlideIn {
       from {
         transform: translateX(calc(-1 * var(--sidebar-w)));
-        opacity: 0;
       }
       to {
         transform: translateX(0);
-        opacity: 1;
       }
     }
 
     #sidebar.open.animate-on-load {
       animation: sidebarSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+      clip-path: inset(0 0 0 0);
     }
 
     /* Chat area */
@@ -3878,6 +3880,7 @@
       const mainContainer = document.getElementById('main-container');
   const MOBILE_BP = 768;
   let lastIsMobile = window.innerWidth < MOBILE_BP;
+  let isInitialLoad = true;  // Track if this is the first load
 
       if (!menuToggle || !sidebar || !mainContainer) {
         console.error('Sidebar init failed - missing elements', {menuToggle:!!menuToggle, sidebar:!!sidebar, mainContainer:!!mainContainer});
@@ -3917,13 +3920,21 @@
       function openSidebar(){
         sidebar.classList.add('open');
         sidebar.classList.remove('closed');
-        sidebar.classList.add('animate-on-load');
+        // Only add animation class on initial load, not on toggle
+        if (isInitialLoad) {
+          sidebar.classList.add('animate-on-load');
+        }
         setAria(true);
         applyPush(true);
         // Remove animation class after animation completes
-        setTimeout(() => {
-          sidebar.classList.remove('animate-on-load');
-        }, 600);
+        if (isInitialLoad) {
+          setTimeout(() => {
+            sidebar.classList.remove('animate-on-load');
+            isInitialLoad = false;
+          }, 600);
+        } else {
+          isInitialLoad = false;
+        }
       }
 
       function closeSidebar(){
@@ -3972,8 +3983,9 @@
       if (lastIsMobile) {
         closeSidebar();
       } else {
-        // Keep sidebar closed on desktop at first, will open with animation when user clicks menu
-        closeSidebar();
+        // Open sidebar with animation on desktop at first load
+        sidebar.classList.add('animate-on-load');
+        openSidebar();
       }
     });
     </script>

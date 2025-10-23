@@ -135,6 +135,13 @@
         display: none;
         height: 0;
       }
+    }
+    
+    /* Prevent child elements from capturing click events */
+    .profile-tab i,
+    .profile-tab span {
+      pointer-events: none;
+    }
       
       .flex.overflow-x-auto {
         -ms-overflow-style: none;

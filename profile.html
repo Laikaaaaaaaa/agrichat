@@ -16,6 +16,8 @@
   <!-- Cropper.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <!-- Profile Extended JS -->
+  <script src="/static/profile-extended.js" defer></script>
   
   <style>
     body {
@@ -123,6 +125,29 @@
         </a>
         <img src="/static/logo/logo.png" alt="AgriSense AI" class="h-12 md:h-14 w-auto object-contain">
       </div>
+      
+      <!-- Notification Bell -->
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <button onclick="toggleNotifications()" class="relative p-2 text-gray-600 hover:bg-white rounded-lg transition-colors">
+            <i class="fas fa-bell text-xl"></i>
+            <span id="notification-badge" class="hidden absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-bold">0</span>
+          </button>
+          
+          <!-- Notifications Dropdown -->
+          <div id="notifications-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 class="font-bold text-lg">Thông báo</h3>
+              <button onclick="markAllAsRead()" class="text-xs text-green-600 hover:underline">Đánh dấu đã đọc</button>
+            </div>
+            <div id="notifications-list">
+              <div class="flex justify-center py-8">
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -139,39 +164,26 @@
     
     <!-- Profile Info Container -->
     <div class="px-4 md:px-6 pb-4 border-b border-gray-300">
-      <!-- Avatar and Actions Row -->
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between -mt-16 md:-mt-20">
-        <!-- Avatar + Name -->
-        <div class="flex flex-col md:flex-row md:items-end gap-4 mb-4 md:mb-0">
-          <!-- Avatar -->
-          <div class="avatar-wrapper">
-            <img id="profile-avatar" src="" alt="Avatar" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
-            <div id="avatar-placeholder" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
-              ?
-            </div>
-            <div class="avatar-edit-btn" onclick="showAvatarOptions()">
-              <i class="fas fa-camera"></i>
-            </div>
+      <!-- Avatar Row -->
+      <div class="flex items-end justify-between -mt-16 md:-mt-20">
+        <!-- Avatar Only -->
+        <div class="avatar-wrapper">
+          <img id="profile-avatar" src="" alt="Avatar" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-xl" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').style.display='flex';" />
+          <div id="avatar-placeholder" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-green-600 text-white flex items-center justify-center text-4xl md:text-5xl font-bold border-4 border-white shadow-xl" style="display:none;">
+            ?
           </div>
-          
-          <!-- Name and Stats -->
-          <div class="pb-2">
-            <h1 id="profile-name" class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Đang tải...</h1>
-            <p id="profile-email" class="text-gray-600 text-sm mb-2">email@example.com</p>
-            <div class="flex gap-2 text-sm text-gray-600">
-              <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
-              <span>•</span>
-              <span><span class="font-semibold">0</span> bạn bè</span>
-            </div>
+          <div id="avatar-edit-btn" class="avatar-edit-btn" onclick="showAvatarOptions()" style="display:none;">
+            <i class="fas fa-camera"></i>
           </div>
         </div>
         
-        <!-- Action Button -->
-        <div class="pb-2">
+        <!-- Action Buttons (Owner View) -->
+        <div id="owner-actions" class="pb-2" style="display:none;">
           <div class="relative">
             <button onclick="toggleSettingsMenu()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
               <i class="fas fa-cog"></i>
-              <span>Chỉnh sửa trang cá nhân</span>
+              <span class="hidden sm:inline">Chỉnh sửa trang cá nhân</span>
+              <span class="sm:hidden">Chỉnh sửa</span>
             </button>
             
             <!-- Settings Dropdown Menu -->
@@ -196,21 +208,73 @@
             </div>
           </div>
         </div>
+        
+        <!-- Action Buttons (Visitor View) -->
+        <div id="visitor-actions" class="pb-2 flex gap-2" style="display:none;">
+          <!-- Add Friend Button -->
+          <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+            <i class="fas fa-user-plus"></i>
+            <span>Thêm bạn bè</span>
+          </button>
+          
+          <!-- Friend Request Sent Button -->
+          <button id="request-sent-btn" onclick="cancelFriendRequest()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+            <i class="fas fa-clock"></i>
+            <span>Đã gửi lời mời</span>
+          </button>
+          
+          <!-- Accept/Reject Friend Request Buttons -->
+          <div id="request-received-btns" class="hidden flex gap-2">
+            <button onclick="acceptFriendRequest()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+              <i class="fas fa-check"></i>
+              <span>Chấp nhận</span>
+            </button>
+            <button onclick="rejectFriendRequest()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+              <i class="fas fa-times"></i>
+              <span>Từ chối</span>
+            </button>
+          </div>
+          
+          <!-- Already Friends Button -->
+          <button id="friends-btn" onclick="removeFriend()" class="hidden px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+            <i class="fas fa-user-check"></i>
+            <span>Bạn bè</span>
+          </button>
+          
+          <!-- Message Button -->
+          <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
+            <i class="fas fa-comment"></i>
+            <span class="hidden sm:inline">Nhắn tin</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Name and Stats Section (below cover) -->
+      <div class="mt-4 mb-2">
+        <h1 id="profile-name" class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Đang tải...</h1>
+        <p id="profile-email" class="text-gray-600 text-sm mb-2">email@example.com</p>
+        <div class="flex gap-2 text-sm text-gray-600">
+          <span><span id="posts-count" class="font-semibold">0</span> bài viết</span>
+          <span>•</span>
+          <span><span class="friends-count font-semibold">0</span> bạn bè</span>
+          <span>•</span>
+          <span><span id="photos-count" class="font-semibold">0</span> ảnh</span>
+        </div>
       </div>
       
       <!-- Navigation Tabs -->
       <div class="mt-4">
         <div class="flex gap-1 border-t border-gray-300 -mb-px">
-          <button class="px-4 py-3 border-b-4 border-green-600 text-green-600 font-semibold -mb-px">
+          <button onclick="switchTab('posts')" class="profile-tab px-4 py-3 border-b-4 border-green-600 text-green-600 font-semibold -mb-px">
             Bài viết
           </button>
-          <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
+          <button onclick="switchTab('intro')" class="profile-tab px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
             Giới thiệu
           </button>
-          <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
+          <button onclick="switchTab('friends')" class="profile-tab px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
             Bạn bè
           </button>
-          <button class="px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
+          <button onclick="switchTab('photos')" class="profile-tab px-4 py-3 text-gray-600 hover:bg-gray-100 transition-colors">
             Ảnh
           </button>
         </div>
@@ -278,33 +342,105 @@
       <!-- Right Content - Posts -->
       <div class="lg:col-span-7 xl:col-span-8 space-y-4">
         
-        <!-- Create Post Card -->
-        <div class="bg-white rounded-xl shadow p-4">
-          <div class="flex gap-3 items-center mb-3">
-            <div id="small-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-              <i class="fas fa-user"></i>
+        <!-- Posts Section (default) -->
+        <div id="posts-section">
+          <!-- Create Post Card -->
+          <div class="bg-white rounded-xl shadow p-4 mb-4">
+            <div class="flex gap-3 items-center mb-3">
+              <div id="small-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                <i class="fas fa-user"></i>
+              </div>
+              <a href="/forum" class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-left">
+                Bạn đang nghĩ gì?
+              </a>
             </div>
-            <a href="/forum" class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-left">
-              Bạn đang nghĩ gì?
-            </a>
+            <div class="flex gap-2 pt-3 border-t border-gray-200">
+              <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                <i class="fas fa-image text-green-600"></i>
+                <span class="font-medium text-sm">Ảnh/Video</span>
+              </a>
+              <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                <i class="fas fa-smile text-yellow-500"></i>
+                <span class="font-medium text-sm">Cảm xúc</span>
+              </a>
+            </div>
           </div>
-          <div class="flex gap-2 pt-3 border-t border-gray-200">
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-              <i class="fas fa-image text-green-600"></i>
-              <span class="font-medium text-sm">Ảnh/Video</span>
-            </a>
-            <a href="/forum" class="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-              <i class="fas fa-smile text-yellow-500"></i>
-              <span class="font-medium text-sm">Cảm xúc</span>
-            </a>
+          
+          <!-- Posts List -->
+          <div id="user-posts-container">
+            <div class="flex justify-center py-8">
+              <div class="loading-spinner"></div>
+            </div>
           </div>
         </div>
         
-        <!-- Posts List -->
-        <div id="user-posts-container">
-          <!-- Loading spinner -->
-          <div class="flex justify-center py-8">
-            <div class="loading-spinner"></div>
+        <!-- Photos Section (hidden by default) -->
+        <div id="photos-section" class="hidden">
+          <div class="bg-white rounded-xl shadow p-4">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-bold text-gray-900">Ảnh</h2>
+              <button onclick="openUploadPhotoModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i class="fas fa-upload"></i> Tải ảnh lên
+              </button>
+            </div>
+            <div id="photos-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div class="col-span-full flex justify-center py-8">
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Friends Section (hidden by default) -->
+        <div id="friends-section" class="hidden">
+          <div class="bg-white rounded-xl shadow p-4">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-bold text-gray-900">Bạn bè (<span class="friends-count">0</span>)</h2>
+              <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                <i class="fas fa-search"></i> Tìm kiếm
+              </button>
+            </div>
+            <div id="friends-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div class="col-span-full flex justify-center py-8">
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Intro Section (hidden by default) -->
+        <div id="intro-section" class="hidden">
+          <div class="bg-white rounded-xl shadow p-4">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Giới thiệu</h2>
+            
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tiểu sử</label>
+                <p id="bio-detail" class="text-gray-600 p-3 bg-gray-50 rounded-lg">Chưa có thông tin</p>
+              </div>
+              
+              <div class="border-t border-gray-200 pt-4">
+                <h3 class="font-semibold mb-3">Thông tin liên hệ</h3>
+                <div class="space-y-3">
+                  <div class="flex items-center gap-3">
+                    <i class="fas fa-envelope w-6 text-gray-400"></i>
+                    <span id="email-detail" class="text-gray-700">-</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <i class="fas fa-calendar-alt w-6 text-gray-400"></i>
+                    <span>Tham gia <span id="joined-detail">-</span></span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <i class="fas fa-clock w-6 text-gray-400"></i>
+                    <span>Hoạt động <span id="active-detail">-</span></span>
+                  </div>
+                </div>
+              </div>
+              
+              <button onclick="openEditProfileModal()" class="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i class="fas fa-edit"></i> Chỉnh sửa giới thiệu
+              </button>
+            </div>
           </div>
         </div>
         
@@ -463,6 +599,20 @@
   <script>
     let cropper = null;
     let currentUserId = null;
+    let profileUserId = null;
+    let isOwnProfile = false;
+    let currentFriendRequestId = null;
+    
+    // Get user ID from URL if present
+    function getProfileUserId() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const userIdParam = urlParams.get('user_id');
+      
+      // Check if URL is /profile/123 format
+      const pathMatch = window.location.pathname.match(/\/profile\/(\d+)/);
+      
+      return userIdParam || (pathMatch ? pathMatch[1] : null);
+    }
     
     // Show alert message
     function showAlert(message, type = 'error', elementId = 'alert-message') {
@@ -526,6 +676,12 @@
       document.getElementById('settings-menu').classList.add('hidden');
     }
     
+    // Upload photo modal placeholder
+    function openUploadPhotoModal() {
+      alert('Tính năng tải ảnh lên đang được phát triển. Hiện tại bạn có thể thêm ảnh từ URL trong forum.');
+      window.location.href = '/forum';
+    }
+    
     // Logout
     function logout() {
       if (confirm('Bạn có chắc muốn đăng xuất?')) {
@@ -536,59 +692,377 @@
     // Load user profile
     async function loadProfile() {
       try {
-        const response = await fetch('/api/auth/profile');
-        const data = await response.json();
+        // Get current user (logged in user)
+        const currentUserResponse = await fetch('/api/auth/profile');
+        const currentUserData = await currentUserResponse.json();
         
-        if (data.success && data.user) {
-          currentUserId = data.user.id;
-          const userName = data.user.name || data.user.email.split('@')[0];
-          
-          // Update name and email in multiple places
-          document.getElementById('profile-name').textContent = userName;
-          document.getElementById('profile-email').textContent = data.user.email;
-          document.getElementById('profile-email-sidebar').textContent = data.user.email;
-          document.getElementById('name').value = data.user.name || '';
-          
-          // Update dates
-          document.getElementById('created-at').textContent = data.user.created_at ? new Date(data.user.created_at).toLocaleDateString('vi-VN') : '-';
-          document.getElementById('last-login').textContent = data.user.last_login ? new Date(data.user.last_login).toLocaleDateString('vi-VN') : '-';
-          
-          // Load avatar
-          const updateAvatar = (elementId, size = 'large') => {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            if (data.user.avatar_url) {
-              element.innerHTML = `<img src="${data.user.avatar_url}" class="w-full h-full rounded-full object-cover" />`;
-            } else {
-              const firstLetter = userName.charAt(0).toUpperCase();
-              element.innerHTML = firstLetter;
-              element.classList.add('bg-green-600', 'text-white', 'flex', 'items-center', 'justify-center', 'font-bold');
-            }
-          };
-          
-          if (data.user.avatar_url) {
-            document.getElementById('profile-avatar').src = data.user.avatar_url;
-            document.getElementById('profile-avatar').style.display = 'block';
-            document.getElementById('avatar-placeholder').style.display = 'none';
-          } else {
-            const firstLetter = userName.charAt(0).toUpperCase();
-            document.getElementById('avatar-placeholder').textContent = firstLetter;
-            document.getElementById('profile-avatar').style.display = 'none';
-            document.getElementById('avatar-placeholder').style.display = 'flex';
-          }
-          
-          updateAvatar('small-avatar');
-          
-          // Load user posts
-          loadUserPosts(data.user.id);
-        } else {
+        if (!currentUserData.success || !currentUserData.user) {
           window.location.href = '/login';
+          return;
         }
+        
+        currentUserId = currentUserData.user.id;
+        
+        // Get profile user ID from URL or use current user
+        profileUserId = getProfileUserId() || currentUserId;
+        
+        // Fetch profile data
+        const profileResponse = await fetch(`/api/profile/user/${profileUserId}`);
+        const profileData = await profileResponse.json();
+        
+        if (!profileData.success) {
+          showAlert('Không tìm thấy người dùng', 'error');
+          return;
+        }
+        
+        const user = profileData.user;
+        isOwnProfile = profileData.is_own_profile;
+        
+        // Update UI based on ownership
+        updateProfileUI(user, profileData);
+        
+        // Load posts
+        loadUserPosts(profileUserId);
+        
       } catch (error) {
+        console.error('Error loading profile:', error);
         window.location.href = '/login';
       }
     }
+    
+    function updateProfileUI(user, profileData) {
+      const userName = user.name || user.email.split('@')[0];
+      
+      // Update name and email
+      document.getElementById('profile-name').textContent = userName;
+      document.getElementById('profile-email').textContent = user.email;
+      document.getElementById('profile-email-sidebar').textContent = user.email;
+      
+      // Update stats
+      document.getElementById('posts-count').textContent = user.posts_count || 0;
+      document.querySelectorAll('.friends-count').forEach(el => {
+        el.textContent = user.friends_count || 0;
+      });
+      document.getElementById('photos-count').textContent = user.photos_count || 0;
+      
+      // Update dates
+      document.getElementById('created-at').textContent = user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : '-';
+      document.getElementById('last-login').textContent = user.last_login ? new Date(user.last_login).toLocaleDateString('vi-VN') : '-';
+      
+      // Update intro section
+      if (document.getElementById('bio-detail')) {
+        document.getElementById('bio-detail').textContent = user.bio || 'Chưa có thông tin';
+      }
+      if (document.getElementById('email-detail')) {
+        document.getElementById('email-detail').textContent = user.email;
+      }
+      if (document.getElementById('joined-detail')) {
+        document.getElementById('joined-detail').textContent = user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : '-';
+      }
+      if (document.getElementById('active-detail')) {
+        document.getElementById('active-detail').textContent = user.last_login ? new Date(user.last_login).toLocaleDateString('vi-VN') : '-';
+      }
+      
+      // Update avatar
+      if (user.avatar_url) {
+        document.getElementById('profile-avatar').src = user.avatar_url;
+        document.getElementById('profile-avatar').style.display = 'block';
+        document.getElementById('avatar-placeholder').style.display = 'none';
+      } else {
+        const firstLetter = userName.charAt(0).toUpperCase();
+        document.getElementById('avatar-placeholder').textContent = firstLetter;
+        document.getElementById('profile-avatar').style.display = 'none';
+        document.getElementById('avatar-placeholder').style.display = 'flex';
+      }
+      
+      // Update small avatar
+      const smallAvatar = document.getElementById('small-avatar');
+      if (user.avatar_url) {
+        smallAvatar.innerHTML = `<img src="${user.avatar_url}" class="w-full h-full rounded-full object-cover" />`;
+      } else {
+        const firstLetter = userName.charAt(0).toUpperCase();
+        smallAvatar.innerHTML = firstLetter;
+        smallAvatar.classList.add('bg-green-600', 'text-white', 'flex', 'items-center', 'justify-center', 'font-bold');
+      }
+      
+      // Show/hide UI elements based on ownership
+      if (isOwnProfile) {
+        // Owner view
+        document.getElementById('owner-actions').style.display = 'block';
+        document.getElementById('visitor-actions').style.display = 'none';
+        document.getElementById('avatar-edit-btn').style.display = 'flex';
+        document.getElementById('name').value = user.name || '';
+        
+        // Enable edit buttons in sidebar
+        const editButtons = document.querySelectorAll('button[onclick="openEditProfileModal()"]');
+        editButtons.forEach(btn => btn.style.display = 'block');
+        
+      } else {
+        // Visitor view
+        document.getElementById('owner-actions').style.display = 'none';
+        document.getElementById('visitor-actions').style.display = 'flex';
+        document.getElementById('avatar-edit-btn').style.display = 'none';
+        
+        // Hide edit buttons
+        const editButtons = document.querySelectorAll('button[onclick="openEditProfileModal()"]');
+        editButtons.forEach(btn => btn.style.display = 'none');
+        
+        // Update friend buttons based on status
+        updateFriendButtons(profileData);
+      }
+      
+      // Update page title
+      document.title = `${userName} - AgriSense AI`;
+    }
+    
+    function updateFriendButtons(profileData) {
+      const addFriendBtn = document.getElementById('add-friend-btn');
+      const requestSentBtn = document.getElementById('request-sent-btn');
+      const requestReceivedBtns = document.getElementById('request-received-btns');
+      const friendsBtn = document.getElementById('friends-btn');
+      
+      // Hide all buttons first
+      addFriendBtn.classList.add('hidden');
+      requestSentBtn.classList.add('hidden');
+      requestReceivedBtns.classList.add('hidden');
+      friendsBtn.classList.add('hidden');
+      
+      currentFriendRequestId = profileData.friend_request_id;
+      
+      if (profileData.is_friend) {
+        // Already friends
+        friendsBtn.classList.remove('hidden');
+      } else if (profileData.friendship_status === 'pending_sent') {
+        // Current user sent request
+        requestSentBtn.classList.remove('hidden');
+      } else if (profileData.friendship_status === 'pending_received') {
+        // Profile user sent request to current user
+        requestReceivedBtns.classList.remove('hidden');
+      } else {
+        // No friendship
+        addFriendBtn.classList.remove('hidden');
+      }
+    }
+    
+    // Friend request functions
+    async function sendFriendRequest() {
+      try {
+        const response = await fetch('/api/profile/friends/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ friend_id: profileUserId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Đã gửi lời mời kết bạn', 'success');
+          loadProfile(); // Reload to update buttons
+        } else {
+          showAlert(data.message || 'Không thể gửi lời mời', 'error');
+        }
+      } catch (error) {
+        console.error('Error sending friend request:', error);
+        showAlert('Lỗi kết nối', 'error');
+      }
+    }
+    
+    async function cancelFriendRequest() {
+      if (!confirm('Hủy lời mời kết bạn?')) return;
+      
+      try {
+        const response = await fetch(`/api/profile/friends/reject/${currentFriendRequestId}`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Đã hủy lời mời', 'success');
+          loadProfile();
+        }
+      } catch (error) {
+        console.error('Error canceling request:', error);
+      }
+    }
+    
+    async function acceptFriendRequest() {
+      try {
+        const response = await fetch(`/api/profile/friends/accept/${currentFriendRequestId}`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Đã chấp nhận lời mời kết bạn', 'success');
+          loadProfile();
+          loadNotifications(); // Refresh notifications
+        }
+      } catch (error) {
+        console.error('Error accepting request:', error);
+      }
+    }
+    
+    async function rejectFriendRequest() {
+      if (!confirm('Từ chối lời mời kết bạn?')) return;
+      
+      try {
+        const response = await fetch(`/api/profile/friends/reject/${currentFriendRequestId}`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Đã từ chối lời mời', 'success');
+          loadProfile();
+          loadNotifications();
+        }
+      } catch (error) {
+        console.error('Error rejecting request:', error);
+      }
+    }
+    
+    async function removeFriend() {
+      if (!confirm('Hủy kết bạn với người này?')) return;
+      
+      try {
+        const response = await fetch(`/api/profile/friends/remove/${profileUserId}`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Đã hủy kết bạn', 'success');
+          loadProfile();
+        }
+      } catch (error) {
+        console.error('Error removing friend:', error);
+      }
+    }
+    
+    // Notifications
+    async function loadNotifications() {
+      try {
+        const response = await fetch('/api/profile/notifications');
+        const data = await response.json();
+        
+        if (data.success) {
+          displayNotifications(data.notifications);
+          
+          const badge = document.getElementById('notification-badge');
+          if (data.unread_count > 0) {
+            badge.textContent = data.unread_count;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+      }
+    }
+    
+    function displayNotifications(notifications) {
+      const container = document.getElementById('notifications-list');
+      
+      if (notifications.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8 text-sm">Không có thông báo mới</p>';
+        return;
+      }
+      
+      container.innerHTML = notifications.map(notif => {
+        const avatar = notif.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notif.user.name)}&background=16a34a&color=fff&size=40`;
+        const timeAgo = getTimeAgo(new Date(notif.created_at));
+        
+        return `
+          <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer" onclick="viewUserProfile(${notif.user.id})">
+            <div class="flex gap-3">
+              <img src="${avatar}" alt="${notif.user.name}" class="w-10 h-10 rounded-full flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm">
+                  <span class="font-semibold">${notif.user.name}</span>
+                  <span class="text-gray-600"> đã gửi lời mời kết bạn</span>
+                </p>
+                <p class="text-xs text-gray-500 mt-1">${timeAgo}</p>
+                <div class="flex gap-2 mt-2">
+                  <button onclick="event.stopPropagation(); acceptFriendRequestFromNotif(${notif.id})" class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                    Chấp nhận
+                  </button>
+                  <button onclick="event.stopPropagation(); rejectFriendRequestFromNotif(${notif.id})" class="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300">
+                    Từ chối
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function toggleNotifications() {
+      const dropdown = document.getElementById('notifications-dropdown');
+      dropdown.classList.toggle('hidden');
+      
+      if (!dropdown.classList.contains('hidden')) {
+        loadNotifications();
+      }
+    }
+    
+    function viewUserProfile(userId) {
+      window.location.href = `/profile/${userId}`;
+    }
+    
+    async function acceptFriendRequestFromNotif(requestId) {
+      try {
+        const response = await fetch(`/api/profile/friends/accept/${requestId}`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadNotifications();
+          showAlert('Đã chấp nhận lời mời kết bạn', 'success');
+        }
+      } catch (error) {
+        console.error('Error accepting request:', error);
+      }
+    }
+    
+    async function rejectFriendRequestFromNotif(requestId) {
+      try {
+        const response = await fetch(`/api/profile/friends/reject/${requestId}`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadNotifications();
+        }
+      } catch (error) {
+        console.error('Error rejecting request:', error);
+      }
+    }
+    
+    function markAllAsRead() {
+      // Placeholder - implement if you add read/unread status to notifications
+      document.getElementById('notification-badge').classList.add('hidden');
+      document.getElementById('notifications-dropdown').classList.add('hidden');
+    }
+    
+    // Close notifications when clicking outside
+    document.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('notifications-dropdown');
+      const notifBtn = e.target.closest('button[onclick="toggleNotifications()"]');
+      
+      if (!dropdown.contains(e.target) && !notifBtn) {
+        dropdown.classList.add('hidden');
+      }
+    });
     
     // Load user posts
     async function loadUserPosts(userId) {
@@ -647,17 +1121,23 @@
           <!-- Post Header -->
           <div class="p-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-              ${userAvatar}
+              <a href="/profile/${post.user_id}" class="hover:opacity-80 transition-opacity">
+                ${userAvatar}
+              </a>
               <div>
-                <h4 class="font-semibold text-gray-900">${escapeHtml(userName)}</h4>
+                <a href="/profile/${post.user_id}" class="hover:underline">
+                  <h4 class="font-semibold text-gray-900">${escapeHtml(userName)}</h4>
+                </a>
                 <p class="text-sm text-gray-500">
                   <i class="far fa-clock mr-1"></i>${getTimeAgo(post.created_at)}
                 </p>
               </div>
             </div>
-            <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors p-2">
-              <i class="fas fa-trash"></i>
-            </button>
+            ${isOwnProfile ? `
+              <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors p-2">
+                <i class="fas fa-trash"></i>
+              </button>
+            ` : ''}
           </div>
           
           <!-- Post Content -->
@@ -980,7 +1460,13 @@
     });
     
     // Load profile on page load
-    loadProfile();
+    document.addEventListener('DOMContentLoaded', function() {
+      loadProfile();
+      loadNotifications();
+      
+      // Refresh notifications every 30 seconds
+      setInterval(loadNotifications, 30000);
+    });
   </script>
   
 </body>

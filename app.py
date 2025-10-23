@@ -4011,10 +4011,149 @@ def otp():
 
 
 @app.route('/profile')
+@app.route('/profile/<int:user_id>')
 @auth.login_required
-def profile():
+def profile(user_id=None):
     """Trang hồ sơ người dùng"""
     return send_from_directory(HERE, 'profile.html')
+
+
+@app.route('/api/profile/user/<int:user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    """Get public profile information for a user"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get user info
+        cursor.execute('''
+            SELECT u.id, u.name, u.email, u.avatar_url, u.created_at, u.last_login,
+                   p.bio, p.cover_photo_url
+            FROM users u
+            LEFT JOIN user_profiles p ON u.id = p.user_id
+            WHERE u.id = ?
+        ''', (user_id,))
+        
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'success': False, 'message': 'Không tìm thấy người dùng'}), 404
+        
+        # Get posts count
+        cursor.execute('SELECT COUNT(*) FROM forum_posts WHERE user_id = ?', (user_id,))
+        posts_count = cursor.fetchone()[0]
+        
+        # Get friends count
+        cursor.execute('''
+            SELECT COUNT(*) FROM friendships 
+            WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'
+        ''', (user_id, user_id))
+        friends_count = cursor.fetchone()[0]
+        
+        # Get photos count
+        cursor.execute('SELECT COUNT(*) FROM user_photos WHERE user_id = ?', (user_id,))
+        photos_count = cursor.fetchone()[0]
+        
+        # Check friendship status with current user (if logged in)
+        friendship_status = None
+        is_friend = False
+        friend_request_id = None
+        
+        if 'user_id' in session:
+            current_user_id = session['user_id']
+            
+            if current_user_id != user_id:
+                cursor.execute('''
+                    SELECT id, status, user_id FROM friendships
+                    WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)
+                ''', (current_user_id, user_id, user_id, current_user_id))
+                
+                friendship = cursor.fetchone()
+                if friendship:
+                    friend_request_id = friendship[0]
+                    friendship_status = friendship[1]
+                    request_sender_id = friendship[2]
+                    
+                    if friendship_status == 'accepted':
+                        is_friend = True
+                    elif friendship_status == 'pending':
+                        # Check if current user is the one who sent the request
+                        if request_sender_id == current_user_id:
+                            friendship_status = 'pending_sent'
+                        else:
+                            friendship_status = 'pending_received'
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': row[0],
+                'name': row[1],
+                'email': row[2],
+                'avatar_url': row[3],
+                'created_at': row[4],
+                'last_login': row[5],
+                'bio': row[6],
+                'cover_photo_url': row[7],
+                'posts_count': posts_count,
+                'friends_count': friends_count,
+                'photos_count': photos_count
+            },
+            'friendship_status': friendship_status,
+            'is_friend': is_friend,
+            'friend_request_id': friend_request_id,
+            'is_own_profile': 'user_id' in session and session['user_id'] == user_id
+        })
+    except Exception as e:
+        logging.error(f"Error getting user profile: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/notifications', methods=['GET'])
+def get_notifications():
+    """Get friend request notifications for current user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get pending friend requests
+        cursor.execute('''
+            SELECT 
+                f.id, f.created_at,
+                u.id as user_id, u.name, u.email, u.avatar_url
+            FROM friendships f
+            JOIN users u ON f.user_id = u.id
+            WHERE f.friend_id = ? AND f.status = 'pending'
+            ORDER BY f.created_at DESC
+        ''', (session['user_id'],))
+        
+        notifications = []
+        for row in cursor.fetchall():
+            notifications.append({
+                'id': row[0],
+                'type': 'friend_request',
+                'created_at': row[1],
+                'user': {
+                    'id': row[2],
+                    'name': row[3],
+                    'email': row[4],
+                    'avatar_url': row[5]
+                }
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications,
+            'unread_count': len(notifications)
+        })
+    except Exception as e:
+        logging.error(f"Error getting notifications: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # ==================== AUTHENTICATION API ROUTES ====================
@@ -4755,6 +4894,536 @@ def delete_forum_comment(post_id, comment_id):
         })
     except Exception as e:
         logging.error(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ==================== PROFILE & PHOTOS API ====================
+
+@app.route('/api/profile/update-cover', methods=['POST'])
+def update_cover_photo():
+    """Update user's cover photo"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        cover_url = data.get('cover_url', '').strip()
+        
+        if not cover_url:
+            return jsonify({'success': False, 'message': 'URL ảnh không hợp lệ'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update or insert cover photo
+        cursor.execute('''
+            INSERT INTO user_profiles (user_id, cover_photo_url)
+            VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET cover_photo_url = ?
+        ''', (session['user_id'], cover_url, cover_url))
+        
+        # Save to photos table
+        cursor.execute('''
+            INSERT INTO user_photos (user_id, photo_url, photo_type, caption)
+            VALUES (?, ?, 'cover', 'Ảnh bìa')
+        ''', (session['user_id'], cover_url))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Cập nhật ảnh bìa thành công'})
+    except Exception as e:
+        logging.error(f"Error updating cover photo: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/photos', methods=['GET'])
+def get_user_photos():
+    """Get user's photos"""
+    try:
+        user_id = request.args.get('user_id', session.get('user_id'))
+        if not user_id:
+            return jsonify({'success': False, 'message': 'User ID required'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                p.id, p.photo_url, p.photo_type, p.caption, p.created_at,
+                u.name, u.email, u.avatar_url,
+                (SELECT COUNT(*) FROM photo_likes WHERE photo_id = p.id) as likes_count,
+                (SELECT COUNT(*) FROM photo_comments WHERE photo_id = p.id) as comments_count,
+                (SELECT COUNT(*) > 0 FROM photo_likes WHERE photo_id = p.id AND user_id = ?) as user_liked
+            FROM user_photos p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = ?
+            ORDER BY p.created_at DESC
+        ''', (session.get('user_id', 0), user_id))
+        
+        photos = []
+        for row in cursor.fetchall():
+            photos.append({
+                'id': row[0],
+                'photo_url': row[1],
+                'photo_type': row[2],
+                'caption': row[3],
+                'created_at': row[4],
+                'user_name': row[5],
+                'user_email': row[6],
+                'user_avatar': row[7],
+                'likes_count': row[8],
+                'comments_count': row[9],
+                'user_liked': bool(row[10])
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'photos': photos})
+    except Exception as e:
+        logging.error(f"Error getting photos: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/photos', methods=['POST'])
+def upload_photo():
+    """Upload a new photo"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        photo_url = data.get('photo_url', '').strip()
+        caption = data.get('caption', '').strip()
+        photo_type = data.get('photo_type', 'album')
+        
+        if not photo_url:
+            return jsonify({'success': False, 'message': 'URL ảnh không hợp lệ'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO user_photos (user_id, photo_url, photo_type, caption)
+            VALUES (?, ?, ?, ?)
+        ''', (session['user_id'], photo_url, photo_type, caption))
+        
+        photo_id = cursor.lastrowid
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Tải ảnh lên thành công',
+            'photo_id': photo_id
+        })
+    except Exception as e:
+        logging.error(f"Error uploading photo: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/photos/<int:photo_id>', methods=['DELETE'])
+def delete_photo(photo_id):
+    """Delete a photo"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT user_id FROM user_photos WHERE id = ?', (photo_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'success': False, 'message': 'Không tìm thấy ảnh'}), 404
+        
+        if row[0] != session['user_id']:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa ảnh này'}), 403
+        
+        cursor.execute('DELETE FROM photo_likes WHERE photo_id = ?', (photo_id,))
+        cursor.execute('DELETE FROM photo_comments WHERE photo_id = ?', (photo_id,))
+        cursor.execute('DELETE FROM user_photos WHERE id = ?', (photo_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Xóa ảnh thành công'})
+    except Exception as e:
+        logging.error(f"Error deleting photo: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/photos/<int:photo_id>/like', methods=['POST'])
+def toggle_photo_like(photo_id):
+    """Toggle like on a photo"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id FROM photo_likes 
+            WHERE photo_id = ? AND user_id = ?
+        ''', (photo_id, session['user_id']))
+        
+        existing_like = cursor.fetchone()
+        
+        if existing_like:
+            cursor.execute('''
+                DELETE FROM photo_likes 
+                WHERE photo_id = ? AND user_id = ?
+            ''', (photo_id, session['user_id']))
+            action = 'unliked'
+        else:
+            cursor.execute('''
+                INSERT INTO photo_likes (photo_id, user_id, created_at)
+                VALUES (?, ?, datetime('now'))
+            ''', (photo_id, session['user_id']))
+            action = 'liked'
+        
+        cursor.execute('SELECT COUNT(*) FROM photo_likes WHERE photo_id = ?', (photo_id,))
+        likes_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'action': action,
+            'likes_count': likes_count
+        })
+    except Exception as e:
+        logging.error(f"Error toggling photo like: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/photos/<int:photo_id>/comments', methods=['GET'])
+def get_photo_comments(photo_id):
+    """Get comments for a photo"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                c.id, c.content, c.created_at,
+                u.id as user_id, u.name, u.email, u.avatar_url
+            FROM photo_comments c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.photo_id = ?
+            ORDER BY c.created_at ASC
+        ''', (photo_id,))
+        
+        comments = []
+        for row in cursor.fetchall():
+            comments.append({
+                'id': row[0],
+                'content': row[1],
+                'created_at': row[2],
+                'user_id': row[3],
+                'user_name': row[4],
+                'user_email': row[5],
+                'user_avatar': row[6]
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'comments': comments})
+    except Exception as e:
+        logging.error(f"Error getting photo comments: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/photos/<int:photo_id>/comments', methods=['POST'])
+def create_photo_comment(photo_id):
+    """Create a comment on a photo"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO photo_comments (photo_id, user_id, content, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+        ''', (photo_id, session['user_id'], content))
+        
+        comment_id = cursor.lastrowid
+        
+        cursor.execute('SELECT COUNT(*) FROM photo_comments WHERE photo_id = ?', (photo_id,))
+        comments_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'comment_id': comment_id,
+            'comments_count': comments_count
+        })
+    except Exception as e:
+        logging.error(f"Error creating photo comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/photos/<int:photo_id>/comments/<int:comment_id>', methods=['DELETE'])
+def delete_photo_comment(photo_id, comment_id):
+    """Delete a comment on a photo"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT user_id FROM photo_comments WHERE id = ?', (comment_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'success': False, 'message': 'Không tìm thấy bình luận'}), 404
+        
+        if row[0] != session['user_id']:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa bình luận này'}), 403
+        
+        cursor.execute('DELETE FROM photo_comments WHERE id = ?', (comment_id,))
+        
+        cursor.execute('SELECT COUNT(*) FROM photo_comments WHERE photo_id = ?', (photo_id,))
+        comments_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Xóa bình luận thành công',
+            'comments_count': comments_count
+        })
+    except Exception as e:
+        logging.error(f"Error deleting photo comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ==================== FRIENDS API ====================
+
+@app.route('/api/profile/friends', methods=['GET'])
+def get_friends():
+    """Get user's friends"""
+    try:
+        user_id = request.args.get('user_id', session.get('user_id'))
+        if not user_id:
+            return jsonify({'success': False, 'message': 'User ID required'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                u.id, u.name, u.email, u.avatar_url,
+                f.status, f.created_at
+            FROM friendships f
+            JOIN users u ON (
+                CASE 
+                    WHEN f.user_id = ? THEN u.id = f.friend_id
+                    ELSE u.id = f.user_id
+                END
+            )
+            WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted'
+            ORDER BY u.name ASC
+        ''', (user_id, user_id, user_id))
+        
+        friends = []
+        for row in cursor.fetchall():
+            friends.append({
+                'id': row[0],
+                'name': row[1],
+                'email': row[2],
+                'avatar_url': row[3],
+                'status': row[4],
+                'friend_since': row[5]
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'friends': friends, 'count': len(friends)})
+    except Exception as e:
+        logging.error(f"Error getting friends: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/friends/requests', methods=['GET'])
+def get_friend_requests():
+    """Get pending friend requests"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                f.id, u.id as user_id, u.name, u.email, u.avatar_url, f.created_at
+            FROM friendships f
+            JOIN users u ON f.user_id = u.id
+            WHERE f.friend_id = ? AND f.status = 'pending'
+            ORDER BY f.created_at DESC
+        ''', (session['user_id'],))
+        
+        requests = []
+        for row in cursor.fetchall():
+            requests.append({
+                'request_id': row[0],
+                'user_id': row[1],
+                'name': row[2],
+                'email': row[3],
+                'avatar_url': row[4],
+                'created_at': row[5]
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'requests': requests, 'count': len(requests)})
+    except Exception as e:
+        logging.error(f"Error getting friend requests: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/friends/add', methods=['POST'])
+def send_friend_request():
+    """Send a friend request"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        friend_id = data.get('friend_id')
+        
+        if not friend_id or friend_id == session['user_id']:
+            return jsonify({'success': False, 'message': 'ID người dùng không hợp lệ'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, status FROM friendships
+            WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)
+        ''', (session['user_id'], friend_id, friend_id, session['user_id']))
+        
+        existing = cursor.fetchone()
+        if existing:
+            return jsonify({'success': False, 'message': 'Đã gửi lời mời kết bạn hoặc đã là bạn bè'}), 400
+        
+        cursor.execute('''
+            INSERT INTO friendships (user_id, friend_id, status, created_at)
+            VALUES (?, ?, 'pending', datetime('now'))
+        ''', (session['user_id'], friend_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Đã gửi lời mời kết bạn'})
+    except Exception as e:
+        logging.error(f"Error sending friend request: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/friends/accept/<int:request_id>', methods=['POST'])
+def accept_friend_request(request_id):
+    """Accept a friend request"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT user_id, friend_id FROM friendships
+            WHERE id = ? AND friend_id = ? AND status = 'pending'
+        ''', (request_id, session['user_id']))
+        
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'success': False, 'message': 'Không tìm thấy lời mời'}), 404
+        
+        cursor.execute('''
+            UPDATE friendships SET status = 'accepted' WHERE id = ?
+        ''', (request_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Đã chấp nhận lời mời kết bạn'})
+    except Exception as e:
+        logging.error(f"Error accepting friend request: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/friends/reject/<int:request_id>', methods=['POST'])
+def reject_friend_request(request_id):
+    """Reject a friend request"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id FROM friendships
+            WHERE id = ? AND friend_id = ? AND status = 'pending'
+        ''', (request_id, session['user_id']))
+        
+        if not cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Không tìm thấy lời mời'}), 404
+        
+        cursor.execute('DELETE FROM friendships WHERE id = ?', (request_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Đã từ chối lời mời kết bạn'})
+    except Exception as e:
+        logging.error(f"Error rejecting friend request: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/profile/friends/remove/<int:friend_id>', methods=['POST'])
+def remove_friend(friend_id):
+    """Remove a friend"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            DELETE FROM friendships
+            WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+            AND status = 'accepted'
+        ''', (session['user_id'], friend_id, friend_id, session['user_id']))
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Không tìm thấy bạn bè'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Đã hủy kết bạn'})
+    except Exception as e:
+        logging.error(f"Error removing friend: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

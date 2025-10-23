@@ -4078,6 +4078,13 @@ def get_user_profile(identifier):
         user_bio = row[7]
         user_cover_photo = row[8]
         
+        # Sync user photos (background task - non-blocking)
+        try:
+            sync_user_photos(user_id, cursor)
+            conn.commit()
+        except Exception as e:
+            logging.error(f"Error syncing photos in get_user_profile: {e}")
+        
         # Get posts count
         cursor.execute('SELECT COUNT(*) FROM forum_posts WHERE user_id = ?', (user_id,))
         posts_count = cursor.fetchone()[0]
@@ -5240,6 +5247,33 @@ def update_cover_photo():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/profile/sync-photos', methods=['POST'])
+def sync_photos_endpoint():
+    """Sync user photos from avatar and forum posts - called when viewing photos tab"""
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'message': 'User ID required'}), 400
+        
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Invalid user ID'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Sync photos from avatar and forum posts
+        sync_user_photos(user_id, cursor)
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Photos synced'})
+    except Exception as e:
+        logging.error(f"Error syncing photos: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/profile/photos', methods=['GET'])
 def get_user_photos():
     """Get user's photos - automatically collects from avatar, forum posts, etc."""
@@ -5260,9 +5294,8 @@ def get_user_photos():
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        # First, sync photos from various sources
-        sync_user_photos(user_id, cursor)
-        conn.commit()
+        # DON'T sync here - just get existing photos (sync happens on other endpoints)
+        # This prevents blocking the photo load request
         
         # Get limit parameter if provided
         limit = request.args.get('limit')
@@ -5271,7 +5304,7 @@ def get_user_photos():
         cursor.execute(f'''
             SELECT 
                 p.id, p.photo_url, p.photo_type, p.caption, p.created_at,
-                u.name, u.email, u.avatar_url,
+                u.name, u.email, u.avatar_url, p.user_id,
                 (SELECT COUNT(*) FROM photo_likes WHERE photo_id = p.id) as likes_count,
                 (SELECT COUNT(*) FROM photo_comments WHERE photo_id = p.id) as comments_count,
                 (SELECT COUNT(*) > 0 FROM photo_likes WHERE photo_id = p.id AND user_id = ?) as user_liked
@@ -5293,9 +5326,10 @@ def get_user_photos():
                 'user_name': row[5],
                 'user_email': row[6],
                 'user_avatar': row[7],
-                'likes_count': row[8],
-                'comments_count': row[9],
-                'user_liked': bool(row[10])
+                'user_id': row[8],
+                'likes_count': row[9],
+                'comments_count': row[10],
+                'user_liked': bool(row[11])
             })
         
         logging.info(f"get_user_photos: Returning {len(photos)} photos for user_id={user_id}")

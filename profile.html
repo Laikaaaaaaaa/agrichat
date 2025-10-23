@@ -2120,8 +2120,14 @@
           return;
         }
         
-        console.log('loadAllPhotos called');
-        console.log('profileUserId at loadAllPhotos:', profileUserId);
+        console.log('loadAllPhotos called for user:', profileUserId);
+        
+        // First, trigger sync on backend (non-blocking)
+        try {
+          await fetch(`/api/profile/sync-photos?user_id=${profileUserId}`, { method: 'POST' });
+        } catch (e) {
+          console.warn('Sync photos request failed (non-blocking):', e);
+        }
         
         const url = `/api/profile/photos?user_id=${profileUserId}&t=${Date.now()}`;
         console.log('loadAllPhotos API URL:', url);

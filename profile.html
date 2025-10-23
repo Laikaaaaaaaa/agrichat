@@ -2107,6 +2107,12 @@
       photosGrid.innerHTML = '<div class="col-span-full flex justify-center py-8"><div class="loading-spinner"></div></div>';
       
       try {
+        if (!profileUserId) {
+          console.error('ERROR: profileUserId is null/undefined in loadAllPhotos!');
+          photosGrid.innerHTML = '<div class="col-span-full text-center text-gray-500">Không thể tải ảnh</div>';
+          return;
+        }
+        
         console.log('loadAllPhotos called');
         console.log('profileUserId at loadAllPhotos:', profileUserId);
         console.log('currentUserId:', currentUserId);

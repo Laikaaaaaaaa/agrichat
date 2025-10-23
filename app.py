@@ -5244,7 +5244,8 @@ def update_cover_photo():
 def get_user_photos():
     """Get user's photos - automatically collects from avatar, forum posts, etc."""
     try:
-        user_id = request.args.get('user_id', session.get('user_id'))
+        # MUST have user_id param - no fallback to current user!
+        user_id = request.args.get('user_id')
         if not user_id:
             return jsonify({'success': False, 'message': 'User ID required'}), 400
         

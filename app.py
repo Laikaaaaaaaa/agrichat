@@ -4739,6 +4739,7 @@ def get_forum_posts():
                 'user_liked': False,
                 'user_voted': False,
                 'user_voted_option': None,
+                'user_voted_options': [],  # Array of all voted options
                 'poll_vote_counts': []
             }
             
@@ -4750,16 +4751,18 @@ def get_forum_posts():
                 ''', (post['id'], session['user_id']))
                 post['user_liked'] = cursor.fetchone() is not None
                 
-                # Check if user voted on poll
+                # Check if user voted on poll (get all voted options)
                 if post['poll']:
                     cursor.execute('''
                         SELECT option_index FROM forum_poll_votes 
                         WHERE post_id = ? AND user_id = ?
                     ''', (post['id'], session['user_id']))
-                    vote_row = cursor.fetchone()
-                    if vote_row:
+                    vote_rows = cursor.fetchall()
+                    if vote_rows:
                         post['user_voted'] = True
-                        post['user_voted_option'] = vote_row[0]
+                        post['user_voted_options'] = [row[0] for row in vote_rows]
+                        # Keep backward compatibility - set first option as user_voted_option
+                        post['user_voted_option'] = vote_rows[0][0]
             
             # Get poll vote counts
             if post['poll']:
@@ -4984,8 +4987,16 @@ def submit_poll_vote(post_id):
     try:
         data = request.get_json()
         option_index = data.get('option_index')
+        option_indices = data.get('option_indices', [])
         
-        if option_index is None:
+        # Handle both single and multiple selections
+        if option_indices:
+            # Multiple selections
+            indices_to_save = option_indices if isinstance(option_indices, list) else [option_indices]
+        elif option_index is not None:
+            # Single selection (backward compatibility)
+            indices_to_save = [option_index] if not isinstance(option_index, list) else option_index
+        else:
             return jsonify({'success': False, 'message': 'Lựa chọn không hợp lệ'}), 400
         
         conn = auth.get_db_connection()
@@ -5007,11 +5018,12 @@ def submit_poll_vote(post_id):
         if cursor.fetchone():
             return jsonify({'success': False, 'message': 'Bạn đã bầu chọn cho khảo sát này rồi'}), 400
         
-        # Record the vote
-        cursor.execute('''
-            INSERT INTO forum_poll_votes (post_id, user_id, option_index, created_at)
-            VALUES (?, ?, ?, datetime('now'))
-        ''', (post_id, session['user_id'], option_index))
+        # Record the vote(s) - one row per selected option
+        for idx in indices_to_save:
+            cursor.execute('''
+                INSERT INTO forum_poll_votes (post_id, user_id, option_index, created_at)
+                VALUES (?, ?, ?, datetime('now'))
+            ''', (post_id, session['user_id'], int(idx)))
         
         conn.commit()
         conn.close()

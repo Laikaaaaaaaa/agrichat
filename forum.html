@@ -708,14 +708,18 @@
       // Poll HTML
       const pollHTML = post.poll && post.poll.options && post.poll.options.length > 0
         ? `<div class="bg-blue-50 rounded-lg p-3 sm:p-4 mb-3 border border-blue-200">
-            <p class="text-sm font-semibold text-blue-700 mb-3">📊 ${escapeHtml(post.poll.question || 'Khảo sát')} (Tổng: ${post.total_poll_votes || 0} phiếu)</p>
+            <p class="text-sm font-semibold text-blue-700 mb-3">📊 ${escapeHtml(post.poll.question || 'Khảo sát')} ${post.poll.allowMultiple ? '<span class="text-xs font-normal">(Chọn nhiều câu trả lời)</span>' : ''} (Tổng: ${post.total_poll_votes || 0} phiếu)</p>
             <div class="space-y-2">
               ${post.poll.options.map((option, idx) => {
                 const voteData = post.poll_vote_counts[idx] || {count: 0, percentage: 0};
-                const isUserVoted = post.user_voted && post.user_voted_option === idx;
+                // Check if this option was voted by current user
+                const isUserVoted = post.user_voted && (
+                  post.user_voted_options ? post.user_voted_options.includes(idx) : post.user_voted_option === idx
+                );
+                const inputType = post.poll.allowMultiple ? 'checkbox' : 'radio';
                 return `
                 <div class="flex items-center gap-2">
-                  <input type="radio" name="poll_${post.id}" value="${idx}" id="poll_${post.id}_${idx}" class="cursor-pointer" ${post.user_voted ? 'disabled' : ''} ${isUserVoted ? 'checked' : ''} />
+                  <input type="${inputType}" name="poll_${post.id}" value="${idx}" id="poll_${post.id}_${idx}" class="cursor-pointer" ${post.user_voted ? 'disabled' : ''} ${isUserVoted ? 'checked' : ''} />
                   <label for="poll_${post.id}_${idx}" class="flex-1 py-2 px-3 bg-white rounded border ${isUserVoted ? 'border-green-500 bg-green-50' : 'border-blue-200'} text-sm text-gray-700 cursor-pointer hover:bg-blue-50 transition-colors">
                     <div class="flex items-center justify-between">
                       <span>${escapeHtml(option)} ${isUserVoted ? '✓' : ''}</span>
@@ -1311,20 +1315,24 @@
     
     // Submit poll vote
     async function submitPollVote(postId) {
-      const selectedOption = document.querySelector(`input[name="poll_${postId}"]:checked`);
+      const selectedOptions = document.querySelectorAll(`input[name="poll_${postId}"]:checked`);
       
-      if (!selectedOption) {
-        alert('Vui lòng chọn một lựa chọn');
+      if (selectedOptions.length === 0) {
+        alert('Vui lòng chọn ít nhất một lựa chọn');
         return;
       }
       
-      const optionIndex = parseInt(selectedOption.value);
+      // Get all selected option indices
+      const optionIndices = Array.from(selectedOptions).map(option => parseInt(option.value));
       
       try {
         const response = await fetch(`/api/forum/posts/${postId}/poll/vote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ option_index: optionIndex })
+          body: JSON.stringify({ 
+            option_index: optionIndices.length === 1 ? optionIndices[0] : optionIndices,
+            option_indices: optionIndices  // Send array for backend compatibility
+          })
         });
         
         const data = await response.json();

@@ -2665,14 +2665,14 @@
       <!-- User Profile Section -->
       <div id="user-section" class="pb-4 border-b border-gray-200">
         <div id="user-avatar" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors" onclick="handleUserClick()">
-          <div class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+          <div class="w-10 h-10 flex-shrink-0 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold overflow-hidden">
             <i class="fas fa-user"></i>
           </div>
-          <div class="flex-1">
-            <p id="user-name" class="text-sm font-semibold text-gray-800">Đăng nhập</p>
-            <p id="user-status" class="text-xs text-gray-500">Để lưu lịch sử</p>
+          <div class="flex-1 min-w-0">
+            <p id="user-name" class="text-sm font-semibold text-gray-800 truncate">Đăng nhập</p>
+            <p id="user-status" class="text-xs text-gray-500 truncate">Để lưu lịch sử</p>
           </div>
-          <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+          <i class="fas fa-chevron-right text-gray-400 text-sm flex-shrink-0"></i>
         </div>
       </div>
       
@@ -3894,12 +3894,14 @@
             
             // Update avatar - use image if available, else first letter
             if (data.user.avatar_url) {
-              userAvatar.innerHTML = `<img src="${data.user.avatar_url}" alt="Avatar" class="w-full h-full rounded-full object-cover">`;
-              userAvatar.classList.remove('bg-green-600');
+              userAvatar.innerHTML = `<img src="${data.user.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
+              userAvatar.classList.remove('bg-green-600', 'text-white', 'font-semibold');
             } else {
               const firstLetter = userName.charAt(0).toUpperCase();
               userAvatar.innerHTML = firstLetter;
-              userAvatar.classList.add('bg-green-600');
+              if (!userAvatar.classList.contains('bg-green-600')) {
+                userAvatar.classList.add('bg-green-600', 'text-white', 'font-semibold');
+              }
             }
             
             // Update name and status

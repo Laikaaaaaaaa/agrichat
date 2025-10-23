@@ -155,7 +155,7 @@
   <div class="max-w-7xl mx-auto bg-white">
     
     <!-- Cover Background -->
-    <div class="h-64 md:h-80 bg-gradient-to-r from-green-400 to-green-600 relative">
+    <div class="h-48 md:h-64 bg-gradient-to-r from-green-400 to-green-600 relative">
       <button class="absolute bottom-4 right-4 px-3 py-2 bg-white hover:bg-gray-100 rounded-lg shadow-md flex items-center gap-2 font-medium transition-colors text-sm">
         <i class="fas fa-camera"></i>
         <span class="hidden md:inline">Chỉnh sửa ảnh bìa</span>
@@ -165,7 +165,7 @@
     <!-- Profile Info Container -->
     <div class="px-4 md:px-6 pb-4 border-b border-gray-300">
       <!-- Avatar and Name Row -->
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between -mt-16 md:-mt-20 gap-4">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between -mt-12 md:-mt-16 gap-4">
         <!-- Left: Avatar + Name (horizontal) -->
         <div class="flex items-end gap-4">
           <!-- Avatar -->
@@ -605,16 +605,17 @@
     let cropper = null;
     let currentUserId = null;
     let profileUserId = null;
+    let profileUserSlug = null;  // Store username slug
     let isOwnProfile = false;
     let currentFriendRequestId = null;
     
-    // Get user ID from URL if present
-    function getProfileUserId() {
+    // Get user identifier from URL (username slug or ID)
+    function getProfileIdentifier() {
       const urlParams = new URLSearchParams(window.location.search);
       const userIdParam = urlParams.get('user_id');
       
-      // Check if URL is /profile/123 format
-      const pathMatch = window.location.pathname.match(/\/profile\/(\d+)/);
+      // Check if URL is /profile/username.123456 or /profile/123 format
+      const pathMatch = window.location.pathname.match(/\/profile\/(.+)/);
       
       return userIdParam || (pathMatch ? pathMatch[1] : null);
     }
@@ -707,19 +708,13 @@
         }
         
         currentUserId = currentUserData.user.id;
+        const currentUserSlug = currentUserData.user.username_slug;
         
-        // Get profile user ID from URL or use current user
-        profileUserId = getProfileUserId() || currentUserId;
-        
-        // Update URL to always include user ID (for sharing)
-        const currentPath = window.location.pathname;
-        const expectedPath = `/profile/${profileUserId}`;
-        if (currentPath !== expectedPath) {
-          window.history.replaceState(null, '', expectedPath);
-        }
+        // Get profile identifier from URL or use current user's slug
+        const identifier = getProfileIdentifier() || currentUserSlug || currentUserId;
         
         // Fetch profile data
-        const profileResponse = await fetch(`/api/profile/user/${profileUserId}`);
+        const profileResponse = await fetch(`/api/profile/user/${identifier}`);
         const profileData = await profileResponse.json();
         
         if (!profileData.success) {
@@ -728,7 +723,16 @@
         }
         
         const user = profileData.user;
+        profileUserId = user.id;
+        profileUserSlug = user.username_slug;
         isOwnProfile = profileData.is_own_profile;
+        
+        // Update URL to use username slug (for sharing)
+        const currentPath = window.location.pathname;
+        const expectedPath = `/profile/${profileUserSlug || profileUserId}`;
+        if (currentPath !== expectedPath) {
+          window.history.replaceState(null, '', expectedPath);
+        }
         
         // Update UI based on ownership
         updateProfileUI(user, profileData);
@@ -744,6 +748,9 @@
     
     function updateProfileUI(user, profileData) {
       const userName = user.name || user.email.split('@')[0];
+      
+      // Store profile slug for later use
+      profileUserSlug = user.username_slug;
       
       // Update name and email
       document.getElementById('profile-name').textContent = userName;

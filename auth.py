@@ -9,6 +9,8 @@ import hashlib
 import secrets
 import smtplib
 import requests
+import re
+import random
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -30,6 +32,7 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT,
             name TEXT,
+            username_slug TEXT UNIQUE,
             google_id TEXT UNIQUE,
             avatar_url TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -37,6 +40,12 @@ def init_db():
             is_active INTEGER DEFAULT 1
         )
     ''')
+    
+    # Add username_slug column if it doesn't exist (migration)
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN username_slug TEXT UNIQUE')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # OTP table for password reset
     cursor.execute('''
@@ -169,6 +178,79 @@ def hash_password(password):
     """Hash password using SHA256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
+def create_username_slug(name, email, user_id=None):
+    """
+    Create a unique username slug from name/email
+    Format: lowercase letters/numbers only + 6-digit random number
+    Example: nhatquang.576789
+    """
+    # Use name if available, otherwise use email username part
+    base_name = name if name else email.split('@')[0]
+    
+    # Remove Vietnamese accents and special characters
+    accent_map = {
+        'à': 'a', 'á': 'a', 'ả': 'a', 'ã': 'a', 'ạ': 'a',
+        'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ẳ': 'a', 'ẵ': 'a', 'ặ': 'a',
+        'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ẩ': 'a', 'ẫ': 'a', 'ậ': 'a',
+        'è': 'e', 'é': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ẹ': 'e',
+        'ê': 'e', 'ề': 'e', 'ế': 'e', 'ể': 'e', 'ễ': 'e', 'ệ': 'e',
+        'ì': 'i', 'í': 'i', 'ỉ': 'i', 'ĩ': 'i', 'ị': 'i',
+        'ò': 'o', 'ó': 'o', 'ỏ': 'o', 'õ': 'o', 'ọ': 'o',
+        'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ổ': 'o', 'ỗ': 'o', 'ộ': 'o',
+        'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ở': 'o', 'ỡ': 'o', 'ợ': 'o',
+        'ù': 'u', 'ú': 'u', 'ủ': 'u', 'ũ': 'u', 'ụ': 'u',
+        'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ử': 'u', 'ữ': 'u', 'ự': 'u',
+        'ỳ': 'y', 'ý': 'y', 'ỷ': 'y', 'ỹ': 'y', 'ỵ': 'y',
+        'đ': 'd',
+        ' ': '', '.': '', '_': '', '-': ''
+    }
+    
+    # Convert to lowercase and replace accents
+    slug_base = base_name.lower()
+    for acc, replacement in accent_map.items():
+        slug_base = slug_base.replace(acc, replacement)
+    
+    # Remove any remaining non-alphanumeric characters
+    slug_base = re.sub(r'[^a-z0-9]', '', slug_base)
+    
+    # Limit to first 20 characters
+    slug_base = slug_base[:20]
+    
+    # Generate 6-digit random number
+    random_suffix = random.randint(100000, 999999)
+    
+    # Combine: username.123456
+    username_slug = f"{slug_base}.{random_suffix}"
+    
+    return username_slug
+
+def generate_unique_username_slug(name, email, conn=None):
+    """Generate a unique username slug (check for duplicates)"""
+    should_close = False
+    if conn is None:
+        conn = sqlite3.connect(DB_PATH)
+        should_close = True
+    
+    cursor = conn.cursor()
+    
+    # Try up to 10 times to generate unique slug
+    for _ in range(10):
+        slug = create_username_slug(name, email)
+        cursor.execute('SELECT id FROM users WHERE username_slug = ?', (slug,))
+        if not cursor.fetchone():
+            if should_close:
+                conn.close()
+            return slug
+    
+    # If all attempts fail, add timestamp
+    slug_base = create_username_slug(name, email).split('.')[0]
+    timestamp_suffix = str(int(datetime.now().timestamp()))[-6:]
+    final_slug = f"{slug_base}.{timestamp_suffix}"
+    
+    if should_close:
+        conn.close()
+    return final_slug
+
 def generate_otp():
     """Generate a 6-digit OTP code"""
     return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
@@ -280,11 +362,14 @@ def register_user_complete(email, otp_code, password, name=None):
             conn.close()
             return {'success': False, 'message': 'Email đã được đăng ký'}
         
+        # Generate unique username slug
+        username_slug = generate_unique_username_slug(name, email, conn)
+        
         # Hash password and insert user
         password_hash = hash_password(password) if password else None
         cursor.execute(
-            'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)',
-            (email, password_hash, name)
+            'INSERT INTO users (email, password_hash, name, username_slug) VALUES (?, ?, ?, ?)',
+            (email, password_hash, name, username_slug)
         )
         
         conn.commit()
@@ -297,7 +382,8 @@ def register_user_complete(email, otp_code, password, name=None):
             'user': {
                 'id': user_id,
                 'email': email,
-                'name': name
+                'name': name,
+                'username_slug': username_slug
             }
         }
     
@@ -505,7 +591,7 @@ def get_user_profile(user_id):
         cursor = conn.cursor()
         
         cursor.execute(
-            'SELECT id, email, name, avatar_url, created_at, last_login FROM users WHERE id = ?',
+            'SELECT id, email, name, avatar_url, created_at, last_login, username_slug FROM users WHERE id = ?',
             (user_id,)
         )
         user = cursor.fetchone()
@@ -522,7 +608,8 @@ def get_user_profile(user_id):
                 'name': user[2],
                 'avatar_url': user[3],
                 'created_at': user[4],
-                'last_login': user[5]
+                'last_login': user[5],
+                'username_slug': user[6]
             }
         }
     
@@ -663,10 +750,12 @@ def google_login(credential):
                 }
             }
         else:
-            # Create new user
+            # Create new user with username slug
+            username_slug = generate_unique_username_slug(user_info['name'], user_info['email'], conn)
+            
             cursor.execute(
-                'INSERT INTO users (email, google_id, name, avatar_url, password_hash) VALUES (?, ?, ?, ?, ?)',
-                (user_info['email'], user_info['google_id'], user_info['name'], user_info.get('picture'), None)
+                'INSERT INTO users (email, google_id, name, avatar_url, password_hash, username_slug) VALUES (?, ?, ?, ?, ?, ?)',
+                (user_info['email'], user_info['google_id'], user_info['name'], user_info.get('picture'), None, username_slug)
             )
             conn.commit()
             user_id = cursor.lastrowid
@@ -678,7 +767,8 @@ def google_login(credential):
                 'user': {
                     'id': user_id,
                     'email': user_info['email'],
-                    'name': user_info['name']
+                    'name': user_info['name'],
+                    'username_slug': username_slug
                 }
             }
     

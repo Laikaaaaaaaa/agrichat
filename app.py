@@ -4011,32 +4011,58 @@ def otp():
 
 
 @app.route('/profile')
-@app.route('/profile/<int:user_id>')
+@app.route('/profile/<identifier>')
 @auth.login_required
-def profile(user_id=None):
-    """Trang hồ sơ người dùng"""
+def profile(identifier=None):
+    """Trang hồ sơ người dùng - accepts username slug or user ID"""
     return send_from_directory(HERE, 'profile.html')
 
 
-@app.route('/api/profile/user/<int:user_id>', methods=['GET'])
-def get_user_profile(user_id):
-    """Get public profile information for a user"""
+@app.route('/api/profile/user/<identifier>', methods=['GET'])
+def get_user_profile(identifier):
+    """Get public profile information for a user by username slug or ID"""
     try:
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
+        # Try to determine if identifier is a username slug or user ID
+        # Username slugs contain a dot (e.g., nhatquang.576789)
+        # User IDs are pure numbers
+        if '.' in str(identifier):
+            # It's a username slug
+            where_clause = 'u.username_slug = ?'
+            param = identifier
+        else:
+            # It's a user ID
+            try:
+                where_clause = 'u.id = ?'
+                param = int(identifier)
+            except ValueError:
+                return jsonify({'success': False, 'message': 'ID người dùng không hợp lệ'}), 400
+        
         # Get user info
-        cursor.execute('''
+        cursor.execute(f'''
             SELECT u.id, u.name, u.email, u.avatar_url, u.created_at, u.last_login,
-                   p.bio, p.cover_photo_url
+                   u.username_slug, p.bio, p.cover_photo_url
             FROM users u
             LEFT JOIN user_profiles p ON u.id = p.user_id
-            WHERE u.id = ?
-        ''', (user_id,))
+            WHERE {where_clause}
+        ''', (param,))
         
         row = cursor.fetchone()
         if not row:
             return jsonify({'success': False, 'message': 'Không tìm thấy người dùng'}), 404
+        
+        # Extract user data from row
+        user_id = row[0]
+        user_name = row[1]
+        user_email = row[2]
+        user_avatar = row[3]
+        user_created_at = row[4]
+        user_last_login = row[5]
+        username_slug = row[6]
+        user_bio = row[7]
+        user_cover_photo = row[8]
         
         # Get posts count
         cursor.execute('SELECT COUNT(*) FROM forum_posts WHERE user_id = ?', (user_id,))
@@ -4087,14 +4113,15 @@ def get_user_profile(user_id):
         return jsonify({
             'success': True,
             'user': {
-                'id': row[0],
-                'name': row[1],
-                'email': row[2],
-                'avatar_url': row[3],
-                'created_at': row[4],
-                'last_login': row[5],
-                'bio': row[6],
-                'cover_photo_url': row[7],
+                'id': user_id,
+                'name': user_name,
+                'email': user_email,
+                'avatar_url': user_avatar,
+                'created_at': user_created_at,
+                'last_login': user_last_login,
+                'username_slug': username_slug,
+                'bio': user_bio,
+                'cover_photo_url': user_cover_photo,
                 'posts_count': posts_count,
                 'friends_count': friends_count,
                 'photos_count': photos_count

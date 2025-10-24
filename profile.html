@@ -293,6 +293,19 @@
               <button onclick="toggleSettingsMenu()" class="p-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs font-medium transition-colors flex items-center justify-center" title="Chỉnh sửa">
                 <i class="fas fa-cog text-xs"></i>
               </button>
+              
+              <!-- Settings Menu Dropdown -->
+              <div id="settings-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <button onclick="openEditProfileModal()" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg text-sm text-gray-700 font-medium transition-colors">
+                  <i class="fas fa-edit mr-2"></i>Chỉnh sửa hồ sơ
+                </button>
+                <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 font-medium transition-colors border-t border-gray-200">
+                  <i class="fas fa-lock mr-2"></i>Đổi mật khẩu
+                </button>
+                <button onclick="logoutUser()" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg text-sm text-red-600 font-medium transition-colors border-t border-gray-200">
+                  <i class="fas fa-sign-out-alt mr-2"></i>Đăng xuất
+                </button>
+              </div>
             </div>
             
             <!-- Share Button -->
@@ -910,12 +923,15 @@
     // Toggle settings menu
     function toggleSettingsMenu() {
       const menu = document.getElementById('settings-menu');
-      menu.classList.toggle('hidden');
+      if (menu) {
+        menu.classList.toggle('hidden');
+      }
     }
     
     // Close menu when clicking outside
     document.addEventListener('click', function(e) {
       const menu = document.getElementById('settings-menu');
+      if (!menu) return;
       const settingsBtn = e.target.closest('button[onclick="toggleSettingsMenu()"]');
       
       if (!menu.contains(e.target) && e.target !== settingsBtn && !settingsBtn?.contains(e.target)) {
@@ -925,18 +941,23 @@
     
     // Open edit profile modal
     function openEditProfileModal() {
-      document.getElementById('settings-menu').classList.add('hidden');
-      document.getElementById('edit-profile-modal').classList.add('active');
+      const settingsMenu = document.getElementById('settings-menu');
+      if (settingsMenu) settingsMenu.classList.add('hidden');
+      const editModal = document.getElementById('edit-profile-modal');
+      if (editModal) editModal.classList.add('active');
     }
     
     function closeEditProfileModal() {
-      document.getElementById('edit-profile-modal').classList.remove('active');
+      const editModal = document.getElementById('edit-profile-modal');
+      if (editModal) editModal.classList.remove('active');
     }
     
     // Open change password modal
     function openChangePasswordModal() {
-      document.getElementById('settings-menu').classList.add('hidden');
-      document.getElementById('change-password-modal').classList.add('active');
+      const settingsMenu = document.getElementById('settings-menu');
+      if (settingsMenu) settingsMenu.classList.add('hidden');
+      const changePasswordModal = document.getElementById('change-password-modal');
+      if (changePasswordModal) changePasswordModal.classList.add('active');
     }
     
     function closeChangePasswordModal() {

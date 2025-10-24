@@ -963,6 +963,13 @@
       try {
         // Get current user (logged in user)
         const currentUserResponse = await apiCall('/api/auth/profile');
+        
+        // Check if response status is 401 (unauthorized - not logged in)
+        if (currentUserResponse.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        
         const currentUserData = await currentUserResponse.json();
         
         if (!currentUserData.success || !currentUserData.user) {

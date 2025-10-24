@@ -218,6 +218,7 @@
           // Manual login flow
           const response = await fetch('/api/auth/login-complete', {
             method: 'POST',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
             },
@@ -240,6 +241,7 @@
           // Manual register flow
           const response = await fetch('/api/auth/register-complete', {
             method: 'POST',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
             },
@@ -280,6 +282,7 @@
           // First verify OTP
           const verifyResponse = await fetch('/api/auth/verify-otp', {
             method: 'POST',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
             },
@@ -298,6 +301,7 @@
           // Then reset password
           const resetResponse = await fetch('/api/auth/reset-password', {
             method: 'POST',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
             },
@@ -332,6 +336,7 @@
       try {
         const response = await fetch('/api/auth/forgot-password', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json'
           },

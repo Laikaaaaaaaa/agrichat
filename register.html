@@ -328,6 +328,7 @@
         // Step 1: Validate and send OTP
         const response = await fetch('/api/auth/register-init', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json'
           },

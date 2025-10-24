@@ -148,6 +148,7 @@
       // Send Google token to backend - No OTP required for Google login
       fetch('/api/auth/google-login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -220,6 +221,7 @@
         // Step 1: Verify credentials and send OTP
         const response = await fetch('/api/auth/login-init', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json'
           },

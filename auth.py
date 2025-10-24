@@ -15,7 +15,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import session, redirect, url_for, jsonify
+from flask import session, redirect, url_for, jsonify, request
 
 # Database setup
 DB_PATH = os.path.join(os.path.dirname(__file__), 'users.db')
@@ -758,6 +758,10 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            # If it's an API request, return JSON error
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+            # Otherwise redirect to login page
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function

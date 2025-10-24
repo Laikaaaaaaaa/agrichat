@@ -19,6 +19,7 @@ from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh m�
 from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
 import auth  # Import authentication module
+from xml.etree import ElementTree as ET
 
 # Thiết lập logging
 logging.basicConfig(
@@ -4593,6 +4594,90 @@ def news():
     return send_from_directory(HERE, 'news.html')
 
 
+@app.route('/api/rss-feed', methods=['POST'])
+def get_rss_feed():
+    """Parse RSS feed directly without using rss2json conversion service"""
+    try:
+        data = request.json or {}
+        feed_url = data.get('url', '').strip()
+        
+        if not feed_url:
+            return jsonify({'status': 'error', 'message': 'Missing feed URL'}), 400
+        
+        # Fetch RSS with timeout
+        response = requests.get(feed_url, timeout=8, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        response.encoding = 'utf-8'  # Force UTF-8 encoding
+        
+        if response.status_code != 200:
+            return jsonify({'status': 'error', 'message': f'HTTP {response.status_code}'}), 400
+        
+        # Parse XML
+        try:
+            root = ET.fromstring(response.content)
+        except ET.ParseError as e:
+            return jsonify({'status': 'error', 'message': f'XML parse error: {str(e)}'}), 400
+        
+        # Extract items
+        items = []
+        ns = {'': 'http://www.rss.org/2005/rss-v2'}
+        
+        # Try both with and without namespace
+        item_list = root.findall('.//item')
+        if not item_list:
+            item_list = root.findall('.//{http://www.rss.org/2005/rss-v2}item')
+        
+        for item in item_list[:20]:  # Limit to 20 items
+            title = item.findtext('title', '')
+            link = item.findtext('link', '')
+            description = item.findtext('description', '')
+            pub_date = item.findtext('pubDate', '')
+            
+            # Try to extract image from various sources
+            image_url = None
+            image_elem = item.find('.//image/url')
+            if image_elem is not None:
+                image_url = image_elem.text
+            
+            if not image_url:
+                # Try media:content
+                media_content = item.find('.//{http://search.yahoo.com/mrss/}content')
+                if media_content is not None:
+                    image_url = media_content.get('url')
+            
+            if not image_url:
+                # Try enclosure
+                enclosure = item.find('enclosure')
+                if enclosure is not None:
+                    image_url = enclosure.get('url')
+            
+            # Clean description
+            if description:
+                # Remove HTML tags
+                description = re.sub(r'<[^>]+>', '', description)
+                description = description[:300] + ('...' if len(description) > 300 else '')
+            
+            if title and link:
+                items.append({
+                    'title': title,
+                    'link': link,
+                    'description': description,
+                    'pubDate': pub_date,
+                    'image': image_url
+                })
+        
+        return jsonify({'status': 'ok', 'items': items}), 200
+        
+    except requests.Timeout:
+        return jsonify({'status': 'error', 'message': 'Request timeout'}), 408
+    except requests.RequestException as e:
+        return jsonify({'status': 'error', 'message': f'Request error: {str(e)[:100]}'}), 400
+    except Exception as e:
+        logging.error(f"Error in RSS feed API: {str(e)}")
+        return jsonify({'status': 'error', 'message': f'Server error: {str(e)[:100]}'}), 500
+
+
 @app.route('/history')
 def history():
     """Trang lịch sử hội thoại"""
@@ -6093,6 +6178,41 @@ def search_users():
     except Exception as e:
         logging.error(f"Error searching users: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# RSS Proxy endpoint to bypass CORS
+@app.route('/api/rss', methods=['GET'])
+def proxy_rss():
+    """Proxy RSS feed requests to bypass CORS issues"""
+    try:
+        rss_url = request.args.get('url', '').strip()
+        
+        if not rss_url:
+            return jsonify({'error': 'Missing RSS URL'}), 400
+        
+        # Validate URL to prevent abuse
+        if not rss_url.startswith(('http://', 'https://')):
+            return jsonify({'error': 'Invalid URL'}), 400
+        
+        # Fetch RSS with timeout
+        response = requests.get(rss_url, timeout=10, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        response.raise_for_status()
+        
+        # Return RSS content with proper CORS headers
+        result = make_response(response.content)
+        result.headers['Content-Type'] = 'application/xml; charset=utf-8'
+        return result
+        
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'RSS server timeout'}), 504
+    except requests.exceptions.RequestException as e:
+        logging.error(f"RSS proxy error: {e}")
+        return jsonify({'error': 'Failed to fetch RSS'}), 500
+    except Exception as e:
+        logging.error(f"Unexpected error in RSS proxy: {e}")
+        return jsonify({'error': 'Server error'}), 500
 
 
 # CORS and security headers

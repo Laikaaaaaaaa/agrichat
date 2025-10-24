@@ -1637,7 +1637,10 @@
         }
         
         // Check if profile owner blocked current user (prevent viewing when blocked by owner)
+        console.log('🔍 Checking blocked-by conditions: isOwnProfile=', !isOwnProfile, 'currentUserIdNotProfile=', currentUserId !== profileUserId);
+        
         if (!isOwnProfile && currentUserId !== profileUserId) {
+          console.log('✅ Conditions met, checking if blocked by owner...');
           try {
             const blockedByCheckResponse = await apiCall('/api/auth/check-blocked-by', {
               method: 'POST',

@@ -1378,13 +1378,71 @@
     // Blocked Users Modal Functions
     function openBlockedUsersModal() {
       const modal = document.getElementById('blocked-users-modal');
-      if (modal) modal.classList.add('active');
-      // TODO: Load blocked users from API
+      if (modal) {
+        modal.classList.add('active');
+        loadBlockedUsers();
+      }
     }
     
     function closeBlockedUsersModal() {
       const modal = document.getElementById('blocked-users-modal');
       if (modal) modal.classList.remove('active');
+    }
+    
+    async function loadBlockedUsers() {
+      try {
+        const response = await apiCall('/api/auth/blocked-users');
+        const data = await response.json();
+        
+        const listContainer = document.getElementById('blocked-users-list');
+        if (!listContainer) return;
+        
+        if (data.success && data.blocked_users && data.blocked_users.length > 0) {
+          listContainer.innerHTML = data.blocked_users.map(user => `
+            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0 overflow-hidden">
+                  ${user.avatar_url 
+                    ? `<img src="${user.avatar_url}" class="w-full h-full object-cover" alt="Avatar" />`
+                    : (user.name.charAt(0).toUpperCase())
+                  }
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-gray-800 text-sm truncate">${user.name}</div>
+                  <div class="text-xs text-gray-500 truncate">${user.email}</div>
+                </div>
+              </div>
+              <button onclick="unblockUser(${user.id})" class="ml-2 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors flex-shrink-0">
+                Bỏ chặn
+              </button>
+            </div>
+          `).join('');
+        } else {
+          listContainer.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Bạn chưa chặn ai</p>';
+        }
+      } catch (error) {
+        console.error('Error loading blocked users:', error);
+      }
+    }
+    
+    async function unblockUser(userId) {
+      try {
+        const response = await apiCall('/api/auth/unblock-user', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userId })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Đã bỏ chặn người dùng', 'success');
+          loadBlockedUsers();
+        } else {
+          showAlert(data.message || 'Lỗi khi bỏ chặn', 'error');
+        }
+      } catch (error) {
+        console.error('Error unblocking user:', error);
+        showAlert('Lỗi: ' + error.message, 'error');
+      }
     }
     
     // Report Problem Modal Functions
@@ -3263,70 +3321,6 @@
         .catch(error => {
           console.error('Error blocking user:', error);
           showAlert('Lỗi khi chặn người dùng', 'error');
-        });
-      }
-    }
-
-    // Load blocked users list
-    function loadBlockedUsers() {
-      fetch('/api/auth/blocked-users', {
-        credentials: 'include'
-      })
-      .then(response => response.json())
-      .then(data => {
-        const blockedList = document.getElementById('blocked-users-list');
-        
-        if (data.success && data.blocked_users && data.blocked_users.length > 0) {
-          blockedList.innerHTML = data.blocked_users.map(user => `
-            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <div class="flex items-center gap-3 flex-1">
-                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                  ${user.avatar_url ? `<img src="${user.avatar_url}" class="w-full h-full rounded-full object-cover" />` : user.name.charAt(0).toUpperCase()}
-                </div>
-                <div class="flex-1">
-                  <div class="font-medium text-gray-800 text-sm">${user.name}</div>
-                  <div class="text-xs text-gray-500">${user.email}</div>
-                </div>
-              </div>
-              <button onclick="unblockUser(${user.id})" class="ml-2 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm font-medium transition-colors">
-                Bỏ chặn
-              </button>
-            </div>
-          `).join('');
-        } else {
-          blockedList.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Bạn chưa chặn ai</p>';
-        }
-      })
-      .catch(error => {
-        console.error('Error loading blocked users:', error);
-        const blockedList = document.getElementById('blocked-users-list');
-        blockedList.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Lỗi khi tải danh sách</p>';
-      });
-    }
-
-    // Unblock user function
-    function unblockUser(userIdToUnblock) {
-      if (confirm('Bạn có chắc muốn bỏ chặn người dùng này?')) {
-        fetch('/api/auth/unblock-user', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ user_id: userIdToUnblock })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            showAlert('Đã bỏ chặn người dùng', 'success');
-            loadBlockedUsers(); // Reload list
-          } else {
-            showAlert(data.message || 'Không thể bỏ chặn người dùng', 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error unblocking user:', error);
-          showAlert('Lỗi khi bỏ chặn người dùng', 'error');
         });
       }
     }

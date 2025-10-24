@@ -4571,6 +4571,77 @@ def api_change_password():
     return jsonify(result)
 
 
+# ==================== BLOCK USER ROUTES ====================
+
+@app.route('/api/auth/block-user', methods=['POST'])
+@auth.login_required
+def api_block_user():
+    """Block a user"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    target_user_id = data.get('user_id')
+    
+    if not target_user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'})
+    
+    result = auth.block_user(user_id, target_user_id)
+    return jsonify(result)
+
+
+@app.route('/api/auth/unblock-user', methods=['POST'])
+@auth.login_required
+def api_unblock_user():
+    """Unblock a user"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    target_user_id = data.get('user_id')
+    
+    if not target_user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'})
+    
+    result = auth.unblock_user(user_id, target_user_id)
+    return jsonify(result)
+
+
+@app.route('/api/auth/blocked-users', methods=['GET'])
+@auth.login_required
+def api_get_blocked_users():
+    """Get list of blocked users"""
+    user_id = session.get('user_id')
+    result = auth.get_blocked_users(user_id)
+    return jsonify(result)
+
+
+@app.route('/api/auth/check-blocked', methods=['POST'])
+@auth.login_required
+def api_check_blocked():
+    """Check if current user has blocked target user"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    target_user_id = data.get('target_user_id')
+    
+    if not target_user_id:
+        return jsonify({'success': False, 'message': 'Target user ID is required'})
+    
+    result = auth.is_blocked(user_id, target_user_id)
+    return jsonify(result)
+
+
+@app.route('/api/auth/check-blocked-by', methods=['POST'])
+@auth.login_required
+def api_check_blocked_by():
+    """Check if current user is blocked by target user"""
+    user_id = session.get('user_id')
+    data = request.get_json()
+    target_user_id = data.get('target_user_id')
+    
+    if not target_user_id:
+        return jsonify({'success': False, 'message': 'Target user ID is required'})
+    
+    result = auth.is_blocked_by(user_id, target_user_id)
+    return jsonify(result)
+
+
 # ==================== MAIN APP ROUTES ====================
 
 @app.route('/')

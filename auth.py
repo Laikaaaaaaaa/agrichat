@@ -167,6 +167,35 @@ def init_db():
         )
     ''')
     
+    # Blocked users table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS blocked_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            blocker_id INTEGER NOT NULL,
+            blocked_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(blocker_id, blocked_id),
+            FOREIGN KEY (blocker_id) REFERENCES users (id),
+            FOREIGN KEY (blocked_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Migration: Add blocked_users table if not exists
+    try:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS blocked_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                blocker_id INTEGER NOT NULL,
+                blocked_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(blocker_id, blocked_id),
+                FOREIGN KEY (blocker_id) REFERENCES users (id),
+                FOREIGN KEY (blocked_id) REFERENCES users (id)
+            )
+        ''')
+    except sqlite3.OperationalError:
+        pass  # Table already exists
+    
     # Migration: Add missing columns to forum_posts if they don't exist
     try:
         cursor.execute('ALTER TABLE forum_posts ADD COLUMN poll_data TEXT')
@@ -863,3 +892,105 @@ def google_login(credential):
     
     except Exception as e:
         return {'success': False, 'message': f'Lỗi: {str(e)}'}
+
+def block_user(blocker_id, blocked_id):
+    """Block a user"""
+    try:
+        if blocker_id == blocked_id:
+            return {'success': False, 'message': 'Không thể chặn chính mình'}
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'INSERT OR IGNORE INTO blocked_users (blocker_id, blocked_id) VALUES (?, ?)',
+            (blocker_id, blocked_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return {'success': True, 'message': 'Đã chặn người dùng'}
+    except Exception as e:
+        return {'success': False, 'message': f'Lỗi: {str(e)}'}
+
+def unblock_user(blocker_id, blocked_id):
+    """Unblock a user"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'DELETE FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?',
+            (blocker_id, blocked_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return {'success': True, 'message': 'Đã bỏ chặn người dùng'}
+    except Exception as e:
+        return {'success': False, 'message': f'Lỗi: {str(e)}'}
+
+def get_blocked_users(user_id):
+    """Get list of users that current user has blocked"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT u.id, u.name, u.email, u.avatar_url, u.username_slug
+            FROM users u
+            INNER JOIN blocked_users b ON u.id = b.blocked_id
+            WHERE b.blocker_id = ?
+        ''', (user_id,))
+        
+        blocked_users = []
+        for row in cursor.fetchall():
+            blocked_users.append({
+                'id': row[0],
+                'name': row[1],
+                'email': row[2],
+                'avatar_url': row[3],
+                'username_slug': row[4]
+            })
+        
+        conn.close()
+        return {'success': True, 'blocked_users': blocked_users}
+    except Exception as e:
+        return {'success': False, 'message': f'Lỗi: {str(e)}'}
+
+def is_blocked(blocker_id, blocked_id):
+    """Check if blocker_id has blocked blocked_id"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'SELECT 1 FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?',
+            (blocker_id, blocked_id)
+        )
+        
+        result = cursor.fetchone() is not None
+        conn.close()
+        
+        return {'success': True, 'is_blocked': result}
+    except Exception as e:
+        return {'success': False, 'message': f'Lỗi: {str(e)}'}
+
+def is_blocked_by(user_id, target_user_id):
+    """Check if user_id is blocked by target_user_id"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'SELECT 1 FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?',
+            (target_user_id, user_id)
+        )
+        
+        result = cursor.fetchone() is not None
+        conn.close()
+        
+        return {'success': True, 'is_blocked_by': result}
+    except Exception as e:
+        return {'success': False, 'message': f'Lỗi: {str(e)}'}
+

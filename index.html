@@ -791,12 +791,6 @@
 
       let result = text.replace(/\r\n/g, '\n');
 
-      // Trim spaces inside bold markers
-      result = result.replace(/\*\*(.+?)\*\*/g, (match, inner) => `**${inner.trim()}**`);
-
-      // Trim spaces inside italic markers (single *) while avoiding bold (**)
-      result = result.replace(/\*(?!\*)([^*]+?)\*(?!\*)/g, (match, inner) => `*${inner.trim()}*`);
-
       // Convert asterisk bullets to hyphen bullets
       result = result.replace(/(^|\n)\*\s+/g, '$1- ');
 

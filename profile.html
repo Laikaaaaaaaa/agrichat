@@ -2227,7 +2227,13 @@
             ` : ''}
           </div>
           
-          ${imageHTML ? `<div class="px-0 mb-2 sm:mb-3">${imageHTML}</div>` : ''}
+          <!-- Post Content -->
+          <div class="px-2.5 sm:px-4 pt-2 sm:pt-3">
+            ${titleHTML}
+            ${post.content ? `<p class="text-gray-700 text-sm sm:text-base leading-relaxed whitespace-pre-wrap">${escapeHtml(post.content)}</p>` : ''}
+          </div>
+          
+          ${imageHTML ? `<div class="px-2.5 sm:px-4 pt-2 sm:pt-3 mb-2 sm:mb-3">${imageHTML}</div>` : ''}
           ${pollHTML}
           ${tagsHTML ? `<div class="px-2.5 sm:px-4 pb-2 sm:pb-3">${tagsHTML}</div>` : ''}
           

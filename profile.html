@@ -1625,11 +1625,16 @@
             const blockedCheckData = await blockedCheckResponse.json();
             
             console.log('🚫 Block check response:', blockedCheckData);
+            console.log('  - success:', blockedCheckData.success);
+            console.log('  - is_blocked:', blockedCheckData.is_blocked);
+            console.log('  - Type of is_blocked:', typeof blockedCheckData.is_blocked);
             
-            if (blockedCheckData.is_blocked) {
-              console.log('✋ User is blocked, showing modal...');
+            if (blockedCheckData.is_blocked === true) {
+              console.log('✋ User is blocked (is_blocked === true), showing modal...');
               showYouBlockedUserModal();
               return;
+            } else {
+              console.log('👤 User is NOT blocked (is_blocked is:', blockedCheckData.is_blocked, '), continuing...');
             }
           } catch (blockError) {
             console.warn('Block check failed (continuing):', blockError);
@@ -1649,11 +1654,16 @@
             const blockedByCheckData = await blockedByCheckResponse.json();
             
             console.log('🔒 Blocked-by check response:', blockedByCheckData);
+            console.log('  - success:', blockedByCheckData.success);
+            console.log('  - is_blocked_by:', blockedByCheckData.is_blocked_by);
+            console.log('  - Type of is_blocked_by:', typeof blockedByCheckData.is_blocked_by);
             
-            if (blockedByCheckData.is_blocked_by) {
-              console.log('🔐 User is blocked by owner, showing modal...');
+            if (blockedByCheckData.is_blocked_by === true) {
+              console.log('🔐 User is blocked by owner (is_blocked_by === true), showing modal...');
               showUserBlockedYouModal();
               return;
+            } else {
+              console.log('👤 User is NOT blocked by owner (is_blocked_by is:', blockedByCheckData.is_blocked_by, '), continuing...');
             }
           } catch (blockByError) {
             console.warn('Blocked-by check failed (continuing):', blockByError);

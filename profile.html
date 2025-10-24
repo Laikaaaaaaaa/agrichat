@@ -857,6 +857,14 @@
     let mentionedUsers = [];
     let hashtags = [];
     
+    // Helper function to make API calls with credentials
+    function apiCall(url, options = {}) {
+      return fetch(url, {
+        ...options,
+        credentials: 'include'
+      });
+    }
+    
     // Get user identifier from URL (username slug or ID)
     function getProfileIdentifier() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -954,7 +962,7 @@
     async function loadProfile() {
       try {
         // Get current user (logged in user)
-        const currentUserResponse = await fetch('/api/auth/profile');
+        const currentUserResponse = await apiCall('/api/auth/profile');
         const currentUserData = await currentUserResponse.json();
         
         if (!currentUserData.success || !currentUserData.user) {
@@ -969,7 +977,7 @@
         const identifier = getProfileIdentifier() || currentUserSlug || currentUserId;
         
         // Fetch profile data
-        const profileResponse = await fetch(`/api/profile/user/${identifier}`);
+        const profileResponse = await apiCall(`/api/profile/user/${identifier}`);
         const profileData = await profileResponse.json();
         
         if (!profileData.success) {
@@ -1187,7 +1195,7 @@
     // Friend request functions
     async function sendFriendRequest() {
       try {
-        const response = await fetch('/api/profile/friends/add', {
+        const response = await apiCall('/api/profile/friends/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ friend_id: profileUserId })
@@ -1211,7 +1219,7 @@
       if (!confirm('Hủy lời mời kết bạn?')) return;
       
       try {
-        const response = await fetch(`/api/profile/friends/reject/${currentFriendRequestId}`, {
+        const response = await apiCall(`/api/profile/friends/reject/${currentFriendRequestId}`, {
           method: 'POST'
         });
         
@@ -1228,7 +1236,7 @@
     
     async function acceptFriendRequest() {
       try {
-        const response = await fetch(`/api/profile/friends/accept/${currentFriendRequestId}`, {
+        const response = await apiCall(`/api/profile/friends/accept/${currentFriendRequestId}`, {
           method: 'POST'
         });
         
@@ -1248,7 +1256,7 @@
       if (!confirm('Từ chối lời mời kết bạn?')) return;
       
       try {
-        const response = await fetch(`/api/profile/friends/reject/${currentFriendRequestId}`, {
+        const response = await apiCall(`/api/profile/friends/reject/${currentFriendRequestId}`, {
           method: 'POST'
         });
         
@@ -1268,7 +1276,7 @@
       if (!confirm('Hủy kết bạn với người này?')) return;
       
       try {
-        const response = await fetch(`/api/profile/friends/remove/${profileUserId}`, {
+        const response = await apiCall(`/api/profile/friends/remove/${profileUserId}`, {
           method: 'POST'
         });
         
@@ -1286,7 +1294,7 @@
     // Notifications
     async function loadNotifications() {
       try {
-        const response = await fetch('/api/profile/notifications');
+        const response = await apiCall('/api/profile/notifications');
         const data = await response.json();
         
         if (data.success) {
@@ -1384,7 +1392,7 @@
     
     async function acceptFriendRequestFromNotif(requestId) {
       try {
-        const response = await fetch(`/api/profile/friends/accept/${requestId}`, {
+        const response = await apiCall(`/api/profile/friends/accept/${requestId}`, {
           method: 'POST'
         });
         
@@ -1401,7 +1409,7 @@
     
     async function rejectFriendRequestFromNotif(requestId) {
       try {
-        const response = await fetch(`/api/profile/friends/reject/${requestId}`, {
+        const response = await apiCall(`/api/profile/friends/reject/${requestId}`, {
           method: 'POST'
         });
         
@@ -1434,7 +1442,7 @@
     // Load user posts
     async function loadUserPosts(userId) {
       try {
-        const response = await fetch('/api/forum/posts');
+        const response = await apiCall('/api/forum/posts');
         const data = await response.json();
         
         if (data.success) {
@@ -1743,7 +1751,7 @@
     // Toggle like on forum post from profile
     async function toggleForumLike(postId, button) {
       try {
-        const response = await fetch(`/api/forum/posts/${postId}/like`, {
+        const response = await apiCall(`/api/forum/posts/${postId}/like`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -1790,7 +1798,7 @@
       }
       
       try {
-        const response = await fetch(`/api/forum/posts/${postId}/comments`, {
+        const response = await apiCall(`/api/forum/posts/${postId}/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content })
@@ -1807,7 +1815,7 @@
           if (!commentsSection.classList.contains('hidden')) {
             // Reload the comments list
             try {
-              const commentsResponse = await fetch(`/api/forum/posts/${postId}/comments`);
+              const commentsResponse = await apiCall(`/api/forum/posts/${postId}/comments`);
               const commentsData = await commentsResponse.json();
               
               if (commentsData.success && commentsData.comments) {
@@ -1871,7 +1879,7 @@
       const optionIndices = Array.from(selectedOptions).map(option => parseInt(option.value));
       
       try {
-        const response = await fetch(`/api/forum/posts/${postId}/poll/vote`, {
+        const response = await apiCall(`/api/forum/posts/${postId}/poll/vote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

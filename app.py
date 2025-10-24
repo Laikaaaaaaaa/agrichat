@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, send_from_directory, session
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, make_response
 from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh mới
 from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
@@ -4310,8 +4310,13 @@ def api_register_complete():
         session['user_id'] = result['user']['id']
         session['user_email'] = result['user']['email']
         session.permanent = True
+        session.modified = True  # Explicitly mark session as modified to force cookie set
         # Clear pending registration
         session.pop('register_pending', None)
+        
+        # Create response and ensure Flask saves session
+        response = make_response(jsonify(result))
+        return response
     
     return jsonify(result)
 
@@ -4358,8 +4363,13 @@ def api_login_complete():
         session['user_id'] = result['user']['id']
         session['user_email'] = result['user']['email']
         session.permanent = True
+        session.modified = True  # Explicitly mark session as modified to force cookie set
         # Clear pending login
         session.pop('login_pending', None)
+        
+        # Create response and ensure Flask saves session
+        response = make_response(jsonify(result))
+        return response
     
     return jsonify(result)
 
@@ -4380,6 +4390,11 @@ def api_google_login():
         session['user_id'] = result['user']['id']
         session['user_email'] = result['user']['email']
         session.permanent = True
+        session.modified = True  # Explicitly mark session as modified to force cookie set
+        
+        # Create response and ensure Flask saves session
+        response = make_response(jsonify(result))
+        return response
     
     return jsonify(result)
 

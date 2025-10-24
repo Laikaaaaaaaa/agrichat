@@ -1062,7 +1062,7 @@ Từ chối nếu HOÀN TOÀN không liên quan nông nghiệp."""
                 })
             
             payload = {
-                "model": "gpt-4o",  # GPT-4 Vision model
+                "model": self.openai_model,  # Use configured model (supports vision)
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content}
@@ -3594,7 +3594,7 @@ Trả lời bằng tiếng Việt.'''
     
     def analyze_image(self, image_data, user_message="", mode='normal'):
         """
-        Analyze uploaded image with AI - Flask version that returns response text
+        Analyze uploaded image with AI - Uses OpenAI (primary) or Gemini (fallback)
         """
         import json
         try:
@@ -3645,7 +3645,7 @@ HƯỚNG DẪN QUAN TRỌNG:
 - Ví dụ: nếu trước đó nói về "cây xoài" và bây giờ upload ảnh chó, có thể đề cập "khác với cây xoài mà chúng ta vừa thảo luận..."
 - Phân tích hình ảnh một cách chi tiết và chuyên nghiệp"""
             
-            # Prepare content for Gemini with enhanced prompt
+            # Prepare content for analysis
             if user_message:
                 content = [enhanced_image_prompt, f"\n\nCâu hỏi thêm từ người dùng: {user_message}", image]
                 analysis_request = f"Phân tích ảnh với câu hỏi: {user_message}"
@@ -3655,16 +3655,17 @@ HƯỚNG DẪN QUAN TRỌNG:
                 analysis_request = "Phân tích hình ảnh"
                 logging.info("📝 No user message, using default analysis")
             
-            logging.info("🚀 Calling Gemini API for image analysis...")
+            # Use generate_content_with_fallback which will try OpenAI first, then Gemini
+            logging.info("🚀 Calling AI API for image analysis (OpenAI primary, Gemini fallback)...")
             
-            # Call Gemini API and collect full response for Flask
+            # Call AI API and collect full response for Flask
             full_response = ""
             
-            # Get response from Gemini
+            # Get response from OpenAI (primary) or Gemini (fallback)
             response = self.generate_content_with_fallback(content, stream=False)
             full_response = response.text
             
-            logging.info(f"✅ Gemini response received: {len(full_response)} characters")
+            logging.info(f"✅ AI response received: {len(full_response)} characters")
             
             # Lưu cuộc hội thoại phân tích ảnh vào trí nhớ
             self.add_to_conversation_history(analysis_request, full_response)
@@ -3688,7 +3689,7 @@ HƯỚNG DẪN QUAN TRỌNG:
             
             # Provide more specific error messages
             if "API" in str(e) or "quota" in str(e).lower():
-                error_msg = "Lỗi kết nối Gemini API. Vui lòng thử lại sau."
+                error_msg = "Lỗi kết nối API. Vui lòng thử lại sau."
             elif "timeout" in str(e).lower():
                 error_msg = "Thời gian xử lý quá lâu. Vui lòng thử lại với ảnh nhỏ hơn."
             

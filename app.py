@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, send_from_directory, session, make_response
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, make_response, redirect
 from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh mới
 from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
@@ -4023,6 +4023,13 @@ def forgot_password():
 def otp():
     """Trang xác thực OTP"""
     return send_from_directory(HERE, 'otp.html')
+
+
+@app.route('/logout')
+def logout():
+    """Đăng xuất người dùng"""
+    session.clear()
+    return redirect('/login')
 
 
 @app.route('/profile')

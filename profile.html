@@ -1663,8 +1663,8 @@
             console.log('  - Type of is_blocked:', typeof blockedCheckData.is_blocked);
             
             if (Boolean(blockedCheckData.is_blocked)) {
-              console.log('✋ User is blocked, redirecting to block page...');
-              window.location.href = '/block';
+              console.log('✋ User is blocked, showing modal...');
+              showYouBlockedUserModal();
               return;
             } else {
               console.log('👤 User is NOT blocked, continuing...');
@@ -1692,8 +1692,8 @@
             console.log('  - Type of is_blocked_by:', typeof blockedByCheckData.is_blocked_by);
             
             if (Boolean(blockedByCheckData.is_blocked_by)) {
-              console.log('🔐 User is blocked by owner, redirecting to block page...');
-              window.location.href = '/block';
+              console.log('🔐 User is blocked by owner, showing modal...');
+              showUserBlockedYouModal();
               return;
             } else {
               console.log('👤 User is NOT blocked by owner, continuing...');

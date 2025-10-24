@@ -1653,6 +1653,12 @@
       const requestReceivedBtns = document.getElementById('request-received-btns');
       const friendsBtn = document.getElementById('friends-btn');
       
+      // Check if buttons exist before trying to manipulate them
+      if (!addFriendBtn || !requestSentBtn || !requestReceivedBtns || !friendsBtn) {
+        console.log('Friend buttons not found in DOM - skipping friend button updates');
+        return;
+      }
+      
       // Hide all buttons first
       addFriendBtn.classList.add('hidden');
       requestSentBtn.classList.add('hidden');

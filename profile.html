@@ -1613,7 +1613,10 @@
         });
         
         // Check if current user blocked this user (prevent viewing blocked user's profile)
+        console.log('🔍 Checking block conditions: isOwnProfile=', !isOwnProfile, 'currentUserIdNotProfile=', currentUserId !== profileUserId);
+        
         if (!isOwnProfile && currentUserId !== profileUserId) {
+          console.log('✅ Conditions met, checking if blocked...');
           try {
             const blockedCheckResponse = await apiCall('/api/auth/check-blocked', {
               method: 'POST',

@@ -961,43 +961,28 @@
     // Load user profile
     async function loadProfile() {
       try {
-        console.log('🔵 loadProfile: Starting...');
-        
         // Get current user (logged in user)
         const currentUserResponse = await apiCall('/api/auth/profile');
-        console.log('🔵 loadProfile: Got currentUserResponse, status:', currentUserResponse.status);
-        
-        // Check if response status is 401 (unauthorized - not logged in)
-        if (currentUserResponse.status === 401) {
-          console.log('🔴 loadProfile: Got 401 unauthorized, redirecting to login');
-          window.location.href = '/login';
-          return;
-        }
-        
         const currentUserData = await currentUserResponse.json();
-        console.log('🔵 loadProfile: currentUserData:', currentUserData);
         
+        // Check if we got a valid user or if not authenticated
         if (!currentUserData.success || !currentUserData.user) {
-          console.log('🔴 loadProfile: currentUserData failed or no user');
+          console.error('Profile load failed:', currentUserData);
           window.location.href = '/login';
           return;
         }
         
         currentUserId = currentUserData.user.id;
         const currentUserSlug = currentUserData.user.username_slug;
-        console.log('🔵 loadProfile: currentUserId:', currentUserId, 'currentUserSlug:', currentUserSlug);
         
         // Get profile identifier from URL or use current user's slug
         const identifier = getProfileIdentifier() || currentUserSlug || currentUserId;
-        console.log('🔵 loadProfile: identifier:', identifier);
         
         // Fetch profile data
         const profileResponse = await apiCall(`/api/profile/user/${identifier}`);
         const profileData = await profileResponse.json();
-        console.log('🔵 loadProfile: profileData:', profileData);
         
         if (!profileData.success) {
-          console.log('🔴 loadProfile: profileData failed');
           showAlert('Không tìm thấy người dùng', 'error');
           return;
         }
@@ -1026,23 +1011,17 @@
         }
         
         if (currentPath !== expectedPath) {
-          console.log('🔵 loadProfile: Updating URL from', currentPath, 'to', expectedPath);
           window.history.replaceState(null, '', expectedPath);
         }
         
         // Update UI based on ownership
-        console.log('🔵 loadProfile: Updating UI...');
         updateProfileUI(user, profileData);
         
         // Load posts
-        console.log('🔵 loadProfile: Loading posts for user', profileUserId);
         loadUserPosts(profileUserId);
         
-        console.log('✅ loadProfile: Completed successfully');
-        
       } catch (error) {
-        console.error('🔴 Error loading profile:', error);
-        console.error('🔴 Stack trace:', error.stack);
+        console.error('Error loading profile:', error);
         window.location.href = '/login';
       }
     }
@@ -1700,7 +1679,7 @@
 
     // Navigate to user profile by name
     function goToUserProfile(userName) {
-      apiCall(`/api/users/search?name=${encodeURIComponent(userName)}`)
+      fetch(`/api/users/search?name=${encodeURIComponent(userName)}`)
         .then(response => response.json())
         .then(data => {
           if (data.success && data.users && data.users.length > 0) {
@@ -1756,7 +1735,7 @@
       if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
       
       try {
-        const response = await apiCall(`/api/forum/posts/${postId}`, {
+        const response = await fetch(`/api/forum/posts/${postId}`, {
           method: 'DELETE'
         });
         
@@ -1774,7 +1753,7 @@
     // Toggle like on forum post from profile
     async function toggleForumLike(postId, button) {
       try {
-        const response = await apiCall(`/api/forum/posts/${postId}/like`, {
+        const response = await fetch(`/api/forum/posts/${postId}/like`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -1821,7 +1800,7 @@
       }
       
       try {
-        const response = await apiCall(`/api/forum/posts/${postId}/comments`, {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content })
@@ -1838,7 +1817,7 @@
           if (!commentsSection.classList.contains('hidden')) {
             // Reload the comments list
             try {
-              const commentsResponse = await apiCall(`/api/forum/posts/${postId}/comments`);
+              const commentsResponse = await fetch(`/api/forum/posts/${postId}/comments`);
               const commentsData = await commentsResponse.json();
               
               if (commentsData.success && commentsData.comments) {
@@ -1902,7 +1881,7 @@
       const optionIndices = Array.from(selectedOptions).map(option => parseInt(option.value));
       
       try {
-        const response = await apiCall(`/api/forum/posts/${postId}/poll/vote`, {
+        const response = await fetch(`/api/forum/posts/${postId}/poll/vote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -2025,7 +2004,7 @@
       
       // Upload to server
       try {
-        const response = await apiCall('/api/auth/update-avatar', {
+        const response = await fetch('/api/auth/update-avatar', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ avatar_url })
@@ -2085,7 +2064,7 @@
       submitBtn.innerHTML = 'Đang cập nhật...';
       
       try {
-        const response = await apiCall('/api/auth/update-profile', {
+        const response = await fetch('/api/auth/update-profile', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -2165,7 +2144,7 @@
     // Load friends preview for sidebar
     async function loadFriendsPreview() {
       try {
-        const response = await apiCall(`/api/profile/friends?user_id=${profileUserId}&limit=6`);
+        const response = await fetch(`/api/profile/friends?user_id=${profileUserId}&limit=6`);
         const data = await response.json();
         
         const previewContainer = document.getElementById('friends-preview');
@@ -2202,7 +2181,7 @@
         const url = `/api/profile/photos?user_id=${profileUserId}&limit=6&t=${Date.now()}`;
         console.log('API URL:', url);
         
-        const response = await apiCall(url);
+        const response = await fetch(url);
         const data = await response.json();
         
         console.log('Photos response:', data);

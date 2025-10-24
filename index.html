@@ -141,10 +141,13 @@
     .message-bubble,
     .message-bubble * {
       text-align: left !important;
+      word-spacing: normal !important;
+      word-break: break-word !important;
     }
 
     .message-bubble p {
-      margin: 0 0 0.45rem 0 !important;
+      margin: 0 0 0.3rem 0 !important;
+      word-spacing: normal !important;
     }
 
     .message-bubble p:last-child {
@@ -153,27 +156,32 @@
 
     .message-bubble strong {
       font-weight: 700;
+      word-spacing: normal !important;
     }
 
     .bot-bubble {
       white-space: pre-wrap;
+      word-spacing: normal !important;
     }
 
     .bot-bubble strong {
       color: #166534;
+      word-spacing: normal !important;
     }
 
     .message-bubble em {
       font-style: italic;
       color: #374151;
+      word-spacing: normal !important;
     }
 
     .message-bubble h1,
     .message-bubble h2,
     .message-bubble h3,
     .message-bubble h4 {
-      margin: 10px 0 6px 0 !important;
+      margin: 8px 0 4px 0 !important;
       font-weight: 700;
+      word-spacing: normal !important;
     }
 
     .message-bubble h1 { font-size: 1.25rem; }
@@ -181,35 +189,40 @@
 
     .message-bubble ul,
     .message-bubble ol {
-      margin: 0.35rem 0 0.5rem 1.2rem !important;
+      margin: 0.25rem 0 0.35rem 1.2rem !important;
       padding-left: 1rem !important;
       list-style-position: outside !important;
     }
 
     .message-bubble li {
       margin-bottom: 0.3rem !important;
+      word-spacing: normal !important;
     }
 
     .message-bubble pre {
       overflow-x: auto;
       padding: 12px !important;
       border-radius: 8px !important;
+      margin: 0.3rem 0 !important;
+      word-spacing: normal !important;
     }
 
     .message-bubble blockquote {
       border-left: 3px solid #22C55E;
       padding-left: 0.65rem;
-      margin: 0.5rem 0;
+      padding: 0.5rem 0.65rem;
+      margin: 0.3rem 0;
       color: #14532d;
       font-style: italic;
       background-color: rgba(34, 197, 94, 0.08);
       border-radius: 0.35rem;
+      word-spacing: normal !important;
     }
 
     .message-bubble hr {
       border: none;
       border-top: 1px solid rgba(148, 163, 184, 0.4);
-      margin: 0.75rem 0;
+      margin: 0.3rem 0;
     }
 
     .chat-backdrop {
@@ -1533,8 +1546,10 @@
     }
 
     .message-wrapper.bot p {
-      margin: 0 0 0.75rem 0 !important;
+      margin: 0 0 0.35rem 0 !important;
       line-height: 1.6 !important;
+      word-spacing: normal !important;
+      word-break: break-word !important;
     }
 
     .message-wrapper.bot p:last-child {
@@ -1549,26 +1564,29 @@
       font-family: 'Fira Code', monospace !important;
       color: #1f2937 !important;
       border: none !important;
+      word-spacing: normal !important;
     }
 
     .message-wrapper.bot pre {
       background: #f8fafc !important;
       padding: 12px !important;
       border-radius: 8px !important;
-      margin: 0.75rem 0 !important;
+      margin: 0.35rem 0 !important;
       border-left: 3px solid #22c55e !important;
       overflow-x: auto !important;
+      word-spacing: normal !important;
     }
 
     /* Blockquotes */
     .message-wrapper.bot blockquote {
       border-left: 3px solid #22c55e !important;
-      padding: 0.75rem 1rem !important;
-      margin: 0.75rem 0 !important;
+      padding: 0.6rem 1rem !important;
+      margin: 0.35rem 0 !important;
       background: rgba(34, 197, 94, 0.08) !important;
       border-radius: 0.35rem !important;
       font-style: normal !important;
       color: #14532d !important;
+      word-spacing: normal !important;
     }
 
     .message-wrapper.bot blockquote::before {
@@ -2645,7 +2663,9 @@
   <!-- Add defensive initialization script -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Initialize clock với đầy đủ ngày tháng năm và giây
+      // Initialize clock with optimized rendering - only update when seconds change
+      let lastDisplayedTime = '';
+      
       function updateClock() {
         const clock = document.getElementById('clock');
         if (!clock) return;
@@ -2670,14 +2690,20 @@
         };
         const timeStr = now.toLocaleTimeString('vi-VN', timeOptions);
         
-        // Kết hợp ngày và giờ
-        clock.innerHTML = `<div class="text-right">
-          <div class="text-xs text-gray-500">${dateStr}</div>
-          <div class="text-sm font-medium text-gray-700">${timeStr}</div>
-        </div>`;
+        // Combine date and time
+        const displayText = `${dateStr} ${timeStr}`;
+        
+        // Only update DOM if time actually changed (avoid flickering)
+        if (displayText !== lastDisplayedTime) {
+          lastDisplayedTime = displayText;
+          clock.innerHTML = `<div class="text-right">
+            <div class="text-xs text-gray-500">${dateStr}</div>
+            <div class="text-sm font-medium text-gray-700">${timeStr}</div>
+          </div>`;
+        }
       }
       
-      // Update clock every second
+      // Update clock every second, but DOM only updates when time changes
       updateClock();
       setInterval(updateClock, 1000);
 
@@ -6945,23 +6971,8 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       
   // News navigation functionality
 
-  // Connection status and clock
-  function updateClock() {
-    const clockEl = document.getElementById('clock');
-    const now = new Date();
-    // Date components
-    const d = String(now.getDate()).padStart(2, '0');
-    const mo = String(now.getMonth() + 1).padStart(2, '0');
-    const y = now.getFullYear();
-    // Time components
-    const h = String(now.getHours()).padStart(2, '0');
-    const m = String(now.getMinutes()).padStart(2, '0');
-    const s = String(now.getSeconds()).padStart(2, '0');
-    // Format: DD/MM/YYYY HH:MM:SS
-    clockEl.innerText = `${d}/${mo}/${y} ${h}:${m}:${s}`;
-  }
-  updateClock();
-  setInterval(updateClock, 1000);
+  // Connection status and clock - REMOVED DUPLICATE (now in DOMContentLoaded)
+  // Replaced by single updateClock() in DOMContentLoaded script at line 2663
   
   const weatherIsFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 

@@ -4365,10 +4365,15 @@ def api_login_complete():
         # Clear pending login
         session.pop('login_pending', None)
         
+        logging.info(f"✅ /api/auth/login-complete SUCCESS for email: {email}")
+        logging.info(f"📋 Session set with user_id: {session.get('user_id')}")
+        logging.info(f"🍪 Session data: {dict(session)}")
+        
         # Create response and ensure Flask saves session
         response = make_response(jsonify(result))
         return response
     
+    logging.warning(f"❌ /api/auth/login-complete FAILED for email: {email} - {result}")
     return jsonify(result)
 
 

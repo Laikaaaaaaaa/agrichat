@@ -6192,6 +6192,11 @@ def run_local():
     print(f"📡 Server đang chạy tại: http://{host}:{port}")
     print(f"🌐 Mở trình duyệt và truy cập: http://{host}:{port}")
     print("⭐ Nhấn Ctrl+C để dừng server")
+    
+    # Initialize database (create tables if not exist)
+    print("🗂️  Initializing database...")
+    auth.init_db()
+    print("✅ Database initialized")
 
     app.run(
         host=host,

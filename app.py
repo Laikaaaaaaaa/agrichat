@@ -4589,10 +4589,13 @@ def api_block_user():
     data = request.get_json()
     target_user_id = data.get('user_id')
     
+    logging.info(f"🚫 Block request: blocker={user_id}, blocked={target_user_id}")
+    
     if not target_user_id:
         return jsonify({'success': False, 'message': 'User ID is required'})
     
     result = auth.block_user(user_id, target_user_id)
+    logging.info(f"✅ Block result: {result}")
     return jsonify(result)
 
 
@@ -4628,10 +4631,13 @@ def api_check_blocked():
     data = request.get_json()
     target_user_id = data.get('target_user_id')
     
+    logging.info(f"🔍 Check-blocked request: user={user_id}, target={target_user_id}")
+    
     if not target_user_id:
         return jsonify({'success': False, 'message': 'Target user ID is required'})
     
     result = auth.is_blocked(user_id, target_user_id)
+    logging.info(f"✅ Check-blocked result: {result}")
     return jsonify(result)
 
 
@@ -4643,10 +4649,13 @@ def api_check_blocked_by():
     data = request.get_json()
     target_user_id = data.get('target_user_id')
     
+    logging.info(f"🔒 Check-blocked-by request: user={user_id}, target={target_user_id}")
+    
     if not target_user_id:
         return jsonify({'success': False, 'message': 'Target user ID is required'})
     
     result = auth.is_blocked_by(user_id, target_user_id)
+    logging.info(f"✅ Check-blocked-by result: {result}")
     return jsonify(result)
 
 

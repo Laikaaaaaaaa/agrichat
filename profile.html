@@ -308,6 +308,43 @@
               </button>
             </div>
             
+            <!-- Visitor Actions - Friend buttons -->
+            <div id="visitor-actions" class="flex gap-1 hidden">
+              <!-- Add Friend Button -->
+              <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden">
+                <i class="fas fa-user-plus"></i>
+                <span class="hidden sm:inline">Kết bạn</span>
+              </button>
+              
+              <!-- Request Sent Button -->
+              <button id="request-sent-btn" class="px-3 py-1.5 bg-gray-400 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden" disabled>
+                <i class="fas fa-clock"></i>
+                <span class="hidden sm:inline">Đã gửi</span>
+              </button>
+              
+              <!-- Already Friends Button -->
+              <button id="friends-btn" onclick="showUnfriendMenu()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden">
+                <i class="fas fa-user-check"></i>
+                <span class="hidden sm:inline">Bạn bè</span>
+              </button>
+              
+              <!-- Request Received Buttons -->
+              <div id="request-received-btns" class="flex gap-1 hidden">
+                <button onclick="acceptFriendRequest()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors">
+                  <i class="fas fa-check mr-1"></i>Chấp nhận
+                </button>
+                <button onclick="rejectFriendRequest()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors">
+                  <i class="fas fa-times mr-1"></i>Từ chối
+                </button>
+              </div>
+              
+              <!-- Block Button -->
+              <button onclick="blockUser()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1">
+                <i class="fas fa-ban"></i>
+                <span class="hidden sm:inline">Chặn</span>
+              </button>
+            </div>
+            
             <!-- Share Button -->
             <button onclick="shareProfile()" class="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors flex items-center justify-center" title="Chia sẻ">
               <i class="fas fa-share-alt text-xs"></i>
@@ -3409,7 +3446,15 @@
     }
 
     // Block user function
-    function blockUser(userIdToBlock) {
+    function blockUser(userIdToBlock = null) {
+      // If no parameter, use the current profile user ID
+      const targetUserId = userIdToBlock || profileUserId;
+      
+      if (!targetUserId) {
+        showAlert('Không thể xác định người dùng để chặn', 'error');
+        return;
+      }
+      
       if (confirm(`Bạn có chắc muốn chặn người dùng này? Họ sẽ không thể xem hồ sơ hoặc nhắn tin cho bạn.`)) {
         fetch('/api/auth/block-user', {
           method: 'POST',
@@ -3417,7 +3462,7 @@
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ user_id: userIdToBlock })
+          body: JSON.stringify({ user_id: targetUserId })
         })
         .then(response => response.json())
         .then(data => {

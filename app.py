@@ -4038,11 +4038,6 @@ def profile_own():
     """Trang hồ sơ của chính mình"""
     return send_from_directory(HERE, 'profile.html')
 
-@app.route('/block')
-def block_page():
-    """Trang thông báo bị chặn"""
-    return send_from_directory(HERE, 'block.html')
-
 @app.route('/profile/<identifier>')
 def profile_user(identifier):
     """Trang hồ sơ người dùng - accepts username.userid or user ID"""
@@ -4582,99 +4577,6 @@ def api_change_password():
     
     result = auth.change_password(user_id, old_password, new_password)
     return jsonify(result)
-
-
-# ==================== BLOCK USER ROUTES ====================
-
-@app.route('/api/auth/block-user', methods=['POST'])
-@auth.login_required
-def api_block_user():
-    """Block a user"""
-    user_id = session.get('user_id')
-    data = request.get_json()
-    target_user_id = data.get('user_id')
-    
-    logging.info(f"🚫 Block request: blocker={user_id}, blocked={target_user_id}")
-    
-    if not target_user_id:
-        return jsonify({'success': False, 'message': 'User ID is required'})
-    
-    result = auth.block_user(user_id, target_user_id)
-    logging.info(f"✅ Block result: {result}")
-    return jsonify(result)
-
-
-@app.route('/api/auth/unblock-user', methods=['POST'])
-@auth.login_required
-def api_unblock_user():
-    """Unblock a user"""
-    user_id = session.get('user_id')
-    data = request.get_json()
-    target_user_id = data.get('user_id')
-    
-    if not target_user_id:
-        return jsonify({'success': False, 'message': 'User ID is required'})
-    
-    result = auth.unblock_user(user_id, target_user_id)
-    return jsonify(result)
-
-
-@app.route('/api/auth/blocked-users', methods=['GET'])
-@auth.login_required
-def api_get_blocked_users():
-    """Get list of blocked users"""
-    user_id = session.get('user_id')
-    result = auth.get_blocked_users(user_id)
-    return jsonify(result)
-
-
-@app.route('/api/auth/check-blocked', methods=['POST'])
-@auth.login_required
-def api_check_blocked():
-    """Check if current user can view target user's profile (i.e., user hasn't blocked target OR target hasn't blocked user)"""
-    user_id = session.get('user_id')
-    data = request.get_json()
-    target_user_id = data.get('target_user_id')
-    
-    logging.info(f"🔍 Check-blocked request: user={user_id}, target={target_user_id}")
-    
-    if not target_user_id:
-        return jsonify({'success': False, 'is_blocked': False, 'message': 'Target user ID is required'})
-    
-    # Check if current user has blocked the target user
-    result = auth.is_blocked(user_id, target_user_id)
-    logging.info(f"✅ Check-blocked result: {result}")
-    
-    # Ensure is_blocked is boolean
-    is_blocked = bool(result.get('is_blocked', False)) if isinstance(result, dict) else False
-    return jsonify({
-        'success': result.get('success', True),
-        'is_blocked': is_blocked
-    })
-
-
-@app.route('/api/auth/check-blocked-by', methods=['POST'])
-@auth.login_required
-def api_check_blocked_by():
-    """Check if current user is blocked by target user"""
-    user_id = session.get('user_id')
-    data = request.get_json()
-    target_user_id = data.get('target_user_id')
-    
-    logging.info(f"🔒 Check-blocked-by request: user={user_id}, target={target_user_id}")
-    
-    if not target_user_id:
-        return jsonify({'success': False, 'is_blocked_by': False, 'message': 'Target user ID is required'})
-    
-    result = auth.is_blocked_by(user_id, target_user_id)
-    logging.info(f"✅ Check-blocked-by result: {result}")
-    
-    # Ensure is_blocked_by is boolean
-    is_blocked_by = bool(result.get('is_blocked_by', False)) if isinstance(result, dict) else False
-    return jsonify({
-        'success': result.get('success', True),
-        'is_blocked_by': is_blocked_by
-    })
 
 
 # ==================== MAIN APP ROUTES ====================

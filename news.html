@@ -1120,28 +1120,22 @@
               
               const title = titleNode ? titleNode.textContent : '';
               const link = linkNode ? linkNode.textContent : '';
-              const description = descNode ? descNode.textContent.replace(/<[^>]*>/g, '').substring(0, 300) : '';
+              let description = descNode ? descNode.textContent : '';
               const pubDate = pubDateNode ? pubDateNode.textContent : new Date().toISOString();
-              const content = contentNode ? contentNode.textContent : description;
+              let content = contentNode ? contentNode.textContent : description;
               
-              // Extract image
-              let imageUrl = null;
-              if (enclosureNode && enclosureNode.getAttribute('type')?.includes('image')) {
-                imageUrl = enclosureNode.getAttribute('url');
-              } else {
-                // Try to extract from content
-                const imgMatch = content.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
-                if (imgMatch) {
-                  imageUrl = imgMatch[1];
-                }
-              }
+              // Extract image from RSS item
+              let imageUrl = extractImageFromXMLItem(item, content, description, feed.name);
+              
+              // Clean up description
+              description = description.replace(/<[^>]*>/g, '').substring(0, 300);
               
               if (title && link) {
                 newsItems.push({
                   title: title,
-                  description: description ? description.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : 'Không có mô tả',
+                  description: description || 'Không có mô tả',
                   url: link,
-                  urlToImage: imageUrl || 'https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI',
+                  urlToImage: imageUrl,
                   publishedAt: pubDate,
                   source: { name: feed.name },
                   content: content,
@@ -1297,10 +1291,83 @@
       return imageUrl;
     }
 
-    // Get agriculture-specific images based on content
-    function getAgricultureImageByContent(item, feedName) {
-      const title = (item.title || '').toLowerCase();
-      const description = (item.description || '').toLowerCase();
+    // Extract images from XML RSS item
+    function extractImageFromXMLItem(xmlItem, content, description, feedName) {
+      let imageUrl = null;
+      
+      // 1. Try media:content tag
+      const mediaContent = xmlItem.getElementsByTagName('media:content');
+      if (mediaContent.length > 0) {
+        const url = mediaContent[0].getAttribute('url');
+        if (url && (url.includes('.jpg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp'))) {
+          return url;
+        }
+      }
+      
+      // 2. Try media:thumbnail tag
+      const mediaThumbnail = xmlItem.getElementsByTagName('media:thumbnail');
+      if (mediaThumbnail.length > 0) {
+        const url = mediaThumbnail[0].getAttribute('url');
+        if (url) return url;
+      }
+      
+      // 3. Try enclosure tag (RSS 2.0)
+      const enclosures = xmlItem.getElementsByTagName('enclosure');
+      for (let i = 0; i < enclosures.length; i++) {
+        const type = enclosures[i].getAttribute('type');
+        const url = enclosures[i].getAttribute('url');
+        if (type && type.includes('image') && url) {
+          return url;
+        }
+      }
+      
+      // 4. Try image:url tag (RSS Image Namespace)
+      const imageUrl_tag = xmlItem.getElementsByTagName('image:url');
+      if (imageUrl_tag.length > 0) {
+        return imageUrl_tag[0].textContent;
+      }
+      
+      // 5. Extract from content HTML
+      if (content && typeof content === 'string') {
+        // Try img tag in content
+        const imgMatch = content.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+        if (imgMatch && imgMatch[1]) {
+          imageUrl = imgMatch[1];
+          if (isValidImageUrl(imageUrl)) return imageUrl;
+        }
+      }
+      
+      // 6. Extract from description HTML
+      if (description && typeof description === 'string') {
+        const descMatch = description.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+        if (descMatch && descMatch[1]) {
+          imageUrl = descMatch[1];
+          if (isValidImageUrl(imageUrl)) return imageUrl;
+        }
+      }
+      
+      // 7. Fallback to agriculture-specific images based on content
+      return getAgricultureImageByContentXML(xmlItem, feedName);
+    }
+
+    // Validate image URL
+    function isValidImageUrl(url) {
+      if (!url) return false;
+      try {
+        const urlObj = new URL(url, window.location.origin);
+        return true;
+      } catch (e) {
+        return url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://');
+      }
+    }
+
+    // Get agriculture-specific images based on content (for XML parsing)
+    function getAgricultureImageByContentXML(xmlItem, feedName) {
+      const titleNode = xmlItem.getElementsByTagName('title')[0];
+      const descNode = xmlItem.getElementsByTagName('description')[0];
+      
+      const title = titleNode ? titleNode.textContent.toLowerCase() : '';
+      const description = descNode ? descNode.textContent.toLowerCase() : '';
       const content = title + ' ' + description;
       
       // Vietnamese agriculture-specific images
@@ -1339,6 +1406,7 @@
         'Thanh Niên': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
         'Dân trí': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=200&fit=crop&auto=format',
         'VTC': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
+        'VietnamNet': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
         'Nông nghiệp': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
         'Môi trường': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format'
       };

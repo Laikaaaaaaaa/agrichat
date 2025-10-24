@@ -9,8 +9,8 @@
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
   
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com?v=3.4.0"></script>
+  <!-- Tailwind CSS (Production Build) -->
+  <link href="https://cdn.tailwindcss.com" rel="stylesheet">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <!-- Cropper.js -->
@@ -1463,6 +1463,40 @@
           profileUserId,
           isOwnProfile: profileData.is_own_profile
         });
+        
+        // Check if current user blocked this user (prevent viewing blocked user's profile)
+        if (!isOwnProfile && currentUserId !== profileUserId) {
+          const blockedCheckResponse = await apiCall('/api/auth/check-blocked', {
+            method: 'POST',
+            body: JSON.stringify({ target_user_id: profileUserId })
+          });
+          const blockedCheckData = await blockedCheckResponse.json();
+          
+          if (blockedCheckData.is_blocked) {
+            showAlert('Bạn đã chặn người này', 'error');
+            setTimeout(() => {
+              window.location.href = '/profile';
+            }, 1500);
+            return;
+          }
+        }
+        
+        // Check if profile owner blocked current user (prevent viewing when blocked by owner)
+        if (!isOwnProfile && currentUserId !== profileUserId) {
+          const blockedByCheckResponse = await apiCall('/api/auth/check-blocked-by', {
+            method: 'POST',
+            body: JSON.stringify({ target_user_id: profileUserId })
+          });
+          const blockedByCheckData = await blockedByCheckResponse.json();
+          
+          if (blockedByCheckData.is_blocked_by) {
+            showAlert('Bạn không thể xem trang này', 'error');
+            setTimeout(() => {
+              window.location.href = '/profile';
+            }, 1500);
+            return;
+          }
+        }
         
         // Update URL based on profile ownership
         const currentPath = window.location.pathname;
@@ -3221,6 +3255,70 @@
         .catch(error => {
           console.error('Error blocking user:', error);
           showAlert('Lỗi khi chặn người dùng', 'error');
+        });
+      }
+    }
+
+    // Load blocked users list
+    function loadBlockedUsers() {
+      fetch('/api/auth/blocked-users', {
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        const blockedList = document.getElementById('blocked-users-list');
+        
+        if (data.success && data.blocked_users && data.blocked_users.length > 0) {
+          blockedList.innerHTML = data.blocked_users.map(user => `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div class="flex items-center gap-3 flex-1">
+                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                  ${user.avatar_url ? `<img src="${user.avatar_url}" class="w-full h-full rounded-full object-cover" />` : user.name.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-1">
+                  <div class="font-medium text-gray-800 text-sm">${user.name}</div>
+                  <div class="text-xs text-gray-500">${user.email}</div>
+                </div>
+              </div>
+              <button onclick="unblockUser(${user.id})" class="ml-2 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm font-medium transition-colors">
+                Bỏ chặn
+              </button>
+            </div>
+          `).join('');
+        } else {
+          blockedList.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Bạn chưa chặn ai</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading blocked users:', error);
+        const blockedList = document.getElementById('blocked-users-list');
+        blockedList.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Lỗi khi tải danh sách</p>';
+      });
+    }
+
+    // Unblock user function
+    function unblockUser(userIdToUnblock) {
+      if (confirm('Bạn có chắc muốn bỏ chặn người dùng này?')) {
+        fetch('/api/auth/unblock-user', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ user_id: userIdToUnblock })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showAlert('Đã bỏ chặn người dùng', 'success');
+            loadBlockedUsers(); // Reload list
+          } else {
+            showAlert(data.message || 'Không thể bỏ chặn người dùng', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error unblocking user:', error);
+          showAlert('Lỗi khi bỏ chặn người dùng', 'error');
         });
       }
     }

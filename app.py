@@ -41,6 +41,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'agrisense-ai-secret-key-2024')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7 days
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False  # Set True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to session cookie
 
 class Api:
     def __init__(self):
@@ -4025,19 +4026,16 @@ def otp():
 
 
 @app.route('/profile')
-@auth.login_required
 def profile_own():
     """Trang hồ sơ của chính mình"""
     return send_from_directory(HERE, 'profile.html')
 
 @app.route('/profile/<identifier>')
-@auth.login_required
 def profile_user(identifier):
     """Trang hồ sơ người dùng - accepts username.userid or user ID"""
     return send_from_directory(HERE, 'profile.html')
 
 @app.route('/profile/c/<identifier>')
-@auth.login_required
 def profile_other(identifier):
     """Trang hồ sơ người dùng khác - accepts username slug or user ID"""
     return send_from_directory(HERE, 'profile.html')

@@ -4038,6 +4038,11 @@ def profile_own():
     """Trang hồ sơ của chính mình"""
     return send_from_directory(HERE, 'profile.html')
 
+@app.route('/block')
+def block_page():
+    """Trang thông báo bị chặn"""
+    return send_from_directory(HERE, 'block.html')
+
 @app.route('/profile/<identifier>')
 def profile_user(identifier):
     """Trang hồ sơ người dùng - accepts username.userid or user ID"""

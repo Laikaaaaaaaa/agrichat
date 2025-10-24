@@ -4634,11 +4634,17 @@ def api_check_blocked():
     logging.info(f"🔍 Check-blocked request: user={user_id}, target={target_user_id}")
     
     if not target_user_id:
-        return jsonify({'success': False, 'message': 'Target user ID is required'})
+        return jsonify({'success': False, 'is_blocked': False, 'message': 'Target user ID is required'})
     
     result = auth.is_blocked(user_id, target_user_id)
     logging.info(f"✅ Check-blocked result: {result}")
-    return jsonify(result)
+    
+    # Ensure is_blocked is boolean
+    is_blocked = bool(result.get('is_blocked', False)) if isinstance(result, dict) else False
+    return jsonify({
+        'success': result.get('success', True),
+        'is_blocked': is_blocked
+    })
 
 
 @app.route('/api/auth/check-blocked-by', methods=['POST'])
@@ -4652,11 +4658,17 @@ def api_check_blocked_by():
     logging.info(f"🔒 Check-blocked-by request: user={user_id}, target={target_user_id}")
     
     if not target_user_id:
-        return jsonify({'success': False, 'message': 'Target user ID is required'})
+        return jsonify({'success': False, 'is_blocked_by': False, 'message': 'Target user ID is required'})
     
     result = auth.is_blocked_by(user_id, target_user_id)
     logging.info(f"✅ Check-blocked-by result: {result}")
-    return jsonify(result)
+    
+    # Ensure is_blocked_by is boolean
+    is_blocked_by = bool(result.get('is_blocked_by', False)) if isinstance(result, dict) else False
+    return jsonify({
+        'success': result.get('success', True),
+        'is_blocked_by': is_blocked_by
+    })
 
 
 # ==================== MAIN APP ROUTES ====================

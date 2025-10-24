@@ -2878,19 +2878,28 @@
       const modal = document.getElementById('create-post-modal');
       if (modal) {
         modal.classList.add('active');
-        // Load user info
-        if (currentUserId) {
-          const avatarEl = document.getElementById('modal-user-avatar');
-          const nameEl = document.getElementById('modal-user-name');
-          
-          if (document.getElementById('profile-avatar').style.display !== 'none') {
-            avatarEl.innerHTML = `<img src="${document.getElementById('profile-avatar').src}" class="w-full h-full rounded-full object-cover" />`;
-          } else {
-            const initial = document.getElementById('profile-name').textContent.charAt(0).toUpperCase();
-            avatarEl.innerHTML = initial;
-          }
-          nameEl.textContent = document.getElementById('profile-name').textContent;
-        }
+        // Load current user info
+        fetch('/api/auth/profile')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success && data.user) {
+              const avatarEl = document.getElementById('modal-user-avatar');
+              const nameEl = document.getElementById('modal-user-name');
+              const user = data.user;
+              
+              // Set avatar - use real avatar or first letter
+              if (user.avatar_url) {
+                avatarEl.innerHTML = `<img src="${user.avatar_url}" class="w-full h-full rounded-full object-cover" />`;
+              } else {
+                const firstLetter = (user.name || user.email).charAt(0).toUpperCase();
+                avatarEl.textContent = firstLetter;
+              }
+              
+              // Set user name
+              nameEl.textContent = user.name || user.email.split('@')[0];
+            }
+          })
+          .catch(error => console.error('Error loading user info:', error));
       }
     }
 
@@ -3039,11 +3048,7 @@
       const modal = document.getElementById('create-post-modal');
       if (modal) {
         modal.classList.remove('active');
-        // Clear form
-        document.getElementById('post-title').value = '';
-        document.getElementById('post-content').value = '';
-        document.getElementById('post-tags').value = '';
-        document.getElementById('image-preview-container').classList.add('hidden');
+        // Form will be cleared by submitPost function, not here
       }
     }
 
@@ -3092,6 +3097,8 @@
           mentioned_users: mentionedUsers
         };
 
+        console.log('Submitting post data:', postData); // Debug log
+
         const response = await fetch('/api/forum/posts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3099,12 +3106,10 @@
         });
 
         const data = await response.json();
+        console.log('Post response:', data); // Debug log
 
         if (data.success) {
-          // Silently close modal and reload posts
-          closeCreatePostModal();
-          loadUserPosts(currentUserId);
-          // Reset form
+          // Reset form BEFORE closing modal
           document.getElementById('post-content').value = '';
           document.getElementById('post-tags').value = '';
           document.getElementById('image-preview-container').classList.add('hidden');
@@ -3113,12 +3118,23 @@
           mentionedUsers = [];
           hashtags = [];
           selectedImage = null;
+          
+          // Silently close modal
+          closeCreatePostModal();
+          
+          // Reload posts after a short delay to ensure data is saved
+          setTimeout(() => {
+            loadUserPosts(currentUserId);
+          }, 500);
+          
+          // Show success message
+          showAlert('Bài viết đã được đăng thành công!', 'success');
         } else {
           alert('Có lỗi: ' + (data.message || 'Không thể đăng bài'));
         }
       } catch (error) {
         console.error('Error submitting post:', error);
-        alert('Có lỗi khi đăng bài');
+        alert('Có lỗi khi đăng bài: ' + error.message);
       }
     }
     

@@ -3464,6 +3464,10 @@
             showAlert('✅ Đã chặn người dùng này', 'success');
             // Show block success modal instead of redirect
             showYouBlockedUserModal();
+            // Force reload page after a delay to prevent viewing blocked profile
+            setTimeout(() => {
+              window.location.href = '/profile';
+            }, 3000);
           } else {
             showAlert(data.message || 'Không thể chặn người dùng', 'error');
           }

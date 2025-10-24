@@ -4631,7 +4631,7 @@ def api_get_blocked_users():
 @app.route('/api/auth/check-blocked', methods=['POST'])
 @auth.login_required
 def api_check_blocked():
-    """Check if current user has blocked target user"""
+    """Check if current user can view target user's profile (i.e., user hasn't blocked target OR target hasn't blocked user)"""
     user_id = session.get('user_id')
     data = request.get_json()
     target_user_id = data.get('target_user_id')
@@ -4641,6 +4641,7 @@ def api_check_blocked():
     if not target_user_id:
         return jsonify({'success': False, 'is_blocked': False, 'message': 'Target user ID is required'})
     
+    # Check if current user has blocked the target user
     result = auth.is_blocked(user_id, target_user_id)
     logging.info(f"✅ Check-blocked result: {result}")
     

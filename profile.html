@@ -303,22 +303,9 @@
           <div class="flex gap-1 pl-1 flex-shrink-0 border-b-2 border-transparent">
             <!-- Owner Edit Button -->
             <div id="owner-actions-mobile" class="relative">
-              <button onclick="toggleSettingsMenu()" class="p-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs font-medium transition-colors flex items-center justify-center" title="Chỉnh sửa">
+              <button onclick="openSettingsModal()" class="p-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs font-medium transition-colors flex items-center justify-center" title="Chỉnh sửa">
                 <i class="fas fa-cog text-xs"></i>
               </button>
-              
-              <!-- Settings Menu Dropdown -->
-              <div id="settings-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <button onclick="openEditProfileModal()" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg text-sm text-gray-700 font-medium transition-colors">
-                  <i class="fas fa-edit mr-2"></i>Chỉnh sửa hồ sơ
-                </button>
-                <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 font-medium transition-colors border-t border-gray-200">
-                  <i class="fas fa-lock mr-2"></i>Đổi mật khẩu
-                </button>
-                <button onclick="logoutUser()" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg text-sm text-red-600 font-medium transition-colors border-t border-gray-200">
-                  <i class="fas fa-sign-out-alt mr-2"></i>Đăng xuất
-                </button>
-              </div>
             </div>
             
             <!-- Share Button -->
@@ -870,6 +857,47 @@
 
   <!-- Share Options Modal -->
   
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal">
+    <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+          <i class="fas fa-cog text-blue-600 mr-2"></i>
+          Cài đặt
+        </h3>
+        <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div class="space-y-2">
+        <button onclick="openEditProfileModal(); closeSettingsModal();" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors">
+          <i class="fas fa-edit text-green-600 text-lg"></i>
+          <div>
+            <div class="font-medium text-gray-800">Chỉnh sửa hồ sơ</div>
+            <div class="text-xs text-gray-500">Cập nhật tên, tiểu sử</div>
+          </div>
+        </button>
+        
+        <button onclick="openChangePasswordModal(); closeSettingsModal();" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors border-t border-gray-200">
+          <i class="fas fa-lock text-blue-600 text-lg"></i>
+          <div>
+            <div class="font-medium text-gray-800">Đổi mật khẩu</div>
+            <div class="text-xs text-gray-500">Cập nhật mật khẩu</div>
+          </div>
+        </button>
+        
+        <button onclick="logoutUser()" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 rounded-lg transition-colors border-t border-gray-200">
+          <i class="fas fa-sign-out-alt text-red-600 text-lg"></i>
+          <div>
+            <div class="font-medium text-red-600">Đăng xuất</div>
+            <div class="text-xs text-gray-500">Thoát khỏi tài khoản</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+  
   <script>
     let cropper = null;
     let currentUserId = null;
@@ -942,6 +970,22 @@
         console.log('Menu hidden before:', menu.classList.contains('hidden'));
         menu.classList.toggle('hidden');
         console.log('Menu hidden after:', menu.classList.contains('hidden'));
+      }
+    }
+    
+    // Open settings modal
+    function openSettingsModal() {
+      const settingsModal = document.getElementById('settings-modal');
+      if (settingsModal) {
+        settingsModal.classList.add('active');
+      }
+    }
+    
+    // Close settings modal
+    function closeSettingsModal() {
+      const settingsModal = document.getElementById('settings-modal');
+      if (settingsModal) {
+        settingsModal.classList.remove('active');
       }
     }
     

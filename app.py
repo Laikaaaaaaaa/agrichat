@@ -6195,8 +6195,13 @@ def run_local():
     
     # Initialize database (create tables if not exist)
     print("🗂️  Initializing database...")
-    auth.init_db()
-    print("✅ Database initialized")
+    try:
+        auth.init_db()
+        print("✅ Database initialized successfully")
+    except Exception as e:
+        print(f"❌ Error initializing database: {e}")
+        import traceback
+        traceback.print_exc()
 
     app.run(
         host=host,

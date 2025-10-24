@@ -1191,41 +1191,55 @@
       
       // Load Vietnamese news - DON'T WAIT for all, it will display when ready
       const vietnamesePromise = loadVietnameseNews();
+      const englishPromise = loadNews(true); // Load English as backup
       
       // Wait maximum 3 seconds, then display what we have
       const displayTimeout = new Promise(resolve => setTimeout(resolve, 3000));
-      await Promise.race([vietnamesePromise, displayTimeout]);
+      await Promise.race([vietnamesePromise, englishPromise, displayTimeout]);
       
-      console.log(`⚡ Sau 3s: ${vietnameseNews.length} tin đã có`);
+      console.log(`⚡ Sau 3s: ${vietnameseNews.length} tin VN, ${allNews.length} tin EN`);
       
       // If we have some news, display it immediately
-      if (vietnameseNews.length > 0) {
+      if (vietnameseNews.length > 0 || allNews.length > 0) {
         console.log('📊 Hiển thị tin tức có sẵn...');
         filterAndDisplayNews();
         hideLoading();
-        updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+        const total = vietnameseNews.length + allNews.length;
+        updateHeaderStatus(`${total} tin tức mới nhất`, false);
       } else {
         // If no news yet, wait a bit more but don't block UI
         console.log('⏳ Chưa có tin, đợi thêm 2s...');
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        if (vietnameseNews.length > 0) {
+        if (vietnameseNews.length > 0 || allNews.length > 0) {
           filterAndDisplayNews();
           hideLoading();
-          updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+          const total = vietnameseNews.length + allNews.length;
+          updateHeaderStatus(`${total} tin tức mới nhất`, false);
+        } else {
+          // Still no news - show error but keep trying
+          console.warn('⚠️ Không tải được tin tức từ bất kỳ nguồn nào');
+          // Don't hide loading yet, try fallback
+          const fallbackNews = generateAllMockVietnameseNews();
+          if (fallbackNews.length > 0) {
+            vietnameseNews = fallbackNews;
+            filterAndDisplayNews();
+            hideLoading();
+            updateHeaderStatus(`${fallbackNews.length} tin tức từ demo`, false);
+          }
         }
       }
       
       // Continue loading in background
-      vietnamesePromise.then(() => {
-        console.log(`✅ Hoàn tất tải tất cả: ${vietnameseNews.length} tin VN`);
+      Promise.all([vietnamesePromise, englishPromise]).then(() => {
+        console.log(`✅ Hoàn tất tải: ${vietnameseNews.length} tin VN, ${allNews.length} tin EN`);
         // Update display with all news
         filterAndDisplayNews();
         const totalNews = vietnameseNews.length + allNews.length;
         updateHeaderStatus(`${totalNews} tin tức mới nhất`, false);
       });
       
-      console.log(`🎯 Trang sẵn sàng với ${vietnameseNews.length} tin (đang tải thêm background)`);
+      console.log(`🎯 Trang sẵn sàng với ${vietnameseNews.length + allNews.length} tin (đang tải thêm background)`);
     });
 
     // Fetch Vietnamese RSS feeds - OPTIMIZED: Load only what's needed
@@ -1275,7 +1289,9 @@
         
         for (const service of rssServices) {
           try {
+            console.log(`🔗 Đang fetch ${feed.name} từ ${service.split('?')[0]}`);
             const response = await fetch(service, { timeout: 5000 });
+            
             if (response.ok) {
               const data = await response.json();
               
@@ -1294,15 +1310,22 @@
                 
                 console.log(`✅ ${feed.name}: ${newsItems.length} bài`);
                 return newsItems;
+              } else {
+                console.warn(`⚠️ ${feed.name}: API trả về status=${data.status}, items=${data.items?.length || 0}`);
               }
+            } else {
+              console.warn(`⚠️ ${feed.name}: HTTP ${response.status}`);
             }
           } catch (e) {
+            console.warn(`⚠️ ${feed.name}: Service error - ${e.message}`);
             // Try next service
           }
         }
         
+        console.error(`❌ ${feed.name}: Không thể fetch từ cả 2 service`);
         return [];
       } catch (error) {
+        console.error(`❌ ${feed.name}: Error - ${error.message}`);
         return [];
       }
     }

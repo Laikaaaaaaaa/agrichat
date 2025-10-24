@@ -1110,12 +1110,18 @@
       if (isOwnProfile) {
         // Owner view
         console.log('Showing owner view');
-        document.getElementById('owner-actions').style.display = 'block';
-        document.getElementById('owner-actions-mobile').style.display = 'block';
-        document.getElementById('visitor-actions').style.display = 'none';
-        document.getElementById('avatar-edit-btn').style.display = 'flex';
-        document.getElementById('name').value = user.name || '';
-        document.getElementById('create-post-card').style.display = 'block';
+        const ownerActions = document.getElementById('owner-actions');
+        if (ownerActions) ownerActions.style.display = 'block';
+        const ownerActionsMobile = document.getElementById('owner-actions-mobile');
+        if (ownerActionsMobile) ownerActionsMobile.style.display = 'block';
+        const visitorActions = document.getElementById('visitor-actions');
+        if (visitorActions) visitorActions.style.display = 'none';
+        const avatarEditBtn = document.getElementById('avatar-edit-btn');
+        if (avatarEditBtn) avatarEditBtn.style.display = 'flex';
+        const nameInput = document.getElementById('name');
+        if (nameInput) nameInput.value = user.name || '';
+        const createPostCard = document.getElementById('create-post-card');
+        if (createPostCard) createPostCard.style.display = 'block';
         
         // Enable edit buttons in sidebar
         const editButtons = document.querySelectorAll('button[onclick="openEditProfileModal()"]');
@@ -1124,11 +1130,16 @@
       } else {
         // Visitor view
         console.log('Showing visitor view');
-        document.getElementById('owner-actions').style.display = 'none';
-        document.getElementById('owner-actions-mobile').style.display = 'none';
-        document.getElementById('visitor-actions').style.display = 'flex';
-        document.getElementById('avatar-edit-btn').style.display = 'none';
-        document.getElementById('create-post-card').style.display = 'none';
+        const ownerActions = document.getElementById('owner-actions');
+        if (ownerActions) ownerActions.style.display = 'none';
+        const ownerActionsMobile = document.getElementById('owner-actions-mobile');
+        if (ownerActionsMobile) ownerActionsMobile.style.display = 'none';
+        const visitorActions = document.getElementById('visitor-actions');
+        if (visitorActions) visitorActions.style.display = 'flex';
+        const avatarEditBtn = document.getElementById('avatar-edit-btn');
+        if (avatarEditBtn) avatarEditBtn.style.display = 'none';
+        const createPostCard = document.getElementById('create-post-card');
+        if (createPostCard) createPostCard.style.display = 'none';
         
         // Hide edit buttons
         const editButtons = document.querySelectorAll('button[onclick="openEditProfileModal()"]');

@@ -1521,8 +1521,15 @@
     
     // Block-related Modal Functions
     function showYouBlockedUserModal() {
+      console.log('📢 showYouBlockedUserModal called');
       const modal = document.getElementById('you-blocked-user-modal');
-      if (modal) modal.classList.add('active');
+      console.log('Modal element:', modal);
+      if (modal) {
+        modal.classList.add('active');
+        console.log('✅ Modal displayed, classes:', modal.classList);
+      } else {
+        console.error('❌ Modal element not found!');
+      }
     }
     
     function closeYouBlockedUserModal() {
@@ -1531,8 +1538,15 @@
     }
     
     function showUserBlockedYouModal() {
+      console.log('📢 showUserBlockedYouModal called');
       const modal = document.getElementById('user-blocked-you-modal');
-      if (modal) modal.classList.add('active');
+      console.log('Modal element:', modal);
+      if (modal) {
+        modal.classList.add('active');
+        console.log('✅ Modal displayed, classes:', modal.classList);
+      } else {
+        console.error('❌ Modal element not found!');
+      }
     }
     
     function closeUserBlockedYouModal() {
@@ -1557,6 +1571,8 @@
     // Load user profile
     async function loadProfile() {
       try {
+        console.log('📄 loadProfile() started');
+        
         // Get current user (logged in user)
         const currentUserResponse = await apiCall('/api/auth/profile');
         const currentUserData = await currentUserResponse.json();
@@ -1573,6 +1589,8 @@
         
         // Get profile identifier from URL or use current user's slug
         const identifier = getProfileIdentifier() || currentUserSlug || currentUserId;
+        
+        console.log('👤 Loading profile for identifier:', identifier, 'CurrentUserId:', currentUserId);
         
         // Fetch profile data
         const profileResponse = await apiCall(`/api/profile/user/${identifier}`);
@@ -1603,7 +1621,10 @@
             });
             const blockedCheckData = await blockedCheckResponse.json();
             
+            console.log('🚫 Block check response:', blockedCheckData);
+            
             if (blockedCheckData.is_blocked) {
+              console.log('✋ User is blocked, showing modal...');
               showYouBlockedUserModal();
               return;
             }
@@ -1621,7 +1642,10 @@
             });
             const blockedByCheckData = await blockedByCheckResponse.json();
             
+            console.log('🔒 Blocked-by check response:', blockedByCheckData);
+            
             if (blockedByCheckData.is_blocked_by) {
+              console.log('🔐 User is blocked by owner, showing modal...');
               showUserBlockedYouModal();
               return;
             }

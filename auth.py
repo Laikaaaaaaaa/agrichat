@@ -894,7 +894,7 @@ def google_login(credential):
         return {'success': False, 'message': f'Lỗi: {str(e)}'}
 
 def block_user(blocker_id, blocked_id):
-    """Block a user"""
+    """Block a user - also removes friendship if exists"""
     try:
         if blocker_id == blocked_id:
             return {'success': False, 'message': 'Không thể chặn chính mình'}
@@ -902,10 +902,18 @@ def block_user(blocker_id, blocked_id):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
+        # 1. Add to blocked_users table
         cursor.execute(
             'INSERT OR IGNORE INTO blocked_users (blocker_id, blocked_id) VALUES (?, ?)',
             (blocker_id, blocked_id)
         )
+        
+        # 2. Remove friendship (both directions) if they are friends
+        cursor.execute(
+            'DELETE FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)',
+            (blocker_id, blocked_id, blocked_id, blocker_id)
+        )
+        
         conn.commit()
         conn.close()
         

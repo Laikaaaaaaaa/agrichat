@@ -1021,8 +1021,13 @@
         loadUserPosts(profileUserId);
         
       } catch (error) {
-        console.error('Error loading profile:', error);
-        window.location.href = '/login';
+        console.error('❌ Error loading profile:', error);
+        console.error('Stack:', error.stack);
+        showAlert('Lỗi tải profile: ' + error.message, 'error');
+        // Only redirect if it's actually an auth error, otherwise wait for user action
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
       }
     }
     

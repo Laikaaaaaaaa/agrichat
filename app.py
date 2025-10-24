@@ -4446,10 +4446,13 @@ def api_reset_password():
 
 
 @app.route('/api/auth/profile', methods=['GET'])
-@auth.login_required
 def api_get_profile():
     """API lấy thông tin profile"""
     user_id = session.get('user_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
     result = auth.get_user_profile(user_id)
     return jsonify(result)
 

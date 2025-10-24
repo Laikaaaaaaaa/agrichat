@@ -4450,7 +4450,12 @@ def api_get_profile():
     """API lấy thông tin profile"""
     user_id = session.get('user_id')
     
+    logging.info(f"🔍 /api/auth/profile called - user_id in session: {user_id}")
+    logging.info(f"📋 Session data: {dict(session)}")
+    logging.info(f"🍪 Request cookies: {request.cookies}")
+    
     if not user_id:
+        logging.warning(f"⚠️ /api/auth/profile - No user_id in session, returning 401")
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     
     result = auth.get_user_profile(user_id)
@@ -6075,6 +6080,19 @@ def search_users():
     except Exception as e:
         logging.error(f"Error searching users: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# CORS and security headers
+@app.after_request
+def set_security_headers(response):
+    """Set CORS and security headers for all responses"""
+    # Allow credentials with requests from same origin
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    return response
 
 
 def should_enable_debug() -> bool:

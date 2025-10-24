@@ -308,47 +308,49 @@
               </button>
             </div>
             
-            <!-- Visitor Actions - Friend buttons -->
-            <div id="visitor-actions" class="flex gap-1 hidden">
-              <!-- Add Friend Button -->
-              <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden">
-                <i class="fas fa-user-plus"></i>
-                <span class="hidden sm:inline">Kết bạn</span>
-              </button>
-              
-              <!-- Request Sent Button -->
-              <button id="request-sent-btn" class="px-3 py-1.5 bg-gray-400 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden" disabled>
-                <i class="fas fa-clock"></i>
-                <span class="hidden sm:inline">Đã gửi</span>
-              </button>
-              
-              <!-- Already Friends Button -->
-              <button id="friends-btn" onclick="showUnfriendMenu()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden">
-                <i class="fas fa-user-check"></i>
-                <span class="hidden sm:inline">Bạn bè</span>
-              </button>
-              
-              <!-- Request Received Buttons -->
-              <div id="request-received-btns" class="flex gap-1 hidden">
-                <button onclick="acceptFriendRequest()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors">
-                  <i class="fas fa-check mr-1"></i>Chấp nhận
-                </button>
-                <button onclick="rejectFriendRequest()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors">
-                  <i class="fas fa-times mr-1"></i>Từ chối
-                </button>
-              </div>
-              
-              <!-- Block Button -->
-              <button onclick="blockUser()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1">
-                <i class="fas fa-ban"></i>
-                <span class="hidden sm:inline">Chặn</span>
-              </button>
-            </div>
-            
             <!-- Share Button -->
             <button onclick="shareProfile()" class="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors flex items-center justify-center" title="Chia sẻ">
               <i class="fas fa-share-alt text-xs"></i>
             </button>
+          </div>
+        </div>
+        
+        <!-- Visitor Actions - Friend buttons (below tabs) -->
+        <div id="visitor-actions" class="hidden flex gap-2 px-2 sm:px-4 py-2 sm:py-3 bg-white border-b border-gray-200 flex-wrap">
+          <!-- Add Friend Button -->
+          <button id="add-friend-btn" onclick="sendFriendRequest()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden">
+            <i class="fas fa-user-plus"></i>
+            <span>Kết bạn</span>
+          </button>
+          
+          <!-- Request Sent Button -->
+          <button id="request-sent-btn" class="px-3 py-1.5 bg-gray-400 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden" disabled>
+            <i class="fas fa-clock"></i>
+            <span>Đã gửi</span>
+          </button>
+          
+          <!-- Already Friends Button -->
+          <button id="friends-btn" onclick="showUnfriendMenu()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1 hidden">
+            <i class="fas fa-user-check"></i>
+            <span>Bạn bè</span>
+          </button>
+          
+          <!-- Request Received Buttons -->
+          <div id="request-received-btns" class="flex gap-1 hidden">
+            <button onclick="acceptFriendRequest()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors">
+              <i class="fas fa-check mr-1"></i>Chấp nhận
+            </button>
+            <button onclick="rejectFriendRequest()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors">
+              <i class="fas fa-times mr-1"></i>Từ chối
+            </button>
+          </div>
+          
+          <!-- Block Button -->
+          <button onclick="blockUser()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-1">
+            <i class="fas fa-ban"></i>
+            <span>Chặn</span>
+          </button>
+        </div>
           </div>
         </div>
     </div>
@@ -1844,13 +1846,16 @@
         const ownerActionsMobile = document.getElementById('owner-actions-mobile');
         if (ownerActionsMobile) ownerActionsMobile.style.display = 'none';
         const visitorActions = document.getElementById('visitor-actions');
-        if (visitorActions) visitorActions.style.display = 'flex';
+        if (visitorActions) {
+          visitorActions.style.display = 'flex';
+          visitorActions.classList.remove('hidden');
+        }
         const avatarEditBtn = document.getElementById('avatar-edit-btn');
         if (avatarEditBtn) avatarEditBtn.style.display = 'none';
         const createPostCard = document.getElementById('create-post-card');
         if (createPostCard) createPostCard.style.display = 'none';
         
-        // Hide edit buttons
+        // Hide edit buttons in sidebar
         const editButtons = document.querySelectorAll('button[onclick="openEditProfileModal()"]');
         editButtons.forEach(btn => btn.style.display = 'none');
         
@@ -3467,10 +3472,8 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            showAlert('Đã chặn người dùng này', 'success');
-            setTimeout(() => {
-              window.location.href = '/profile';
-            }, 1500);
+            // Show success modal instead of redirecting immediately
+            showBlockedSuccessModal();
           } else {
             showAlert(data.message || 'Không thể chặn người dùng', 'error');
           }
@@ -3480,6 +3483,49 @@
           showAlert('Lỗi khi chặn người dùng', 'error');
         });
       }
+    }
+    
+    function showBlockedSuccessModal() {
+      // Show a modal with confirmation and 2 options
+      const modal = document.createElement('div');
+      modal.className = 'modal active';
+      modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
+          <div class="p-6 text-center">
+            <div class="flex justify-center mb-4">
+              <i class="fas fa-check-circle text-5xl text-green-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Đã chặn người dùng này</h3>
+            <p class="text-gray-600 text-sm mb-6">Bạn đã chặn thành công người dùng. Họ sẽ không thể xem hồ sơ hoặc liên hệ với bạn.</p>
+            <div class="space-y-3">
+              <button onclick="goBackToProfile()" class="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Quay lại trang cá nhân
+              </button>
+              <button onclick="goToBlockedUsers()" class="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
+                <i class="fas fa-list mr-2"></i>Xem danh sách chặn
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      // Close modal when clicking outside
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.remove();
+        }
+      });
+    }
+    
+    function goToBlockedUsers() {
+      // Close any open modals first
+      document.querySelectorAll('.modal.active').forEach(m => m.remove());
+      openSettingsModal();
+      // Trigger blocked users modal
+      setTimeout(() => {
+        openBlockedUsersModal();
+      }, 300);
     }
 
     function closeCreatePostModal() {

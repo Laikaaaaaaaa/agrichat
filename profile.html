@@ -1603,6 +1603,8 @@
     async function loadProfile() {
       try {
         console.log('📄 loadProfile() started');
+        console.log('🕐 Current timestamp:', new Date().toISOString());
+        console.log('📍 Current URL:', window.location.href);
         
         // Get current user (logged in user)
         const currentUserResponse = await apiCall('/api/auth/profile');

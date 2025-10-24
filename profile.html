@@ -117,6 +117,19 @@
       box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
     
+    /* Settings menu always visible when parent is shown */
+    #owner-actions-mobile {
+      display: block !important;
+    }
+    
+    #settings-menu.hidden {
+      display: none !important;
+    }
+    
+    #settings-menu:not(.hidden) {
+      display: block !important;
+    }
+    
     /* Mobile navigation tabs improvements */
     @media (max-width: 640px) {
       .profile-tab {
@@ -922,9 +935,13 @@
     
     // Toggle settings menu
     function toggleSettingsMenu() {
+      console.log('toggleSettingsMenu called');
       const menu = document.getElementById('settings-menu');
+      console.log('Menu element:', menu);
       if (menu) {
+        console.log('Menu hidden before:', menu.classList.contains('hidden'));
         menu.classList.toggle('hidden');
+        console.log('Menu hidden after:', menu.classList.contains('hidden'));
       }
     }
     
@@ -973,7 +990,7 @@
     }
     
     // Logout
-    function logout() {
+    function logoutUser() {
       if (confirm('Bạn có chắc muốn đăng xuất?')) {
         window.location.href = '/logout';
       }

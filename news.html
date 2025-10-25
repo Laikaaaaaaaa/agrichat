@@ -2112,9 +2112,16 @@
         const keywordSet = new Set(keywords.map(k => k.toLowerCase())); // Use Set for O(1) lookup
         
         filteredNews = filteredNews.filter(article => {
-          // Fast category match for Vietnamese articles
-          if (article.isVietnamese && article.category === currentCategory) {
-            return true;
+          // Fast category match for Vietnamese articles - include related categories
+          if (article.isVietnamese && article.category) {
+            // For agriculture, include: agriculture, livestock, climate
+            if (currentCategory === 'agriculture' && (article.category === 'agriculture' || article.category === 'livestock' || article.category === 'climate')) {
+              return true;
+            }
+            // For other categories, exact match
+            if (currentCategory !== 'agriculture' && article.category === currentCategory) {
+              return true;
+            }
           }
           
           // Keyword matching (optimized)

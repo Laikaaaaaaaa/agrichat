@@ -1267,19 +1267,20 @@
         
         console.log(`⚡ Load ${initialBatch.length} báo đầu tiên (còn ${window.remainingFeeds.length} báo)`);
         
-        // Load initial feeds in parallel
-        const feedPromises = initialBatch.map(feed => loadSingleFeed(feed));
-        const results = await Promise.all(feedPromises);
-        
-        console.log(`📊 Kết quả từ ${initialBatch.length} feeds:`, results.map(r => r.length));
-        
-        // Collect articles
-        results.forEach((items, idx) => {
-          if (items && items.length > 0) {
-            console.log(`  Feed ${idx}: ${items.length} bài`);
-            allLoadedArticles = [...allLoadedArticles, ...items];
+        // Load initial feeds sequentially with delays to avoid rate limiting
+        for (const feed of initialBatch) {
+          try {
+            const items = await loadSingleFeed(feed);
+            if (items && items.length > 0) {
+              console.log(`  Feed: ${feed.name}: ${items.length} bài`);
+              allLoadedArticles = [...allLoadedArticles, ...items];
+            }
+            // Add delay between requests
+            await new Promise(resolve => setTimeout(resolve, 300));
+          } catch (e) {
+            console.warn(`⚠️ Error loading ${feed.name}:`, e);
           }
-        });
+        }
         
         console.log(`📦 Tổng articles trước remove duplicates: ${allLoadedArticles.length}`);
         
@@ -1305,7 +1306,7 @@
       }
     }
     
-    // Background loader - continuously load remaining feeds
+    // Background loader - continuously load remaining feeds with rate limiting
     async function loadMoreFeedsBackground() {
       if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
         console.log('✅ Tất cả feeds nông nghiệp đã được load');
@@ -1314,16 +1315,19 @@
       
       console.log(`🔄 Tiếp tục load ${window.remainingFeeds.length} báo nông nghiệp còn lại...`);
       
-      // Load all remaining feeds in parallel
-      const feedPromises = window.remainingFeeds.map(feed => loadSingleFeed(feed));
-      const results = await Promise.all(feedPromises);
-      
-      // Collect articles
-      results.forEach(items => {
-        if (items && items.length > 0) {
-          allLoadedArticles = [...allLoadedArticles, ...items];
+      // Load feeds sequentially with delays to avoid rate limiting
+      for (const feed of window.remainingFeeds) {
+        try {
+          const items = await loadSingleFeed(feed);
+          if (items && items.length > 0) {
+            allLoadedArticles = [...allLoadedArticles, ...items];
+          }
+          // Add delay between requests to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (e) {
+          console.warn(`⚠️ Error loading ${feed.name}:`, e);
         }
-      });
+      }
       
       // Remove duplicates, shuffle, and sort
       allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
@@ -1342,47 +1346,47 @@
       filterAndDisplayNews();
     }
     
-    // Load a single RSS feed
-    async function loadSingleFeed(feed) {
+    // Load a single RSS feed with retry logic
+    async function loadSingleFeed(feed, retryCount = 0) {
+      const MAX_RETRIES = 2;
+      
       try {
         console.log(`🔄 Loading: ${feed.name}`);
         
-        // Strategy 1: Try /api/rss-parse for Nông nghiệp Môi trường (best quality)
-        if (feed.name.toLowerCase().includes('nông nghiệp') || feed.name.toLowerCase().includes('môi trường')) {
-          try {
-            console.log(`  📡 Trying /api/rss-parse for ${feed.name}...`);
-            const url = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=99`;
-            const response = await fetch(url, { timeout: 10000 });
+        // Strategy 1: Always try /api/rss-parse FIRST (backend is more reliable)
+        try {
+          console.log(`  📡 Trying /api/rss-parse for ${feed.name}...`);
+          const url = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=99`;
+          const response = await fetch(url, { timeout: 10000 });
+          
+          if (response.ok) {
+            const data = await response.json();
             
-            if (response.ok) {
-              const data = await response.json();
+            if (data.success && data.articles && data.articles.length > 0) {
+              const newsItems = data.articles.map(article => ({
+                title: article.title,
+                description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
+                url: article.link,
+                urlToImage: article.image_url || extractDefaultImage(feed.name),
+                publishedAt: article.pubDate || new Date().toISOString(),
+                source: { name: article.source || feed.name },
+                content: article.content,
+                category: feed.category,
+                isVietnamese: true,
+                priority: feed.category === 'agriculture' ? 1 : 2
+              }));
               
-              if (data.success && data.articles && data.articles.length > 0) {
-                const newsItems = data.articles.map(article => ({
-                  title: article.title,
-                  description: article.summary || article.content.substring(0, 300) || 'Không có mô tả',
-                  url: article.link,
-                  urlToImage: article.image_url || extractDefaultImage(feed.name),
-                  publishedAt: article.pubDate || new Date().toISOString(),
-                  source: { name: article.source || feed.name },
-                  content: article.content,
-                  category: feed.category,
-                  isVietnamese: true,
-                  priority: feed.category === 'agriculture' ? 1 : 2
-                }));
-                
-                if (newsItems.length > 0) {
-                  console.log(`✅ ${feed.name}: ${newsItems.length} bài (via /api/rss-parse)`);
-                  return newsItems;
-                }
+              if (newsItems.length > 0) {
+                console.log(`✅ ${feed.name}: ${newsItems.length} bài (via /api/rss-parse)`);
+                return newsItems;
               }
             }
-          } catch (e) {
-            console.warn(`  ⚠️ /api/rss-parse failed for ${feed.name}, trying RSS2JSON...`);
           }
+        } catch (e) {
+          console.warn(`  ⚠️ /api/rss-parse failed: ${e.message}`);
         }
         
-        // Strategy 2: Use RSS2JSON service (reliable fallback for all feeds)
+        // Strategy 2: Use RSS2JSON with exponential backoff retry
         const rssServices = [
           `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=99`,
           `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=99`
@@ -1391,7 +1395,30 @@
         for (const service of rssServices) {
           try {
             console.log(`  📡 Trying ${service.split('/')[2]}...`);
-            const response = await fetch(service, { timeout: 5000 });
+            
+            // Add delay to avoid rate limiting (exponential backoff)
+            if (retryCount > 0) {
+              const delayMs = Math.min(1000 * Math.pow(2, retryCount), 5000);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+            
+            const response = await fetch(service, { timeout: 8000 });
+            
+            // Handle rate limiting (429) with retry
+            if (response.status === 429) {
+              console.warn(`  ⏳ Rate limited (429), retrying...`);
+              if (retryCount < MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, 2000 + (retryCount * 1000)));
+                return loadSingleFeed(feed, retryCount + 1);
+              }
+              continue; // Try next service
+            }
+            
+            // Handle unprocessable content (422) - feed format issue, skip
+            if (response.status === 422) {
+              console.warn(`  ⚠️ Feed format not supported (422), skipping`);
+              continue; // Try next service
+            }
             
             if (response.ok) {
               const data = await response.json();
@@ -1415,7 +1442,7 @@
               }
             }
           } catch (e) {
-            console.warn(`  ⚠️ ${service.split('/')[2]} failed`);
+            console.warn(`  ⚠️ ${service.split('/')[2]} failed: ${e.message}`);
           }
         }
         

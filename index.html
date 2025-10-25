@@ -369,6 +369,13 @@
       }
 
       saveConversations() {
+        // ✅ Kiểm tra xem user đã đăng nhập chưa
+        const isAuthenticated = this.isUserAuthenticated();
+        if (!isAuthenticated) {
+          console.warn('⚠️ User chưa đăng nhập, không lưu lịch sử');
+          return;
+        }
+        
         // ✅ GIỚI HẠN: Chỉ giữ 20 conversation gần nhất
         if (this.conversations.length > 20) {
           console.warn('⚠️ Quá nhiều conversations, xóa cũ...');
@@ -533,23 +540,22 @@
               if (message.type === 'html') {
                 bubble.innerHTML += message.content;
               } else if (message.sender === 'bot') {
-                // Use same rendering as new messages - escape HTML then add formatting
+                // Use same rendering as new messages - normalize + escape HTML then add formatting
+                const normalizedText = normalizeMarkdown(message.content);
                 const tempDiv = document.createElement('div');
-                tempDiv.textContent = message.content;
+                tempDiv.textContent = normalizedText;
                 let htmlText = tempDiv.innerHTML;
                 
                 // Add formatting
                 htmlText = htmlText
                   .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  .replace(/\n/g, '<br>');
+                  .replace(/\*(.*?)\*/g, '<em>$1</em>');
                 
                 bubble.innerHTML += htmlText;
               } else {
                 const tempDiv = document.createElement('div');
                 tempDiv.textContent = message.content;
                 let htmlText = tempDiv.innerHTML;
-                htmlText = htmlText.replace(/\n/g, '<br>');
                 bubble.innerHTML += htmlText;
               }
             }
@@ -651,6 +657,19 @@
 
       getConversationCount() {
         return this.conversations.length;
+      }
+
+      isUserAuthenticated() {
+        // Kiểm tra xem user có session/token đăng nhập không
+        // Nếu có element user-section, user đã đăng nhập
+        const userSection = document.getElementById('user-section');
+        if (userSection && userSection.style.opacity !== '0') {
+          return true;
+        }
+        
+        // Check alternative: xem có login redirect được set không
+        const isLoggedIn = localStorage.getItem('agrisense_user_logged_in');
+        return isLoggedIn === 'true';
       }
     }
 
@@ -939,8 +958,7 @@
               // Now safely add formatting
               htmlText = htmlText
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\n/g, '<br>');
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
               
               bubble.innerHTML = htmlText;
             } else {
@@ -5659,8 +5677,7 @@
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
       .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
-      .replace(/`(.*?)`/g, '<code class="bg-gray-200 px-1 rounded">$1</code>') // Inline code
-      .replace(/\n/g, '<br>'); // Line breaks
+      .replace(/`(.*?)`/g, '<code class="bg-gray-200 px-1 rounded">$1</code>'); // Inline code
   }
 
   function appendSystemNotification(message) {

@@ -6460,7 +6460,7 @@ def run_local():
     )
 
 
-@app.route('/api/rss-parse', methods=['POST'])
+@app.route('/api/rss-parse', methods=['GET', 'POST'])
 def rss_parse():
     """
     ✅ NEW ENDPOINT - Parse RSS feeds with content extraction
@@ -6471,10 +6471,13 @@ def rss_parse():
     - Support CORS, timeout, User-Agent headers
     - Bypass bị chặn bằng headers giả lập trình duyệt
     
-    Request JSON:
+    Request (GET):
+    /api/rss-parse?url=http://...&limit=99
+    
+    Request (POST JSON):
     {
         "rss_urls": ["url1", "url2", ...],
-        "limit": 10  (optional, default: 10)
+        "limit": 99  (optional, default: 10)
     }
     
     Response JSON:
@@ -6495,9 +6498,15 @@ def rss_parse():
     }
     """
     try:
-        data = request.json or {}
-        rss_urls = data.get('rss_urls', [])
-        limit = data.get('limit', 10)
+        # Support both GET and POST
+        if request.method == 'GET':
+            url = request.args.get('url', '')
+            limit = int(request.args.get('limit', 10))
+            rss_urls = [url] if url else []
+        else:
+            data = request.json or {}
+            rss_urls = data.get('rss_urls', [])
+            limit = int(data.get('limit', 10))
         
         if not rss_urls:
             return jsonify({"error": "No RSS URLs provided"}), 400

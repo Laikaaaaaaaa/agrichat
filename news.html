@@ -184,7 +184,7 @@
 <body class="bg-green-50 font-sans text-gray-700">
   <!-- Header - matching index.html style -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
-    <div class="h-20 flex justify-between items-center px-4 md:px-6">
+    <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
       <div class="flex items-center gap-3">
         <!-- Back button with same style as menu toggle -->
         <button onclick="goBack()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
@@ -441,10 +441,20 @@
         category: 'climate'
       },
       
-      // VnExpress - Use working /rss/ endpoints only (tag-based URLs return HTML redirect)
+      // VnExpress
       {
-        name: 'VnExpress - Tin mới nhất',
-        url: 'https://vnexpress.net/rss/tin-moi-nhat.rss',
+        name: 'VnExpress - Nông nghiệp',
+        url: 'https://vnexpress.net/tag/nong-nghiep.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'VnExpress - Nông nghiệp công nghệ cao',
+        url: 'https://vnexpress.net/tag/nong-nghiep-cong-nghe-cao.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'VnExpress - Nông nghiệp sạch',
+        url: 'https://vnexpress.net/topic/nong-nghiep-sach-21685.rss',
         category: 'agriculture'
       },
       {
@@ -533,38 +543,7 @@
         category: 'technology'
       },
       
-      // Người Đưa Tin - Agriculture & Environment
-      {
-        name: 'Người Đưa Tin - Môi trường',
-        url: 'https://www.nguoiduatin.vn/rss/xa-hoi/moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'Người Đưa Tin - Dân sinh',
-        url: 'https://www.nguoiduatin.vn/rss/xa-hoi/dan-sinh.rss',
-        category: 'news'
-      },
-      {
-        name: 'Người Đưa Tin - Chính sách',
-        url: 'https://www.nguoiduatin.vn/rss/toan-canh/chinh-sach.rss',
-        category: 'business'
-      },
-      {
-        name: 'Người Đưa Tin - Kinh tế',
-        url: 'https://www.nguoiduatin.vn/rss/kinh-te.rss',
-        category: 'economy'
-      },
-      {
-        name: 'Người Đưa Tin - Công nghệ',
-        url: 'https://www.nguoiduatin.vn/rss/kinh-te/cong-nghe.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Người Đưa Tin - Trang chủ',
-        url: 'https://www.nguoiduatin.vn/trang-chu.rss',
-        category: 'agriculture'
-      },
-            // Tuổi Trẻ
+      // Tuổi Trẻ
       {
         name: 'Tuổi Trẻ - Khoa học',
         url: 'https://tuoitre.vn/rss/khoa-hoc.rss',
@@ -651,8 +630,62 @@
         category: 'technology'
       },
       
-      // Note: Dân Trí RSS endpoints return HTML instead of XML - removed from feed list
-      // Consider using alternative news sources instead
+      // Dân trí
+      {
+        name: 'Dân trí - Sức khỏe',
+        url: 'https://dantri.com.vn/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'Dân trí - Kinh doanh',
+        url: 'https://dantri.com.vn/rss/kinh-doanh.rss',
+        category: 'business'
+      },
+      {
+        name: 'Dân trí - Giáo dục',
+        url: 'https://dantri.com.vn/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'Dân trí - Thế giới',
+        url: 'https://dantri.com.vn/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'Dân trí - Thời sự',
+        url: 'https://dantri.com.vn/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'Dân trí - Khoa học Công nghệ',
+        url: 'https://dantri.com.vn/rss/khoa-hoc-cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Dân trí - Nhịp sống trẻ',
+        url: 'https://dantri.com.vn/rss/nhip-song-tre.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Dân trí - Đời sống',
+        url: 'https://dantri.com.vn/rss/doi-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Dân trí - Văn hóa',
+        url: 'https://dantri.com.vn/rss/van-hoa.rss',
+        category: 'culture'
+      },
+      {
+        name: 'Dân trí - Nông nghiệp',
+        url: 'https://dantri.com.vn/rss/nong-nghiep.rss',
+        category: 'agriculture'
+      },
+      {
+        name: 'Dân trí - Bạn đọc',
+        url: 'https://dantri.com.vn/rss/ban-doc.rss',
+        category: 'news'
+      },
       
       // VietnamNet
       {
@@ -726,9 +759,139 @@
         category: 'technology'
       },
       
-      // Note: Zing News RSS endpoints return HTML instead of XML - removed from feed list
+      // Zing News
+      {
+        name: 'Zing News - RSS Chính',
+        url: 'https://zingnews.vn/rss.html',
+        category: 'news'
+      },
+      {
+        name: 'Zing News - Kinh doanh',
+        url: 'https://zingnews.vn/rss/kinh-doanh.rss',
+        category: 'business'
+      },
+      {
+        name: 'Zing News - Sức khỏe',
+        url: 'https://zingnews.vn/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'Zing News - Khoa học',
+        url: 'https://zingnews.vn/rss/khoa-hoc.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Zing News - Thế giới',
+        url: 'https://zingnews.vn/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'Zing News - Giáo dục',
+        url: 'https://zingnews.vn/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'Zing News - Thời sự',
+        url: 'https://zingnews.vn/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'Zing News - Du lịch',
+        url: 'https://zingnews.vn/rss/du-lich.rss',
+        category: 'travel'
+      },
+      {
+        name: 'Zing News - Công nghệ',
+        url: 'https://zingnews.vn/rss/cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Zing News - Nhịp sống',
+        url: 'https://zingnews.vn/rss/nhip-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Zing News - Môi trường',
+        url: 'https://zingnews.vn/rss/moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'Zing News - Văn hóa',
+        url: 'https://zingnews.vn/rss/van-hoa.rss',
+        category: 'culture'
+      },
+      {
+        name: 'Zing News - Đời sống',
+        url: 'https://zingnews.vn/rss/doi-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Zing News - Nông nghiệp',
+        url: 'https://zingnews.vn/rss/nong-nghiep.rss',
+        category: 'agriculture'
+      },
       
-      // Note: Thanh Niên RSS endpoints return HTML instead of XML - removed from feed list
+      // Thanh Niên
+      {
+        name: 'Thanh Niên - Kinh tế',
+        url: 'https://thanhnien.vn/rss/kinh-te.rss',
+        category: 'economy'
+      },
+      {
+        name: 'Thanh Niên - Đời sống',
+        url: 'https://thanhnien.vn/rss/doi-song.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Thanh Niên - Thế giới',
+        url: 'https://thanhnien.vn/rss/the-gioi.rss',
+        category: 'world'
+      },
+      {
+        name: 'Thanh Niên - Sức khỏe',
+        url: 'https://thanhnien.vn/rss/suc-khoe.rss',
+        category: 'health'
+      },
+      {
+        name: 'Thanh Niên - Khoa học',
+        url: 'https://thanhnien.vn/rss/khoa-hoc.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Thanh Niên - Thời sự',
+        url: 'https://thanhnien.vn/rss/thoi-su.rss',
+        category: 'news'
+      },
+      {
+        name: 'Thanh Niên - Công nghệ',
+        url: 'https://thanhnien.vn/rss/cong-nghe.rss',
+        category: 'technology'
+      },
+      {
+        name: 'Thanh Niên - Giáo dục',
+        url: 'https://thanhnien.vn/rss/giao-duc.rss',
+        category: 'education'
+      },
+      {
+        name: 'Thanh Niên - Văn hóa',
+        url: 'https://thanhnien.vn/rss/van-hoa.rss',
+        category: 'culture'
+      },
+      {
+        name: 'Thanh Niên - Nhịp sống trẻ',
+        url: 'https://thanhnien.vn/rss/nhip-song-tre.rss',
+        category: 'lifestyle'
+      },
+      {
+        name: 'Thanh Niên - Môi trường',
+        url: 'https://thanhnien.vn/rss/moi-truong.rss',
+        category: 'climate'
+      },
+      {
+        name: 'Thanh Niên - Tiêu dùng thông minh',
+        url: 'https://thanhnien.vn/rss/tieu-dung-thong-minh.rss',
+        category: 'lifestyle'
+      },
       
       // Additional major news sources
       {
@@ -1116,22 +1279,13 @@
       }
     }
     
-    // Load a single RSS feed - UPDATED: Use backend /api/rss-parse endpoint
+    // Load a single RSS feed
     async function loadSingleFeed(feed) {
       try {
-        console.log(`🔄 Loading RSS: ${feed.name}`);
+        // Use GET request to /api/rss-parse for better compatibility with Streamlit proxy
+        const url = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=99`;
         
-        // Use new /api/rss-parse endpoint for better content extraction
-        const payload = {
-          rss_urls: [feed.url],
-          limit: 20
-        };
-        
-        const response = await fetch('/api/rss-parse', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1167,6 +1321,42 @@
         
       } catch (error) {
         console.error(`❌ Error loading ${feed.name}:`, error);
+        
+        // Fallback to rss2json service if /api/rss-parse fails
+        const rssServices = [
+          `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=99`,
+          `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=99`
+        ];
+        
+        for (const service of rssServices) {
+          try {
+            const response = await fetch(service, { timeout: 5000 });
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.status === 'ok' && data.items && data.items.length > 0) {
+                const newsItems = data.items.map(item => ({
+                  title: item.title,
+                  description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : '',
+                  url: item.link,
+                  urlToImage: getImageFromItem(item, feed.name),
+                  publishedAt: item.pubDate,
+                  source: { name: feed.name },
+                  content: item.content || item.description,
+                  category: feed.category,
+                  isVietnamese: true,
+                  priority: feed.category === 'agriculture' ? 1 : 2
+                }));
+                
+                console.log(`✅ ${feed.name}: ${newsItems.length} bài (via rss2json fallback)`);
+                return newsItems;
+              }
+            }
+          } catch (e) {
+            // Try next service
+          }
+        }
+        
         return [];
       }
     }
@@ -1295,83 +1485,10 @@
       return imageUrl;
     }
 
-    // Extract images from XML RSS item
-    function extractImageFromXMLItem(xmlItem, content, description, feedName) {
-      let imageUrl = null;
-      
-      // 1. Try media:content tag
-      const mediaContent = xmlItem.getElementsByTagName('media:content');
-      if (mediaContent.length > 0) {
-        const url = mediaContent[0].getAttribute('url');
-        if (url && (url.includes('.jpg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp'))) {
-          return url;
-        }
-      }
-      
-      // 2. Try media:thumbnail tag
-      const mediaThumbnail = xmlItem.getElementsByTagName('media:thumbnail');
-      if (mediaThumbnail.length > 0) {
-        const url = mediaThumbnail[0].getAttribute('url');
-        if (url) return url;
-      }
-      
-      // 3. Try enclosure tag (RSS 2.0)
-      const enclosures = xmlItem.getElementsByTagName('enclosure');
-      for (let i = 0; i < enclosures.length; i++) {
-        const type = enclosures[i].getAttribute('type');
-        const url = enclosures[i].getAttribute('url');
-        if (type && type.includes('image') && url) {
-          return url;
-        }
-      }
-      
-      // 4. Try image:url tag (RSS Image Namespace)
-      const imageUrl_tag = xmlItem.getElementsByTagName('image:url');
-      if (imageUrl_tag.length > 0) {
-        return imageUrl_tag[0].textContent;
-      }
-      
-      // 5. Extract from content HTML
-      if (content && typeof content === 'string') {
-        // Try img tag in content
-        const imgMatch = content.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
-        if (imgMatch && imgMatch[1]) {
-          imageUrl = imgMatch[1];
-          if (isValidImageUrl(imageUrl)) return imageUrl;
-        }
-      }
-      
-      // 6. Extract from description HTML
-      if (description && typeof description === 'string') {
-        const descMatch = description.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
-        if (descMatch && descMatch[1]) {
-          imageUrl = descMatch[1];
-          if (isValidImageUrl(imageUrl)) return imageUrl;
-        }
-      }
-      
-      // 7. Fallback to agriculture-specific images based on content
-      return getAgricultureImageByContentXML(xmlItem, feedName);
-    }
-
-    // Validate image URL
-    function isValidImageUrl(url) {
-      if (!url) return false;
-      try {
-        const urlObj = new URL(url, window.location.origin);
-        return true;
-      } catch (e) {
-        return url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://');
-      }
-    }
-
-    // Get agriculture-specific images based on content (for XML parsing)
-    function getAgricultureImageByContentXML(xmlItem, feedName) {
-      const titleNode = xmlItem.getElementsByTagName('title')[0];
-      const descNode = xmlItem.getElementsByTagName('description')[0];
-      
-      const title = titleNode ? titleNode.textContent.toLowerCase() : '';
-      const description = descNode ? descNode.textContent.toLowerCase() : '';
+    // Get agriculture-specific images based on content
+    function getAgricultureImageByContent(item, feedName) {
+      const title = (item.title || '').toLowerCase();
+      const description = (item.description || '').toLowerCase();
       const content = title + ' ' + description;
       
       // Vietnamese agriculture-specific images
@@ -1410,7 +1527,6 @@
         'Thanh Niên': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
         'Dân trí': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=200&fit=crop&auto=format',
         'VTC': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
-        'VietnamNet': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
         'Nông nghiệp': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
         'Môi trường': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format'
       };

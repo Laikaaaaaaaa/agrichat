@@ -908,14 +908,17 @@
           if (text) {
             const normalizedText = sender === 'bot' ? normalizeMarkdown(text) : text;
             if (sender === 'bot') {
-              // Convert \n to <br> for proper line breaks without extra spacing
-              const htmlText = normalizedText
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
+              // Create a temporary div to safely escape HTML
+              const tempDiv = document.createElement('div');
+              tempDiv.textContent = normalizedText;
+              let htmlText = tempDiv.innerHTML;
+              
+              // Now safely add formatting
+              htmlText = htmlText
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/\n/g, '<br>');
+              
               bubble.innerHTML = htmlText;
             } else {
               bubble.textContent = normalizedText;

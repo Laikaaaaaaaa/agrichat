@@ -586,7 +586,10 @@
                 let htmlText = tempDiv.innerHTML;
                 
                 // Convert leading spaces to non-breaking spaces to preserve indentation
-                htmlText = htmlText.replace(/^( +)/gm, (match) => '&nbsp;'.repeat(match.length));
+                htmlText = htmlText.replace(/( +)/g, (match) => {
+                  // Convert ALL runs of spaces to &nbsp; entities
+                  return '&nbsp;'.repeat(match.length);
+                });
                 
                 // Add markdown formatting (heading, bold, italic)
                 htmlText = htmlText
@@ -963,8 +966,11 @@
       preview = preview.replace(/\n{3,}/g, '\n\n');
 
       const escaped = escapeHtml(preview);
+      
+      // Convert all spaces to &nbsp; to preserve indentation
+      let result = escaped.replace(/( +)/g, (match) => '&nbsp;'.repeat(match.length));
 
-      return escaped.replace(/\n/g, '<br>');
+      return result.replace(/\n/g, '<br>');
     }
 
     // Global message handlers
@@ -1007,7 +1013,11 @@
               let htmlText = tempDiv.innerHTML;
               
               // Convert leading spaces to non-breaking spaces to preserve indentation
-              htmlText = htmlText.replace(/^( +)/gm, (match) => '&nbsp;'.repeat(match.length));
+              // This regex targets spaces at the beginning of each line (after newline or at start)
+              htmlText = htmlText.replace(/( +)/g, (match) => {
+                // Convert ALL runs of spaces to &nbsp; entities
+                return '&nbsp;'.repeat(match.length);
+              });
               
               // Now safely add formatting
               htmlText = htmlText
@@ -1228,7 +1238,10 @@
                 setTimeout(typeNextCharacter, nextSpeed);
               } else {
                 if (renderer) {
-                  textContainer.innerHTML = renderer.render(normalizedText);
+                  let renderedHtml = renderer.render(normalizedText);
+                  // Convert spaces to &nbsp; in rendered output to preserve indentation
+                  renderedHtml = renderedHtml.replace(/( +)/g, (match) => '&nbsp;'.repeat(match.length));
+                  textContainer.innerHTML = renderedHtml;
                 } else {
                   textContainer.innerHTML = buildPreviewHtml(normalizedText);
                 }
@@ -1323,7 +1336,10 @@
       const hasIncompleteMarkdown = hasUnclosedFence || hasUnclosedInline || hasUnclosedBold || hasUnclosedItalic;
 
       if (renderer && !hasIncompleteMarkdown) {
-        lastBubble.innerHTML = renderer.render(normalizedText);
+        let renderedHtml = renderer.render(normalizedText);
+        // Convert spaces to &nbsp; in rendered output to preserve indentation
+        renderedHtml = renderedHtml.replace(/( +)/g, (match) => '&nbsp;'.repeat(match.length));
+        lastBubble.innerHTML = renderedHtml;
       } else {
   lastBubble.innerHTML = previewHtml;
       }
@@ -5918,7 +5934,10 @@
         : null);
 
     if (markdownRenderer && !hasIncompleteMarkdown) {
-      lastBubble.innerHTML = markdownRenderer.render(normalizedText);
+      let renderedHtml = markdownRenderer.render(normalizedText);
+      // Convert spaces to &nbsp; in rendered output to preserve indentation
+      renderedHtml = renderedHtml.replace(/( +)/g, (match) => '&nbsp;'.repeat(match.length));
+      lastBubble.innerHTML = renderedHtml;
     } else {
   lastBubble.innerHTML = previewHtml;
     }

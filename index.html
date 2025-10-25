@@ -126,9 +126,9 @@
     }
     .message-bubble {
       max-width: 75%;
-      line-height: 1.45;
+      line-height: 1.3;
       word-wrap: break-word;
-      white-space: pre-wrap;
+      white-space: pre-line;
       word-spacing: normal;
       text-align: left !important;
       direction: ltr !important;
@@ -145,23 +145,13 @@
       word-break: break-word !important;
     }
 
-    /* Reset all margins and spacing inside message bubble */
-    .message-bubble * {
-      margin-top: 0 !important;
-      margin-bottom: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-      line-height: 1.2 !important;
-    }
-
     .message-bubble p {
+      display: inline;
       margin: 0 !important;
-      line-height: 1.2 !important;
-      word-spacing: normal !important;
     }
 
     .message-bubble p:last-child {
-      margin-bottom: 0 !important;
+      display: inline;
     }
 
     .message-bubble strong {
@@ -917,15 +907,16 @@
 
           if (text) {
             const normalizedText = sender === 'bot' ? normalizeMarkdown(text) : text;
-            if (sender === 'bot' && window.markdownit) {
-              // Tạo markdown instance với config đầy đủ
-              const md = window.markdownit({
-                html: true,
-                breaks: true,
-                linkify: true,
-                typographer: true
-              });
-              bubble.innerHTML = md.render(normalizedText);
+            if (sender === 'bot') {
+              // Convert \n to <br> for proper line breaks without extra spacing
+              const htmlText = normalizedText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+              bubble.innerHTML = htmlText;
             } else {
               bubble.textContent = normalizedText;
             }
@@ -1549,24 +1540,15 @@
       content: none !important;
     }
 
-    /* Reset all margins inside bot message */
-    .message-wrapper.bot * {
-      margin-top: 0 !important;
-      margin-bottom: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-      line-height: 1.2 !important;
-    }
-
     .message-wrapper.bot p {
+      display: inline;
       margin: 0 !important;
-      line-height: 1.2 !important;
       word-spacing: normal !important;
       word-break: break-word !important;
     }
 
     .message-wrapper.bot p:last-child {
-      margin: 0 !important;
+      display: inline;
     }
 
     /* Code blocks */

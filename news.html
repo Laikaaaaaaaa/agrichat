@@ -443,19 +443,19 @@
       
       // VnExpress
       {
-        name: 'VnExpress - Nông nghiệp',
-        url: 'https://vnexpress.net/tag/nong-nghiep.rss',
+        name: 'VnExpress - Nông nghiệp (Khoa học)',
+        url: 'https://vnexpress.net/rss/khoa-hoc/tu-nhien.rss',
         category: 'agriculture'
       },
       {
-        name: 'VnExpress - Nông nghiệp công nghệ cao',
-        url: 'https://vnexpress.net/tag/nong-nghiep-cong-nghe-cao.rss',
+        name: 'VnExpress - Nông nghiệp (Phát minh)',
+        url: 'https://vnexpress.net/rss/khoa-hoc/phat-minh.rss',
         category: 'agriculture'
       },
       {
-        name: 'VnExpress - Nông nghiệp sạch',
-        url: 'https://vnexpress.net/topic/nong-nghiep-sach-21685.rss',
-        category: 'agriculture'
+        name: 'VnExpress - Bảo vệ môi trường',
+        url: 'https://vnexpress.net/rss/khoa-hoc/bao-ve-moi-truong.rss',
+        category: 'climate'
       },
       {
         name: 'VnExpress - Khoa học',
@@ -1353,7 +1353,7 @@
       try {
         console.log(`🔄 Loading: ${feed.name}`);
         
-        // Strategy 1: Always try /api/rss-parse FIRST (backend is more reliable)
+        // Strategy 1: Always try /api/rss-parse FIRST (backend is most reliable)
         try {
           console.log(`  📡 Trying /api/rss-parse for ${feed.name}...`);
           const url = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=99`;
@@ -1367,7 +1367,7 @@
                 title: article.title,
                 description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
                 url: article.link,
-                urlToImage: article.image_url || null,  // Don't use extractDefaultImage - let createNewsCard generate unique placeholder
+                urlToImage: article.image_url || null,
                 publishedAt: article.pubDate || new Date().toISOString(),
                 source: { name: article.source || feed.name },
                 content: article.content,
@@ -1414,10 +1414,40 @@
               continue; // Try next service
             }
             
-            // Handle unprocessable content (422) - feed format issue, skip
+            // Handle unprocessable content (422) - rss2json can't parse this feed format
+            // Fallback to backend parser which is more flexible
             if (response.status === 422) {
-              console.warn(`  ⚠️ Feed format not supported (422), skipping`);
-              continue; // Try next service
+              console.warn(`  ⚠️ RSS2JSON format error (422), falling back to backend parser...`);
+              try {
+                const backendUrl = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=99`;
+                const backendResponse = await fetch(backendUrl, { timeout: 10000 });
+                
+                if (backendResponse.ok) {
+                  const backendData = await backendResponse.json();
+                  if (backendData.success && backendData.articles && backendData.articles.length > 0) {
+                    const newsItems = backendData.articles.map(article => ({
+                      title: article.title,
+                      description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
+                      url: article.link,
+                      urlToImage: article.image_url || null,
+                      publishedAt: article.pubDate || new Date().toISOString(),
+                      source: { name: article.source || feed.name },
+                      content: article.content,
+                      category: feed.category,
+                      isVietnamese: true,
+                      priority: feed.category === 'agriculture' ? 1 : 2
+                    }));
+                    
+                    if (newsItems.length > 0) {
+                      console.log(`✅ ${feed.name}: ${newsItems.length} bài (via /api/rss-parse fallback)`);
+                      return newsItems;
+                    }
+                  }
+                }
+              } catch (fallbackErr) {
+                console.warn(`  ⚠️ Fallback to backend also failed: ${fallbackErr.message}`);
+              }
+              continue; // Try next RSS2JSON service
             }
             
             if (response.ok) {
@@ -1428,7 +1458,7 @@
                   title: item.title,
                   description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : 'Không có mô tả',
                   url: item.link,
-                  urlToImage: getImageFromItem(item, feed.name) || null,  // Let createNewsCard generate unique placeholder
+                  urlToImage: getImageFromItem(item, feed.name) || null,
                   publishedAt: item.pubDate,
                   source: { name: feed.name },
                   content: item.content || item.description,

@@ -6621,5 +6621,82 @@ def rss_parse():
             'error': str(e)
         }), 500
 
+
+# ============================================================================
+# NEWS API - Backend RSS Feed Loader (solves CORS issues on public web)
+# ============================================================================
+
+@app.route('/api/news/load', methods=['GET'])
+def api_load_news():
+    """
+    Backend API to load news from Vietnamese RSS feeds
+    This bypasses browser CORS restrictions
+    """
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        category = request.args.get('category', 'all', type=str)
+        
+        from rss_api import get_news, get_news_by_category
+        
+        if category != 'all':
+            articles = get_news_by_category(category, limit)
+        else:
+            articles = get_news(limit)
+        
+        # Convert datetime objects to strings for JSON serialization
+        for article in articles:
+            if isinstance(article.get('pubDate'), str):
+                pass  # Already a string
+            else:
+                article['pubDate'] = str(article.get('pubDate', ''))
+        
+        logging.info(f"✅ API loaded {len(articles)} news articles (category={category})")
+        
+        return jsonify({
+            'success': True,
+            'count': len(articles),
+            'articles': articles
+        })
+    except Exception as e:
+        logging.error(f"❌ News API Error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'articles': []
+        }), 500
+
+
+@app.route('/api/news/feed', methods=['GET'])
+def api_get_feed():
+    """
+    Get specific RSS feed by URL
+    """
+    try:
+        feed_url = request.args.get('url', '', type=str)
+        
+        if not feed_url:
+            return jsonify({'success': False, 'error': 'Missing feed URL'}), 400
+        
+        from rss_api import RSSNewsAPI
+        api = RSSNewsAPI()
+        
+        xml_text = api.fetch_rss_feed(feed_url)
+        if not xml_text:
+            return jsonify({'success': False, 'error': 'Failed to fetch feed'}), 500
+        
+        items = api.parse_rss_xml(xml_text)
+        
+        return jsonify({
+            'success': True,
+            'count': len(items),
+            'items': items
+        })
+    except Exception as e:
+        logging.error(f"❌ Feed API Error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     run_local()

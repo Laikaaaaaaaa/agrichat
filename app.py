@@ -9,7 +9,7 @@ import requests
 import time
 import random
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 from types import SimpleNamespace
 from PIL import Image
 import google.generativeai as genai
@@ -20,6 +20,20 @@ from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
 import auth  # Import authentication module
 from xml.etree import ElementTree as ET
+from urllib.parse import urlparse, urljoin
+
+# Optional imports for RSS parsing - try to import, fallback if not available
+try:
+    from bs4 import BeautifulSoup
+    HAS_BEAUTIFULSOUP = True
+except ImportError:
+    HAS_BEAUTIFULSOUP = False
+
+try:
+    import trafilatura
+    HAS_TRAFILATURA = True
+except ImportError:
+    HAS_TRAFILATURA = False
 
 # Thiết lập logging
 logging.basicConfig(
@@ -30,6 +44,189 @@ logging.basicConfig(
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HTML_FILE = os.path.join(HERE, 'index.html')
+
+# ============================================================================
+# RSS PARSING HELPER FUNCTIONS - Support for major newspapers with content extraction
+# ============================================================================
+
+# HTTP Headers to avoid being blocked
+RSS_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Referer': 'https://www.google.com/',
+    'DNT': '1'
+}
+
+def fetch_rss_with_headers(rss_url, timeout=10):
+    """Fetch RSS feed with proper headers to avoid being blocked"""
+    try:
+        logging.info(f"📡 Fetching RSS: {rss_url}")
+        response = requests.get(rss_url, headers=RSS_HEADERS, timeout=timeout, allow_redirects=True)
+        response.raise_for_status()
+        response.encoding = 'utf-8'
+        return response.text
+    except requests.exceptions.Timeout:
+        logging.warning(f"⏱️ Timeout fetching {rss_url}")
+        return None
+    except requests.exceptions.ConnectionError:
+        logging.warning(f"🔌 Connection error fetching {rss_url}")
+        return None
+    except Exception as e:
+        logging.warning(f"❌ Error fetching RSS {rss_url}: {e}")
+        return None
+
+def parse_rss_xml(xml_text):
+    """Parse RSS XML and extract items - supports RSS and Atom formats"""
+    try:
+        if not xml_text:
+            return []
+        
+        root = ET.fromstring(xml_text)
+        
+        # Handle both RSS and Atom namespaces
+        namespaces = {
+            'content': 'http://purl.org/rss/1.0/modules/content/',
+            'atom': 'http://www.w3.org/2005/Atom',
+            'media': 'http://search.yahoo.com/mrss/'
+        }
+        
+        items = []
+        
+        # Try RSS format first
+        for item in root.findall('.//item'):
+            title_elem = item.find('title')
+            link_elem = item.find('link')
+            desc_elem = item.find('description')
+            pubdate_elem = item.find('pubDate')
+            content_elem = item.find('content:encoded', namespaces)
+            image_elem = item.find('.//media:content[@medium="image"]', namespaces)
+            
+            title = (title_elem.text or '').strip() if title_elem is not None else ''
+            link = (link_elem.text or '').strip() if link_elem is not None else ''
+            description = (desc_elem.text or '').strip() if desc_elem is not None else ''
+            pubdate = (pubdate_elem.text or '').strip() if pubdate_elem is not None else ''
+            content = (content_elem.text or '').strip() if content_elem is not None else ''
+            image_url = image_elem.get('url', '') if image_elem is not None else ''
+            
+            if title and link:
+                items.append({
+                    'title': title,
+                    'link': link,
+                    'description': description,
+                    'pubDate': pubdate,
+                    'content:encoded': content,
+                    'image_url': image_url
+                })
+        
+        # If no items found, try Atom format
+        if not items:
+            for entry in root.findall('.//atom:entry', namespaces):
+                title_elem = entry.find('atom:title', namespaces)
+                link_elem = entry.find('atom:link', namespaces)
+                desc_elem = entry.find('atom:summary', namespaces)
+                pubdate_elem = entry.find('atom:published', namespaces)
+                content_elem = entry.find('atom:content', namespaces)
+                
+                title = (title_elem.text or '').strip() if title_elem is not None else ''
+                link = link_elem.get('href', '') if link_elem is not None else ''
+                description = (desc_elem.text or '').strip() if desc_elem is not None else ''
+                pubdate = (pubdate_elem.text or '').strip() if pubdate_elem is not None else ''
+                content = (content_elem.text or '').strip() if content_elem is not None else ''
+                
+                if title and link:
+                    items.append({
+                        'title': title,
+                        'link': link,
+                        'description': description,
+                        'pubDate': pubdate,
+                        'content:encoded': content,
+                        'image_url': ''
+                    })
+        
+        logging.info(f"✅ Parsed {len(items)} items from RSS")
+        return items
+    except ET.ParseError as e:
+        logging.warning(f"❌ XML Parse error: {e}")
+        return []
+    except Exception as e:
+        logging.warning(f"❌ Error parsing RSS: {e}")
+        return []
+
+def fetch_article_content(article_url, timeout=10):
+    """Fetch and extract article content from URL using trafilatura or BeautifulSoup"""
+    try:
+        logging.info(f"📄 Fetching article content: {article_url}")
+        response = requests.get(article_url, headers=RSS_HEADERS, timeout=timeout, allow_redirects=True)
+        response.raise_for_status()
+        response.encoding = response.apparent_encoding or 'utf-8'
+        
+        # Try trafilatura first (better extraction)
+        if HAS_TRAFILATURA:
+            try:
+                content = trafilatura.extract(response.text)
+                if content:
+                    logging.info(f"✅ Extracted content using trafilatura")
+                    summary = content[:500] + '...' if len(content) > 500 else content
+                    return summary, content, None
+            except Exception as e:
+                logging.warning(f"Trafilatura extraction failed: {e}")
+        
+        # Fallback to BeautifulSoup
+        if HAS_BEAUTIFULSOUP:
+            try:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
+                # Remove script and style elements
+                for script in soup(['script', 'style']):
+                    script.decompose()
+                
+                # Try to find article content
+                article = soup.find('article') or soup.find('main') or soup.find('div', class_=re.compile('content|article|story', re.I))
+                
+                if article:
+                    content_text = article.get_text(separator='\n', strip=True)
+                else:
+                    content_text = soup.get_text(separator='\n', strip=True)
+                
+                content_text = '\n'.join([line.strip() for line in content_text.split('\n') if line.strip()])
+                
+                if content_text:
+                    summary = content_text[:500] + '...' if len(content_text) > 500 else content_text
+                    logging.info(f"✅ Extracted content using BeautifulSoup")
+                    return summary, content_text, None
+            except Exception as e:
+                logging.warning(f"BeautifulSoup extraction failed: {e}")
+        
+        # Final fallback: just return first 300 chars from text
+        text = response.text
+        text = re.sub(r'<[^>]+>', '', text)
+        text = ' '.join(text.split())
+        
+        if text:
+            summary = text[:300] + '...' if len(text) > 300 else text
+            logging.info(f"✅ Extracted basic summary from HTML")
+            return summary, summary, None
+        
+        return None, None, None
+        
+    except Exception as e:
+        logging.warning(f"❌ Error fetching article: {e}")
+        return None, None, None
+
+def clean_html_description(html_text, max_length=500):
+    """Remove HTML tags and clean up description text"""
+    if not html_text:
+        return ''
+    text = re.sub(r'<[^>]+>', '', html_text)
+    text = re.sub(r'&nbsp;', ' ', text)
+    text = re.sub(r'&lt;', '<', text)
+    text = re.sub(r'&gt;', '>', text)
+    text = re.sub(r'&quot;', '"', text)
+    text = re.sub(r'&#(\d+);', lambda x: chr(int(x.group(1))), text)
+    text = re.sub(r'&amp;', '&', text)
+    text = ' '.join(text.split())
+    return text[:max_length] + ('...' if len(text) > max_length else '')
 
 # Tạo Flask app với template_folder đúng
 app = Flask(__name__, 
@@ -114,7 +311,8 @@ Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh và th
 VÍ DỤ: "🐟 **Cá trê** là loài *ăn tạp*, đặc biệt **thích ăn sâu bọ** 🐛! Tiêu thụ **5-10% trọng lượng** mỗi ngày! 💪"
 
 **PHẠM VI CHUYÊN MÔN:**
-✅ Nông nghiệp: Cây trồng, vật nuôi, kỹ thuật canh tác, chăn nuôi, thủy sản
+✅ Nông nghiệp: Cây trồng, vật nuôi, kỹ thuật canh tác, chăn nuôi, thủy sản, động vật
+✅ Các vấn đề liên quan đến tự nhiên, môi trường
 ✅ Địa lý nông nghiệp: Địa hình, khí hậu, thổ nhưỡng, vùng miền
 ✅ Thời tiết & mùa vụ: Dự báo, khí hậu, lịch mùa, thiên tai
 ✅ Môi trường: Đất đai, nước, sinh thái
@@ -130,11 +328,12 @@ VÍ DỤ: "🐟 **Cá trê** là loài *ăn tạp*, đặc biệt **thích ăn s
 5. LUÔN dùng emoji và markdown!
 
 **KHI CÂU HỎI NGOÀI PHẠM VI:**
+- Trả lời xin lỗi lịch sự, ví dụ:
 "Xin lỗi, tôi là AgriSense AI - chuyên gia nông nghiệp. Tôi chỉ trả lời về nông nghiệp và lĩnh vực liên quan. 🌱"
 """
         
         self.image_analysis_prompt = """
-Bạn là AgriSense AI - Chuyên gia phân tích hình ảnh nông nghiệp. 
+Bạn là AgriSense AI - Chuyên gia phân tích hình ảnh nông nghiệp/môi trường. 
 
 🎨 **QUAN TRỌNG:** Sử dụng emoji 🌱🐟🚜💧 và **markdown** (in đậm, *in nghiêng*) thường xuyên!
 
@@ -6260,6 +6459,158 @@ def run_local():
         use_reloader=False
     )
 
+
+@app.route('/api/rss-parse', methods=['POST'])
+def rss_parse():
+    """
+    ✅ NEW ENDPOINT - Parse RSS feeds with content extraction
+    
+    Xử lý RSS feeds từ các báo lớn (VnExpress, Zing, Dân Trí, etc.)
+    - Nếu RSS có content/description → dùng luôn
+    - Nếu RSS thiếu content → tự crawl bài viết lấy nội dung
+    - Support CORS, timeout, User-Agent headers
+    - Bypass bị chặn bằng headers giả lập trình duyệt
+    
+    Request JSON:
+    {
+        "rss_urls": ["url1", "url2", ...],
+        "limit": 10  (optional, default: 10)
+    }
+    
+    Response JSON:
+    {
+        "success": true,
+        "total": 25,
+        "articles": [
+            {
+                "title": "Tiêu đề bài viết",
+                "link": "https://...",
+                "summary": "Tóm tắt 500 ký tự",
+                "content": "Nội dung đầy đủ của bài viết",
+                "pubDate": "2024-01-15T10:30:00Z",
+                "source": "VnExpress"
+            }
+        ],
+        "failed_feeds": ["url_failed1", ...]
+    }
+    """
+    try:
+        data = request.json or {}
+        rss_urls = data.get('rss_urls', [])
+        limit = data.get('limit', 10)
+        
+        if not rss_urls:
+            return jsonify({"error": "No RSS URLs provided"}), 400
+        
+        all_articles = []
+        failed_feeds = []
+        
+        # Process each RSS feed
+        for rss_url in rss_urls:
+            try:
+                logging.info(f"🔄 Processing RSS: {rss_url}")
+                
+                # Fetch RSS with headers
+                xml_text = fetch_rss_with_headers(rss_url, timeout=10)
+                
+                if not xml_text:
+                    logging.warning(f"⚠️ Failed to fetch RSS: {rss_url}")
+                    failed_feeds.append(rss_url)
+                    continue
+                
+                # Parse RSS XML
+                items = parse_rss_xml(xml_text)
+                
+                if not items:
+                    logging.warning(f"⚠️ No items parsed from: {rss_url}")
+                    failed_feeds.append(rss_url)
+                    continue
+                
+                # Extract source name from URL
+                source_name = urlparse(rss_url).netloc.replace('www.', '').split('.')[0].title()
+                
+                # Process each item in RSS
+                for item in items[:limit]:
+                    try:
+                        title = item.get('title', '').strip()
+                        link = item.get('link', '').strip()
+                        description = item.get('description', '').strip()
+                        content = item.get('content:encoded', '').strip()
+                        pubdate = item.get('pubDate', '').strip()
+                        image_url = item.get('image_url', '').strip()
+                        
+                        # If no description/content, fetch from article URL
+                        if not description and not content:
+                            logging.info(f"📄 Fetching content from article: {link}")
+                            summary, full_content, img_url = fetch_article_content(link, timeout=10)
+                            
+                            if summary:
+                                description = summary
+                            if full_content:
+                                content = full_content
+                            if img_url and not image_url:
+                                image_url = img_url
+                            
+                            # Random delay để tránh bị block
+                            time.sleep(random.uniform(0.5, 2))
+                        
+                        # Clean HTML from description/content
+                        if description:
+                            description = clean_html_description(description, max_length=500)
+                        if content:
+                            content = clean_html_description(content, max_length=2000)
+                        
+                        # Prepare article object
+                        article = {
+                            'title': title,
+                            'link': link,
+                            'summary': description or content[:300] if content else 'Không có nội dung',
+                            'content': content or description or 'Không có nội dung',
+                            'pubDate': pubdate,
+                            'source': source_name,
+                            'image_url': image_url
+                        }
+                        
+                        all_articles.append(article)
+                        
+                    except Exception as item_error:
+                        logging.warning(f"❌ Error processing item: {item_error}")
+                        continue
+                
+                logging.info(f"✅ Successfully processed {len(items)} items from {rss_url}")
+                
+            except Exception as feed_error:
+                logging.error(f"❌ Error processing feed {rss_url}: {feed_error}")
+                failed_feeds.append(rss_url)
+                continue
+        
+        # Sort articles by pubDate (newest first)
+        try:
+            all_articles.sort(
+                key=lambda x: datetime.strptime(x['pubDate'], '%a, %d %b %Y %H:%M:%S %z') 
+                    if x['pubDate'] else datetime.now(),
+                reverse=True
+            )
+        except:
+            pass
+        
+        # Limit total articles
+        all_articles = all_articles[:limit * 2]
+        
+        return jsonify({
+            'success': True,
+            'total': len(all_articles),
+            'articles': all_articles,
+            'failed_feeds': failed_feeds,
+            'processed_feeds': len(rss_urls) - len(failed_feeds)
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ RSS Parse API Error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     run_local()

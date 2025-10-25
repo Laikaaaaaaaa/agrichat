@@ -443,19 +443,19 @@
       
       // VnExpress
       {
-        name: 'VnExpress - Nông nghiệp (Khoa học)',
-        url: 'https://vnexpress.net/rss/khoa-hoc/tu-nhien.rss',
+        name: 'VnExpress - Nông nghiệp',
+        url: 'https://vnexpress.net/tag/nong-nghiep.rss',
         category: 'agriculture'
       },
       {
-        name: 'VnExpress - Nông nghiệp (Phát minh)',
-        url: 'https://vnexpress.net/rss/khoa-hoc/phat-minh.rss',
+        name: 'VnExpress - Nông nghiệp công nghệ cao',
+        url: 'https://vnexpress.net/tag/nong-nghiep-cong-nghe-cao.rss',
         category: 'agriculture'
       },
       {
-        name: 'VnExpress - Bảo vệ môi trường',
-        url: 'https://vnexpress.net/rss/khoa-hoc/bao-ve-moi-truong.rss',
-        category: 'climate'
+        name: 'VnExpress - Nông nghiệp sạch',
+        url: 'https://vnexpress.net/topic/nong-nghiep-sach-21685.rss',
+        category: 'agriculture'
       },
       {
         name: 'VnExpress - Khoa học',
@@ -1123,7 +1123,6 @@
     // Enhanced duplicate detection for RSS feeds
     function removeDuplicatesFromFeed(articles) {
       const seen = new Set();
-      const imageUrls = new Set(); // Track image URLs to detect duplicates
       const uniqueArticles = [];
       
       for (const article of articles) {
@@ -1131,30 +1130,25 @@
         const titleKey = normalized.normalizedTitle;
         const urlKey = article.url;
         
-        // Only check for EXACT duplicates: same URL or exact same normalized title
-        // Don't use similarity comparison as it removes too many legitimate articles from different sources
-        if (!seen.has(urlKey) && !seen.has(titleKey)) {
-          seen.add(titleKey);
-          seen.add(urlKey);
-          if (article.urlToImage) {
-            imageUrls.add(article.urlToImage);
+        // Check if we've seen this title or URL before
+        if (!seen.has(titleKey) && !seen.has(urlKey)) {
+          // Additional check against existing articles for similarity
+          const isDuplicate = uniqueArticles.some(existing => {
+            return calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.75 ||
+                   (existing.url === article.url) ||
+                   (existing.description && article.description && 
+                    calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.8);
+          });
+          
+          if (!isDuplicate) {
+            seen.add(titleKey);
+            seen.add(urlKey);
+            uniqueArticles.push(normalized);
           }
-          uniqueArticles.push(normalized);
         }
       }
       
-      console.log(`🔄 removeDuplicatesFromFeed: ${articles.length} → ${uniqueArticles.length} articles`);
       return uniqueArticles;
-    }
-    
-    // Shuffle array để phân bổ articles ngẫu nhiên (Fisher-Yates)
-    function shuffleArray(array) {
-      const shuffled = [...array];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
     }
 
     // Initialize page
@@ -1234,231 +1228,77 @@
       console.log(`🎯 Trang sẵn sàng với ${vietnameseNews.length} tin (đang tải thêm background)`);
     });
 
-    // Fetch Vietnamese RSS feeds - Load 10 feeds initially
+    // Fetch Vietnamese RSS feeds - OPTIMIZED: Load only what's needed
     async function loadVietnameseNews() {
-      console.log('🚀 Đang tải 10 báo đầu tiên...');
+      console.log('🚀 Đang tải tin tức Việt Nam (chỉ load khi cần)...');
       
       try {
-        // Load ALL feeds (bỏ filter tạm để debug)
-        const allFeeds = vietnameseRSSFeeds;
+        // Prioritize agricultural feeds first
+        const agricultureFeeds = vietnameseRSSFeeds.filter(feed => 
+          feed.category === 'agriculture' || feed.name.toLowerCase().includes('nông nghiệp') || 
+          feed.name.toLowerCase().includes('chăn nuôi') || feed.name.toLowerCase().includes('thủy sản')
+        );
+        const otherFeeds = vietnameseRSSFeeds.filter(feed => !agricultureFeeds.includes(feed));
+        const prioritizedFeeds = [...agricultureFeeds, ...otherFeeds];
         
-        console.log(`📋 Tổng ${allFeeds.length} báo RSS`);
+        console.log(`📋 Ưu tiên ${agricultureFeeds.length} nguồn nông nghiệp, ${otherFeeds.length} nguồn khác`);
         
-        // Store full feed list for lazy loading
-        window.allPrioritizedFeeds = allFeeds;
+        // LOAD ONLY FIRST 5 FEEDS for initial display (~ 50-100 articles)
+        const initialFeeds = prioritizedFeeds.slice(0, 5);
+        console.log(`⚡ Load ${initialFeeds.length} nguồn đầu tiên...`);
         
-        // Load ONLY first 10 feeds
-        const initialBatch = allFeeds.slice(0, 10);
-        window.remainingFeeds = allFeeds.slice(10);
+        // Store full feed list for later loading
+        window.remainingFeeds = prioritizedFeeds.slice(5);
+        window.allPrioritizedFeeds = prioritizedFeeds;
         
-        console.log(`⚡ Load ${initialBatch.length} báo đầu tiên (còn ${window.remainingFeeds.length} báo)`);
+        // Load initial feeds in parallel
+        const feedPromises = initialFeeds.map(feed => loadSingleFeed(feed));
+        const results = await Promise.all(feedPromises);
         
-        let articlesSinceLastDisplay = 0;
-        
-        // Load initial feeds sequentially with delays to avoid rate limiting
-        for (const feed of initialBatch) {
-          try {
-            const items = await loadSingleFeed(feed);
-            if (items && items.length > 0) {
-              console.log(`  Feed: ${feed.name}: ${items.length} bài`);
-              allLoadedArticles = [...allLoadedArticles, ...items];
-              articlesSinceLastDisplay += items.length;
-              
-              // Display as soon as we have 10+ articles
-              if (articlesSinceLastDisplay >= 10 && vietnameseNews.length === 0) {
-                // Remove duplicates, shuffle, and sort
-                allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-                allLoadedArticles = shuffleArray(allLoadedArticles);
-                allLoadedArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-                vietnameseNews = [...allLoadedArticles];
-                
-                console.log(`⚡ Display first ${vietnameseNews.length} articles immediately!`);
-                filterAndDisplayNews();
-                articlesSinceLastDisplay = 0;
-              }
-            }
-            // Add delay between requests
-            await new Promise(resolve => setTimeout(resolve, 150));
-          } catch (e) {
-            console.warn(`⚠️ Error loading ${feed.name}:`, e);
+        // Collect all articles
+        results.forEach(items => {
+          if (items && items.length > 0) {
+            allLoadedArticles = [...allLoadedArticles, ...items];
           }
-        }
+        });
         
-        // If no display yet, do it now
-        if (vietnameseNews.length === 0) {
-          console.log(`📦 Tổng articles trước remove duplicates: ${allLoadedArticles.length}`);
-          allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-          console.log(`📦 Sau remove duplicates: ${allLoadedArticles.length}`);
-          allLoadedArticles = shuffleArray(allLoadedArticles);
-          allLoadedArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-          vietnameseNews = [...allLoadedArticles];
-          filterAndDisplayNews();
-        }
+        // Remove duplicates and sort
+        allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        allLoadedArticles.sort((a, b) => {
+          if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
+          return new Date(b.publishedAt) - new Date(a.publishedAt);
+        });
         
-        loadedFeedsCount = initialBatch.length;
-        console.log(`✅ Đã load ${loadedFeedsCount} báo, có ${vietnameseNews.length} bài`);
+        vietnameseNews = [...allLoadedArticles];
+        loadedFeedsCount = initialFeeds.length;
         
-        // Start loading more feeds in background (don't await)
-        loadMoreFeedsBackground();
+        console.log(`✅ Đã load ${loadedFeedsCount} nguồn, có ${vietnameseNews.length} bài`);
         
       } catch (error) {
         console.error('❌ Lỗi tải tin:', error);
       }
     }
     
-    // Background loader - continuously load remaining feeds with rate limiting
-    async function loadMoreFeedsBackground() {
-      if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
-        console.log('✅ Tất cả feeds nông nghiệp đã được load');
-        return;
-      }
-      
-      console.log(`🔄 Tiếp tục load ${window.remainingFeeds.length} báo nông nghiệp còn lại...`);
-      
-      // Load feeds sequentially with delays to avoid rate limiting
-      for (const feed of window.remainingFeeds) {
-        try {
-          const items = await loadSingleFeed(feed);
-          if (items && items.length > 0) {
-            allLoadedArticles = [...allLoadedArticles, ...items];
-          }
-          // Add delay between requests to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 250));
-        } catch (e) {
-          console.warn(`⚠️ Error loading ${feed.name}:`, e);
-        }
-      }
-      
-      // Remove duplicates, shuffle, and sort
-      allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-      allLoadedArticles = shuffleArray(allLoadedArticles); // Phân bổ ngẫu nhiên
-      allLoadedArticles.sort((a, b) => {
-        return new Date(b.publishedAt) - new Date(a.publishedAt);
-      });
-      
-      vietnameseNews = [...allLoadedArticles];
-      window.remainingFeeds = [];
-      loadedFeedsCount = window.allPrioritizedFeeds.length;
-      
-      console.log(`✅ Hoàn tát: ${loadedFeedsCount} báo nông nghiệp, ${vietnameseNews.length} bài`);
-      
-      // Update display with all news
-      filterAndDisplayNews();
-    }
-    
-    // Load a single RSS feed with retry logic
-    async function loadSingleFeed(feed, retryCount = 0) {
-      const MAX_RETRIES = 2;
-      
+    // Load a single RSS feed
+    async function loadSingleFeed(feed) {
       try {
-        console.log(`🔄 Loading: ${feed.name}`);
-        
-        // Strategy 1: Always try /api/rss-parse FIRST (backend is most reliable)
-        try {
-          console.log(`  📡 Trying /api/rss-parse for ${feed.name}...`);
-          const url = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=99`;
-          const response = await fetch(url, { timeout: 10000 });
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            if (data.success && data.articles && data.articles.length > 0) {
-              const newsItems = data.articles.map(article => ({
-                title: article.title,
-                description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
-                url: article.link,
-                urlToImage: article.image_url || null,
-                publishedAt: article.pubDate || new Date().toISOString(),
-                source: { name: article.source || feed.name },
-                content: article.content,
-                category: feed.category,
-                isVietnamese: true,
-                priority: feed.category === 'agriculture' ? 1 : 2
-              }));
-              
-              if (newsItems.length > 0) {
-                console.log(`✅ ${feed.name}: ${newsItems.length} bài (via /api/rss-parse)`);
-                return newsItems;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn(`  ⚠️ /api/rss-parse failed: ${e.message}`);
-        }
-        
-        // Strategy 2: Use RSS2JSON with exponential backoff retry
         const rssServices = [
-          `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=99`,
-          `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=99`
+          `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=20`,
+          `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=20`
         ];
         
         for (const service of rssServices) {
           try {
-            console.log(`  📡 Trying ${service.split('/')[2]}...`);
-            
-            // Add delay to avoid rate limiting (exponential backoff)
-            if (retryCount > 0) {
-              const delayMs = Math.min(1000 * Math.pow(2, retryCount), 5000);
-              await new Promise(resolve => setTimeout(resolve, delayMs));
-            }
-            
-            const response = await fetch(service, { timeout: 8000 });
-            
-            // Handle rate limiting (429) with retry
-            if (response.status === 429) {
-              console.warn(`  ⏳ Rate limited (429), retrying...`);
-              if (retryCount < MAX_RETRIES) {
-                await new Promise(resolve => setTimeout(resolve, 2000 + (retryCount * 1000)));
-                return loadSingleFeed(feed, retryCount + 1);
-              }
-              continue; // Try next service
-            }
-            
-            // Handle unprocessable content (422) - rss2json can't parse this feed format
-            // Fallback to backend parser which is more flexible
-            if (response.status === 422) {
-              console.warn(`  ⚠️ RSS2JSON format error (422), falling back to backend parser...`);
-              try {
-                const backendUrl = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=99`;
-                const backendResponse = await fetch(backendUrl, { timeout: 10000 });
-                
-                if (backendResponse.ok) {
-                  const backendData = await backendResponse.json();
-                  if (backendData.success && backendData.articles && backendData.articles.length > 0) {
-                    const newsItems = backendData.articles.map(article => ({
-                      title: article.title,
-                      description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
-                      url: article.link,
-                      urlToImage: article.image_url || null,
-                      publishedAt: article.pubDate || new Date().toISOString(),
-                      source: { name: article.source || feed.name },
-                      content: article.content,
-                      category: feed.category,
-                      isVietnamese: true,
-                      priority: feed.category === 'agriculture' ? 1 : 2
-                    }));
-                    
-                    if (newsItems.length > 0) {
-                      console.log(`✅ ${feed.name}: ${newsItems.length} bài (via /api/rss-parse fallback)`);
-                      return newsItems;
-                    }
-                  }
-                }
-              } catch (fallbackErr) {
-                console.warn(`  ⚠️ Fallback to backend also failed: ${fallbackErr.message}`);
-              }
-              continue; // Try next RSS2JSON service
-            }
-            
+            const response = await fetch(service, { timeout: 5000 });
             if (response.ok) {
               const data = await response.json();
               
               if (data.status === 'ok' && data.items && data.items.length > 0) {
                 const newsItems = data.items.map(item => ({
                   title: item.title,
-                  description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : 'Không có mô tả',
+                  description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : '',
                   url: item.link,
-                  urlToImage: getImageFromItem(item, feed.name) || null,
+                  urlToImage: getImageFromItem(item, feed.name),
                   publishedAt: item.pubDate,
                   source: { name: feed.name },
                   content: item.content || item.description,
@@ -1467,20 +1307,17 @@
                   priority: feed.category === 'agriculture' ? 1 : 2
                 }));
                 
-                console.log(`✅ ${feed.name}: ${newsItems.length} bài (via RSS2JSON)`);
+                console.log(`✅ ${feed.name}: ${newsItems.length} bài`);
                 return newsItems;
               }
             }
           } catch (e) {
-            console.warn(`  ⚠️ ${service.split('/')[2]} failed: ${e.message}`);
+            // Try next service
           }
         }
         
-        console.warn(`❌ Không thể load ${feed.name}`);
         return [];
-        
       } catch (error) {
-        console.error(`❌ Error loading ${feed.name}:`, error);
         return [];
       }
     }
@@ -1488,7 +1325,7 @@
     // Load more feeds when user clicks "Load More"
     async function loadMoreFeeds() {
       if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
-        console.log('❌ Tất cả báo nông nghiệp đã được load');
+        console.log('❌ Không còn nguồn RSS để load');
         hasMoreNews = false;
         return false;
       }
@@ -1501,11 +1338,11 @@
       isLoading = true;
       updateHeaderStatus('Đang tải thêm tin tức...', true);
       
-      // Load next 10 feeds
-      const nextBatch = window.remainingFeeds.slice(0, 10);
-      window.remainingFeeds = window.remainingFeeds.slice(10);
+      // Load next 3 feeds
+      const nextBatch = window.remainingFeeds.slice(0, 3);
+      window.remainingFeeds = window.remainingFeeds.slice(3);
       
-      console.log(`📦 Load thêm ${nextBatch.length} báo nông nghiệp (còn ${window.remainingFeeds.length})`);
+      console.log(`📦 Load thêm ${nextBatch.length} nguồn (còn ${window.remainingFeeds.length})`);
       
       const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
       const results = await Promise.all(feedPromises);
@@ -1517,10 +1354,10 @@
         }
       });
       
-      // Remove duplicates, shuffle, and sort
+      // Remove duplicates and sort
       allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-      allLoadedArticles = shuffleArray(allLoadedArticles); // Phân bổ ngẫu nhiên
       allLoadedArticles.sort((a, b) => {
+        if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
         return new Date(b.publishedAt) - new Date(a.publishedAt);
       });
       
@@ -1536,43 +1373,11 @@
         livestock: []
       };
       
-      console.log(`✅ Tổng ${loadedFeedsCount} báo nông nghiệp, ${vietnameseNews.length} bài`);
+      console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài`);
       updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
       
       isLoading = false;
-      hasMoreNews = window.remainingFeeds.length > 0;
       return true;
-    }
-
-    // Extract default image based on feed/category
-    function extractDefaultImage(feedName) {
-      const defaultImages = {
-        'vnexpress': 'https://i.vnexpress.net/files/f1/2021/05/12/vnexpress-favicon-16x16.png',
-        'zing': 'https://zing.vn/favicon.ico',
-        'dantri': 'https://dantri.com.vn/favicon.ico',
-        'thanhnien': 'https://thanhnien.vn/favicon.ico',
-        'thoibao': 'https://thoibao.vn/favicon.ico',
-        'tuoitre': 'https://tuoitre.vn/favicon.ico',
-        'nông nghiệp': 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop',
-        'môi trường': 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=300&h=200&fit=crop',
-        'livestock': 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=300&h=200&fit=crop',
-        'agriculture': 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop'
-      };
-      
-      // Try exact match first
-      if (defaultImages[feedName.toLowerCase()]) {
-        return defaultImages[feedName.toLowerCase()];
-      }
-      
-      // Try partial match
-      for (const [key, url] of Object.entries(defaultImages)) {
-        if (feedName.toLowerCase().includes(key)) {
-          return url;
-        }
-      }
-      
-      // Default agriculture image
-      return 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop';
     }
 
     // Enhanced image extraction function with Vietnamese agriculture focus
@@ -2142,16 +1947,9 @@
         const keywordSet = new Set(keywords.map(k => k.toLowerCase())); // Use Set for O(1) lookup
         
         filteredNews = filteredNews.filter(article => {
-          // Fast category match for Vietnamese articles - include related categories
-          if (article.isVietnamese && article.category) {
-            // For agriculture, include: agriculture, livestock, climate
-            if (currentCategory === 'agriculture' && (article.category === 'agriculture' || article.category === 'livestock' || article.category === 'climate')) {
-              return true;
-            }
-            // For other categories, exact match
-            if (currentCategory !== 'agriculture' && article.category === currentCategory) {
-              return true;
-            }
+          // Fast category match for Vietnamese articles
+          if (article.isVietnamese && article.category === currentCategory) {
+            return true;
           }
           
           // Keyword matching (optimized)
@@ -2284,18 +2082,7 @@
       card.className = 'news-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 fade-in-up';
       card.style.animationDelay = `${index * 0.1}s`;
 
-      // Simple color mapping for placeholders
-      const colorMap = {
-        '10b981': '#10b981',
-        '059669': '#059669', 
-        '047857': '#047857',
-        '065f46': '#065f46'
-      };
-      const randomColor = Object.keys(colorMap)[Math.floor(Math.random() * 4)];
-      const bgColor = colorMap[randomColor];
-      
-      // Use actual image if available, otherwise use CSS background
-      const imageUrl = article.urlToImage || null;
+      const imageUrl = article.urlToImage || 'https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI';
       const publishedDate = new Date(article.publishedAt).toLocaleDateString('vi-VN');
       const description = article.description || 'Không có mô tả';
       const displayCategory = getCategoryFromArticle(article);
@@ -2333,8 +2120,8 @@
       });
       
       card.innerHTML = `
-        <div class="relative" style="background: linear-gradient(135deg, ${bgColor} 0%, #047857 100%); min-height: 160px; overflow: hidden;">
-          ${imageUrl ? `<img src="${imageUrl}" alt="${article.title}" class="w-full h-40 md:h-48 object-cover" onerror="this.style.display='none';">` : ''}
+        <div class="relative">
+          <img src="${imageUrl}" alt="${article.title}" class="w-full h-40 md:h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI'">
           <div class="absolute top-3 left-3">
             <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm">
               ${sourceFlag} ${displayCategory}

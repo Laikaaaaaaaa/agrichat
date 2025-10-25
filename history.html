@@ -1,842 +1,712 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriSense AI - Lịch sử hội thoại</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <title>Lịch sử hội thoại - AgriSense AI</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+    <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background-color: #f0fdf4;
-            min-height: 100vh;
+        /* WebView Optimization */
+        * {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            -webkit-touch-callout: none;
         }
+        
+        html {
+            height: 100%;
+            overflow: hidden;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        
+        body {
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        @supports (height: 100dvh) {
+            body {
+                height: 100dvh;
+            }
+        }
+        
+        * {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        img {
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        button, a, input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        
+        /* Back button - NO BORDER */
+        .back-btn {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .back-btn:hover {
+            background-color: #059669;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        .back-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Main layout */
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: #f9fafb;
+        }
+        
         header {
-            background-color: #dcfce7;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border-bottom: 1px solid #bbf7d0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             padding: 12px 16px;
             flex-shrink: 0;
+            z-index: 50;
         }
+        
         @media (min-width: 768px) {
             header {
                 padding: 16px 24px;
             }
         }
+        
         .header-container {
-            max-width: 100%;
-            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 16px;
         }
+        
         .header-left {
             display: flex;
             gap: 12px;
             align-items: center;
         }
-        .back-btn {
-            background-color: #16a34a;
-            color: white;
-            border: 2px solid #15803d;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .back-btn:hover {
-            background-color: #15803d;
-        }
+        
         .logo-img {
-            height: 48px;
+            height: 40px;
             width: auto;
             object-fit: contain;
         }
+        
         @media (min-width: 768px) {
             .logo-img {
-                height: 56px;
+                height: 44px;
             }
         }
+        
         .header-title {
             font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
+            font-weight: 700;
+            color: #047857;
             display: none;
         }
+        
         @media (min-width: 768px) {
             .header-title {
                 display: inline;
                 font-size: 18px;
             }
         }
-        .header-right {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            font-size: 12px;
-            color: #6b7280;
-        }
-        @media (min-width: 768px) {
-            .header-right {
-                gap: 16px;
-                font-size: 14px;
-            }
-        }
+        
+        /* Content area */
         main {
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 16px;
-            height: calc(100vh - 140px);
-        }
-        @media (min-width: 768px) {
-            main {
-                padding: 24px;
-            }
-        }
-        .main-content {
-            background: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            border-radius: 16px;
-            padding: 16px;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            height: 100%;
+            overflow: hidden;
+            padding: 12px;
         }
+        
         @media (min-width: 768px) {
-            .main-content {
-                padding: 24px;
+            main {
+                padding: 16px;
             }
         }
-        .grid-container {
+        
+        .content-container {
             display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 24px;
-            height: 100%;
+            grid-template-columns: 280px 1fr;
+            gap: 12px;
             flex: 1;
+            overflow: hidden;
         }
-        .conversation-list-panel, .chat-panel {
+        
+        @media (max-width: 1024px) {
+            .content-container {
+                grid-template-columns: 240px 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .content-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Conversation list panel */
+        .conversation-list-section {
             background: white;
             border-radius: 12px;
             border: 1px solid #e5e7eb;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .panel-header {
+        
+        @media (max-width: 768px) {
+            .conversation-list-section {
+                display: none;
+            }
+        }
+        
+        .list-header {
             padding: 16px;
             border-bottom: 1px solid #e5e7eb;
-            background-color: #f9fafb;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            flex-shrink: 0;
         }
-        .panel-title {
-            font-weight: 600;
-            color: #1f2937;
+        
+        .list-title {
+            font-weight: 700;
+            color: #047857;
             display: flex;
             gap: 8px;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            font-size: 15px;
         }
-        .panel-title i { color: #16a34a; }
-        .search-box {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            position: relative;
+        
+        .list-title i {
+            color: #10b981;
         }
-        .search-box input {
+        
+        .search-input {
             width: 100%;
-            padding: 8px 10px 8px 32px;
+            padding: 8px 12px;
             border: 1px solid #d1d5db;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
         }
-        .search-box i { position: absolute; left: 10px; color: #9ca3af; }
-        .conversation-list {
+        
+        .search-input:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        .conversations-list {
             flex: 1;
             overflow-y: auto;
             padding: 8px;
         }
-        .conversation-item {
+        
+        .conversations-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .conversations-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .conversations-list::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+        
+        .conversations-list::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        /* Chat display panel */
+        .chat-display-section {
+            background: white;
+            border-radius: 12px;
             border: 1px solid #e5e7eb;
-            margin: 8px;
-            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .chat-header-left {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .chat-title {
+            font-weight: 700;
+            color: #1f2937;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+        
+        .chat-meta {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .chat-header-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .continue-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 8px 14px;
             border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+        
+        .continue-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        .continue-btn:active {
+            transform: translateY(0);
+        }
+        
+        .delete-btn {
+            background: #f3f4f6;
+            color: #ef4444;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .delete-btn:hover {
+            background: #fee2e2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .delete-btn:active {
+            background: #fecaca;
+        }
+        
+        /* Messages display */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #9ca3af;
+            text-align: center;
+            padding: 32px;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            color: #d1d5db;
+            margin-bottom: 16px;
+        }
+        
+        .empty-state-text {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #6b7280;
+        }
+        
+        /* Message styling */
+        .message {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 10px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.5;
+            white-space: pre-line;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            margin-left: auto;
+        }
+        
+        .bot-message {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+        
+        /* Conversation item in list */
+        .conversation-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .conversation-item:hover { 
-            background-color: #f0fdf4;
-            border-color: #6de499;
+        
+        .conversation-item:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
         }
+        
         .conversation-item.active {
-            background-color: #dcfce7;
-            border-color: #5bd889;
+            border-color: #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
         }
-        .conversation-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
+        
         .conversation-title {
-            font-weight: 500;
-            font-size: 14px;
+            font-weight: 700;
             color: #1f2937;
-            flex: 1;
-            margin-right: 8px;
+            font-size: 13px;
+            margin-bottom: 4px;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
         }
-        .conversation-date {
+        
+        .conversation-preview {
             font-size: 12px;
             color: #6b7280;
             white-space: nowrap;
-        }
-        .conversation-preview {
-            font-size: 12px;
-            color: #4b5563;
-            margin-bottom: 8px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
             overflow: hidden;
-            line-height: 1.4;
-            max-height: 2.8em;
+            text-overflow: ellipsis;
+            margin-bottom: 8px;
         }
+        
         .conversation-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
-            color: #6b7280;
+            font-size: 11px;
+            color: #9ca3af;
         }
-        .delete-btn {
-            background: none;
-            border: none;
-            color: #ef4444;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-        .delete-btn:hover {
-            color: #dc2626;
-            background-color: #fee2e2;
-        }
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-        }
-        .empty-state {
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            text-align: center;
-        }
-        .message {
-            margin-bottom: 16px;
-            display: flex;
-        }
-        .message.user { justify-content: flex-end; }
-        .message.bot { justify-content: flex-start; }
-        .message-bubble {
-            max-width: 70%;
-            padding: 12px 16px;
+        
+        .conversation-count {
+            background: #f3f4f6;
+            padding: 2px 8px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .message.bot .message-bubble { background-color: #f3f4f6; color: #1f2937; }
-        .message.user .message-bubble { background-color: #22c55e; color: white; }
-        .message-time { font-size: 12px; margin-top: 4px; }
-        .message.bot .message-time { color: #6b7280; }
-        .message.user .message-time { color: #dcfce7; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-        .button-group {
-            display: flex;
-            gap: 8px;
-        }
-        .icon-btn {
-            background: none;
-            border: none;
-            color: #6b7280;
-            cursor: pointer;
-            padding: 4px 8px;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        .icon-btn:hover { color: #1f2937; }
-        @media (max-width: 1024px) {
-            .grid-container { grid-template-columns: 1fr; }
+            font-weight: 600;
+            color: #047857;
         }
     </style>
 </head>
-<body class="custom-scrollbar">
-    <header>
-        <div class="header-container">
-            <div class="header-left">
-                <button onclick="goBack()" class="back-btn">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="logo-img">
+<body>
+    <div class="main-wrapper">
+        <!-- Header -->
+        <header>
+            <div class="header-container">
+                <div class="header-left">
+                    <button class="back-btn" onclick="window.history.back()">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Quay lại</span>
+                    </button>
+                    <img src="/static/logo/logo.png" alt="AgriSense AI" class="logo-img">
+                </div>
+                <h1 class="header-title">Lịch sử hội thoại</h1>
+                <div></div>
             </div>
-            <div class="header-right">
-                <span>AgriSense AI</span>
-            </div>
-        </div>
-    </header>
-
-    <main>
-        <div class="main-content">
-            <div class="grid-container">
-                <div class="conversation-list-panel custom-scrollbar">
-                    <div class="panel-header">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <div class="panel-title">
-                                <i class="fas fa-comments"></i>
-                                <span>Danh sách hội thoại</span>
-                            </div>
-                            <div class="button-group">
-                                <button id="fix-titles-btn" class="icon-btn" title="Sửa tên cuộc hội thoại">
-                                    <i class="fas fa-magic"></i>
-                                </button>
-                                <button id="clear-all-btn" class="icon-btn" title="Xóa tất cả">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
+        </header>
+        
+        <!-- Main content -->
+        <main>
+            <div class="content-container">
+                <!-- Conversation list (left) -->
+                <div class="conversation-list-section">
+                    <div class="list-header">
+                        <div class="list-title">
+                            <i class="fas fa-list"></i>
+                            Hội thoại
                         </div>
-                        <div class="search-box">
-                            <input type="text" id="search-conversations" placeholder="Tìm kiếm...">
-                            <i class="fas fa-search"></i>
-                        </div>
+                        <input type="text" class="search-input" id="search-input" placeholder="Tìm kiếm...">
                     </div>
-                    <div id="conversation-list" class="conversation-list custom-scrollbar"></div>
+                    <div class="conversations-list" id="conversation-list"></div>
                 </div>
                 
-                <div class="chat-panel">
-                    <div class="panel-header">
-                        <div id="chat-header">
-                            <div>
-                                <div class="panel-title">
-                                    <i class="fas fa-comment-dots"></i>
-                                    <span>Chi tiết hội thoại</span>
-                                </div>
-                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Chọn một cuộc hội thoại để xem chi tiết</p>
-                            </div>
+                <!-- Chat display (right) -->
+                <div class="chat-display-section">
+                    <div class="chat-header">
+                        <div class="chat-header-left">
+                            <div class="chat-title" id="chat-title">Chọn một hội thoại</div>
+                            <div class="chat-meta" id="chat-meta"></div>
+                        </div>
+                        <div class="chat-header-right">
+                            <button class="continue-btn" id="continue-btn" onclick="continueSelectedConversation()" style="display: none;">
+                                <i class="fas fa-play"></i>
+                                <span>Tiếp tục</span>
+                            </button>
+                            <button class="delete-btn" id="delete-btn" onclick="deleteSelectedConversation()" style="display: none;">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
-                    <div id="chat-messages" class="chat-messages custom-scrollbar">
-                        <div id="empty-state" class="empty-state">
-                            <div>
-                                <i class="fas fa-comments" style="font-size: 48px; color: #d1d5db; display: block; margin-bottom: 16px;"></i>
-                                <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
-                                <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
-                            </div>
+                    <div class="messages-container" id="messages-container">
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><i class="fas fa-comment-dots"></i></div>
+                            <div class="empty-state-text">Chọn một hội thoại để xem chi tiết</div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <script>
-    class ChatHistoryManager {
+    class HistoryManager {
         constructor() {
             this.conversations = [];
-            this.selectedConversationId = null;
+            this.selectedId = null;
             this.init();
         }
         
         init() {
             this.loadConversations();
-            this.bindEvents();
-            this.renderConversationList();
-            this.updateStats();
-        }
-        
-        // Helper function để tạo title ngắn gọn
-        createShortTitle(content) {
-            if (!content || content.length <= 30) {
-                return content;
-            }
-            
-            // Cắt ở từ cuối cùng để không cắt giữa từ
-            const truncated = content.substring(0, 30);
-            const lastSpaceIndex = truncated.lastIndexOf(' ');
-            return lastSpaceIndex > 15 ? truncated.substring(0, lastSpaceIndex) + '...' : truncated + '...';
+            this.renderList();
+            this.bindSearch();
         }
         
         loadConversations() {
             try {
                 const stored = localStorage.getItem('agrisense_chat_history');
                 this.conversations = stored ? JSON.parse(stored) : [];
-                
-                // Cập nhật tên cho các cuộc hội thoại cũ chưa có tên đúng
-                let updated = false;
-                console.log('🔍 Checking conversations for title updates...');
-                
-                this.conversations.forEach((conv, index) => {
-                    console.log(`📋 Conversation ${index}:`, {
-                        id: conv.id,
-                        title: conv.title,
-                        messageCount: conv.messages.length,
-                        messages: conv.messages.map(m => ({
-                            sender: m.sender,
-                            type: m.type,
-                            contentPreview: m.content ? m.content.substring(0, 50) + '...' : 'no content'
-                        }))
-                    });
-                    
-                    if ((conv.title === 'Cuộc hội thoại mới' || conv.title.startsWith('Cuộc hội thoại ')) && conv.messages.length > 0) {
-                        console.log('🎯 Found conversation with default/numbered title, looking for first user message...');
-                        console.log('📝 All messages in this conversation:', conv.messages.map((msg, idx) => ({
-                            index: idx,
-                            sender: msg.sender,
-                            type: msg.type || 'text',
-                            content: msg.content ? msg.content.substring(0, 100) : 'empty',
-                            id: msg.id
-                        })));
-                        
-                        // Tìm user message đầu tiên có content
-                        let firstUserMessage = conv.messages.find(msg => {
-                            const isUserMessage = msg.sender === 'user';
-                            const hasContent = msg.content && msg.content.trim().length > 0;
-                            const isNotHtml = msg.type !== 'html';
-                            
-                            console.log('🔍 Checking user message:', {
-                                sender: msg.sender,
-                                hasContent: hasContent,
-                                type: msg.type,
-                                contentPreview: msg.content ? msg.content.substring(0, 30) : 'empty'
-                            });
-                            
-                            return isUserMessage && hasContent && isNotHtml;
-                        });
-                        
-                        // Nếu không có user message, lấy message đầu tiên có content hữu ích
-                        if (!firstUserMessage) {
-                            console.log('⚠️ No user message found, looking for any meaningful message...');
-                            firstUserMessage = conv.messages.find(msg => {
-                                const hasContent = msg.content && msg.content.trim().length > 10; // Ít nhất 10 ký tự
-                                const isNotHtml = msg.type !== 'html';
-                                const isNotGreeting = !msg.content.includes('Chào bạn!'); // Bỏ qua lời chào tự động
-                                
-                                console.log('🔍 Checking any message:', {
-                                    sender: msg.sender,
-                                    hasContent: hasContent,
-                                    isNotGreeting: isNotGreeting,
-                                    contentPreview: msg.content ? msg.content.substring(0, 30) : 'empty'
-                                });
-                                
-                                return hasContent && isNotHtml && isNotGreeting;
-                            });
-                        }
-                        
-                        if (firstUserMessage) {
-                            const newTitle = this.createShortTitle(firstUserMessage.content);
-                            conv.title = newTitle;
-                            updated = true;
-                            console.log('🔄 Updated conversation title:', conv.id, '→', newTitle);
-                        } else {
-                            // Nếu không có user message, đặt tên theo số thứ tự
-                            if (conv.title === 'Cuộc hội thoại mới') {
-                                const newTitle = `Cuộc hội thoại ${index + 1}`;
-                                conv.title = newTitle;
-                                updated = true;
-                                console.log('🔢 Set numbered title:', conv.id, '→', newTitle);
-                            }
-                        }
-                    }
-                });
-                
-                // Lưu lại nếu có cập nhật
-                if (updated) {
-                    localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
-                    console.log('✅ Saved updated conversation titles');
-                }
-                
-                console.log('Loaded conversations:', this.conversations.length);
-            } catch (error) {
-                console.error('Error loading conversations:', error);
+            } catch (e) {
+                console.error('Error loading conversations:', e);
                 this.conversations = [];
             }
         }
         
-        bindEvents() {
-            const searchInput = document.getElementById('search-conversations');
-            searchInput.addEventListener('input', (e) => {
-                this.searchConversations(e.target.value);
-            });
+        renderList(filter = '') {
+            const list = document.getElementById('conversation-list');
             
-            const clearAllBtn = document.getElementById('clear-all-btn');
-            clearAllBtn.addEventListener('click', () => {
-                this.clearAllConversations();
-            });
+            let items = this.conversations;
+            if (filter) {
+                items = items.filter(c => 
+                    c.title.toLowerCase().includes(filter.toLowerCase()) ||
+                    c.messages.some(m => m.content && m.content.toLowerCase().includes(filter.toLowerCase()))
+                );
+            }
             
-            const fixTitlesBtn = document.getElementById('fix-titles-btn');
-            fixTitlesBtn.addEventListener('click', () => {
-                this.fixAllConversationTitles();
-            });
-        }
-        
-        renderConversationList(filteredConversations = null) {
-            const conversationList = document.getElementById('conversation-list');
-            const conversations = filteredConversations || this.conversations;
-            
-            if (conversations.length === 0) {
-                conversationList.innerHTML = `
-                    <div style="padding: 16px; text-align: center; color: #6b7280;">
-                        <i class="fas fa-comment-slash" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
-                        <p>Chưa có cuộc hội thoại nào</p>
-                        <p style="font-size: 12px; margin-top: 8px;">Bắt đầu chat để tạo lịch sử</p>
-                    </div>
-                `;
+            if (items.length === 0) {
+                list.innerHTML = '<div style="padding: 16px; text-align: center; color: #9ca3af; font-size: 13px;">Không có hội thoại nào</div>';
                 return;
             }
             
-            conversationList.innerHTML = conversations.map(conv => {
-                const lastMessage = conv.messages[conv.messages.length - 1];
+            list.innerHTML = items.map(conv => {
+                const lastMsg = conv.messages[conv.messages.length - 1];
                 let preview = 'Không có tin nhắn';
-                
-                if (lastMessage && lastMessage.content) {
-                    if (lastMessage.type === 'html') {
-                        // Cho HTML content (image gallery), hiển thị text mô tả
-                        if (lastMessage.content.includes('🖼️')) {
-                            preview = '🖼️ Thư viện ảnh';
-                        } else {
-                            // Loại bỏ HTML tags để lấy text content
-                            const tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = lastMessage.content;
-                            const textContent = tempDiv.textContent || tempDiv.innerText || '';
-                            preview = textContent.substring(0, 80) + (textContent.length > 80 ? '...' : '');
-                        }
-                    } else {
-                        // Text content thông thường
-                        preview = lastMessage.content.substring(0, 80) + (lastMessage.content.length > 80 ? '...' : '');
-                    }
+                if (lastMsg && lastMsg.content) {
+                    preview = lastMsg.content.substring(0, 60).replace(/\n/g, ' ');
+                    if (lastMsg.content.length > 60) preview += '...';
                 }
                 
                 return `
-                    <div class="conversation-item" data-conversation-id="${conv.id}">
-                        <div class="conversation-header">
-                            <h3 class="conversation-title">${conv.title}</h3>
-                            <span class="conversation-date">${this.formatDate(conv.lastUpdated)}</span>
-                        </div>
-                        <p class="conversation-preview">${preview}</p>
+                    <div class="conversation-item ${this.selectedId === conv.id ? 'active' : ''}" onclick="manager.selectConversation('${conv.id}')">
+                        <div class="conversation-title">${conv.title}</div>
+                        <div class="conversation-preview">${preview}</div>
                         <div class="conversation-footer">
-                            <span>${conv.messages.length} tin nhắn</span>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="continue-conversation" 
-                                        data-conversation-id="${conv.id}"
-                                        title="Tiếp tục cuộc hội thoại"
-                                        style="background: #16a34a; color: white; border: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s;">
-                                    <i class="fas fa-play"></i> Tiếp tục
-                                </button>
-                                <button class="delete-conversation delete-btn" 
-                                        data-conversation-id="${conv.id}"
-                                        title="Xóa cuộc hội thoại">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
+                            <span class="conversation-count">${conv.messages.length} tin</span>
+                            <span>${this.formatDate(conv.lastUpdated)}</span>
                         </div>
                     </div>
                 `;
             }).join('');
-            
-            conversationList.addEventListener('click', (e) => {
-                const conversationItem = e.target.closest('.conversation-item');
-                const deleteBtn = e.target.closest('.delete-conversation');
-                const continueBtn = e.target.closest('.continue-conversation');
-                
-                if (deleteBtn) {
-                    e.stopPropagation();
-                    this.deleteConversation(deleteBtn.dataset.conversationId);
-                } else if (continueBtn) {
-                    e.stopPropagation();
-                    this.continueConversation(continueBtn.dataset.conversationId);
-                } else if (conversationItem) {
-                    this.selectConversation(conversationItem.dataset.conversationId);
-                }
-            });
         }
         
-        continueConversation(conversationId) {
-            // Save selected conversation ID to localStorage so index.html can load it
-            const conversation = this.conversations.find(c => c.id === conversationId);
-            if (conversation) {
-                localStorage.setItem('agrisense_continue_conversation_id', conversationId);
-                window.location.href = 'index.html';
-            }
-        }
-        
-        selectConversation(conversationId) {
-            this.selectedConversationId = conversationId;
-            const conversation = this.conversations.find(c => c.id === conversationId);
+        selectConversation(id) {
+            this.selectedId = id;
+            const conv = this.conversations.find(c => c.id === id);
             
-            if (!conversation) return;
+            // Update UI
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[onclick*="selectConversation('${id}')"]`)?.classList.add('active');
             
-            document.querySelectorAll('.conversation-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            document.querySelector(`[data-conversation-id="${conversationId}"]`).classList.add('active');
+            // Show chat
+            document.getElementById('chat-title').textContent = conv.title;
+            document.getElementById('chat-meta').textContent = `${conv.messages.length} tin nhắn • ${this.formatDate(conv.lastUpdated)}`;
+            document.getElementById('continue-btn').style.display = 'flex';
+            document.getElementById('delete-btn').style.display = 'flex';
             
-            this.renderChatMessages(conversation);
-        }
-        
-        renderChatMessages(conversation) {
-            const chatMessages = document.getElementById('chat-messages');
-            const emptyState = document.getElementById('empty-state');
-            
-            if (emptyState) {
-                emptyState.style.display = 'none';
-            }
-            
-            chatMessages.innerHTML = conversation.messages.map(message => {
-                const isBot = message.sender === 'bot';
-                
-                // Xử lý nội dung message
-                let contentHtml = '';
-                
-                // Hiển thị ảnh nếu có
-                if (message.imageUrl) {
-                    contentHtml += `<div class="message-image mb-2">
-                        <img src="${message.imageUrl}" alt="Uploaded image" 
-                             style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" 
-                             onclick="openImageModal('${message.imageUrl}')">
-                    </div>`;
-                }
-                
-                // Hiển thị nội dung text hoặc HTML
-                if (message.content) {
-                    if (message.type === 'html') {
-                        // Hiển thị HTML content trực tiếp (cho image galleries)
-                        contentHtml += message.content;
-                    } else {
-                        // Hiển thị text content - escape HTML entities và giữ nguyên newline
-                        const tempDiv = document.createElement('div');
-                        tempDiv.textContent = message.content;
-                        const escapedText = tempDiv.innerHTML;
-                        contentHtml += `<div style="white-space: pre-line; word-break: break-word;">${escapedText}</div>`;
-                    }
-                }
+            // Render messages
+            const msgContainer = document.getElementById('messages-container');
+            msgContainer.innerHTML = conv.messages.map(msg => {
+                const isUser = msg.sender === 'user';
+                let content = msg.content || '';
+                // Escape HTML
+                const div = document.createElement('div');
+                div.textContent = content;
+                content = div.innerHTML;
                 
                 return `
-                    <div class="message ${isBot ? 'bot' : 'user'}">
-                        <div class="message-bubble">
-                            ${contentHtml}
-                            <div class="message-time">${this.formatTime(message.timestamp)}</div>
-                        </div>
+                    <div class="message ${isUser ? 'user-message' : 'bot-message'}">
+                        ${content}
                     </div>
                 `;
             }).join('');
             
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+            this.renderList(document.getElementById('search-input').value);
         }
         
-        searchConversations(query) {
-            if (!query.trim()) {
-                this.renderConversationList();
-                return;
-            }
-            
-            const filtered = this.conversations.filter(conv => {
-                return conv.title.toLowerCase().includes(query.toLowerCase()) ||
-                       conv.messages.some(msg => msg.content.toLowerCase().includes(query.toLowerCase()));
+        bindSearch() {
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                this.renderList(e.target.value);
             });
-            
-            this.renderConversationList(filtered);
         }
         
-        deleteConversation(conversationId) {
-            if (!confirm('Bạn có chắc chắn muốn xóa cuộc hội thoại này?')) return;
-            
-            this.conversations = this.conversations.filter(c => c.id !== conversationId);
-            localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
-            
-            if (this.selectedConversationId === conversationId) {
-                this.selectedConversationId = null;
-                document.getElementById('chat-messages').innerHTML = `
-                    <div id="empty-state" class="empty-state">
-                        <div>
-                            <i class="fas fa-comments" style="font-size: 48px; color: #d1d5db; display: block; margin-bottom: 16px;"></i>
-                            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
-                            <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            this.renderConversationList();
-            this.updateStats();
-        }
-        
-        clearAllConversations() {
-            if (!confirm('Bạn có chắc chắn muốn xóa TẤT CẢ lịch sử hội thoại?')) return;
-            
-            localStorage.removeItem('agrisense_chat_history');
-            this.conversations = [];
-            this.selectedConversationId = null;
-            
-            this.renderConversationList();
-            this.updateStats();
-            
-            document.getElementById('chat-messages').innerHTML = `
-                <div id="empty-state" class="empty-state">
-                    <div>
-                        <i class="fas fa-comments" style="font-size: 48px; color: #d1d5db; display: block; margin-bottom: 16px;"></i>
-                        <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
-                        <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
-                    </div>
-                </div>
-            `;
-        }
-        
-        updateStats() {
-            const totalElement = document.getElementById('total-conversations');
-            const count = this.conversations.length;
-            totalElement.textContent = `${count} cuộc hội thoại`;
-        }
-        
-        formatDate(dateString) {
+        formatDate(dateStr) {
             try {
-                const date = new Date(dateString);
+                const date = new Date(dateStr);
                 return date.toLocaleDateString('vi-VN');
             } catch {
                 return 'N/A';
             }
         }
-        
-        fixAllConversationTitles() {
-            console.log('🔧 Manually fixing all conversation titles...');
-            let updated = 0;
-            
-            this.conversations.forEach((conv, index) => {
-                // Force update cho các cuộc hội thoại có title mặc định hoặc số thứ tự
-                const needsUpdate = conv.title === 'Cuộc hội thoại mới' || conv.title.startsWith('Cuộc hội thoại ');
-                
-                if (needsUpdate && conv.messages.length > 0) {
-                    let firstUserMessage = conv.messages.find(msg => {
-                        return msg.sender === 'user' && 
-                               msg.content && 
-                               msg.content.trim().length > 0 && 
-                               msg.type !== 'html';
-                    });
-                    
-                    // Nếu không có user message, tìm message có content hữu ích
-                    if (!firstUserMessage) {
-                        firstUserMessage = conv.messages.find(msg => {
-                            const hasContent = msg.content && msg.content.trim().length > 10;
-                            const isNotHtml = msg.type !== 'html';
-                            const isNotGreeting = !msg.content.includes('Chào bạn!');
-                            return hasContent && isNotHtml && isNotGreeting;
-                        });
-                    }
-                    
-                    if (firstUserMessage) {
-                        // Ưu tiên dùng tin nhắn có content
-                        const newTitle = this.createShortTitle(firstUserMessage.content);
-                        conv.title = newTitle;
-                        updated++;
-                        console.log(`✅ Fixed title ${index + 1} with message:`, newTitle);
-                    } else if (conv.title === 'Cuộc hội thoại mới') {
-                        // Nếu không có message phù hợp, đặt số thứ tự
-                        const newTitle = `Cuộc hội thoại ${index + 1}`;
-                        conv.title = newTitle;
-                        updated++;
-                        console.log(`✅ Fixed title ${index + 1} with number:`, newTitle);
-                    }
-                }
-            });
-            
-            if (updated > 0) {
-                localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
-                this.renderConversationList();
-                alert(`✅ Đã cập nhật ${updated} tên cuộc hội thoại!`);
-                console.log(`🎉 Updated ${updated} conversation titles`);
-            } else {
-                alert('ℹ️ Không có cuộc hội thoại nào cần cập nhật tên.');
-                console.log('ℹ️ No conversations needed title updates');
-            }
-        }
-        
-        formatTime(dateString) {
-            try {
-                const date = new Date(dateString);
-                return date.toLocaleString('vi-VN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            } catch {
-                return 'N/A';
-            }
-        }
     }
-
-    // Function để mở modal xem ảnh full size
-    function openImageModal(imageId, imageUrl, title = '', description = '', photographer = '', source = '') {
-        // Decode URI components
-        title = decodeURIComponent(title) || 'Ảnh';
-        description = decodeURIComponent(description) || 'Không có mô tả';
-        photographer = decodeURIComponent(photographer) || 'Không rõ tác giả';
-        source = decodeURIComponent(source) || 'AgriSense AI';
-        
-        // Tạo modal overlay
-        const modal = document.createElement('div');
-        modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 9999;';
-        modal.onclick = function() { document.body.removeChild(modal); };
-        
-        // Tạo container ảnh
-        const imgContainer = document.createElement('div');
-        imgContainer.style.cssText = 'position: relative; max-width: 90vw; max-height: 90vh; padding: 16px;';
-        imgContainer.onclick = function(e) { e.stopPropagation(); };
-        
-        // Tạo ảnh
-        const img = document.createElement('img');
-        img.src = imageUrl;
-        img.style.cssText = 'max-width: 100%; max-height: 100%; border-radius: 8px;';
-        img.alt = title;
-        
-        // Thông tin ảnh
-        const infoDiv = document.createElement('div');
-        infoDiv.style.cssText = 'position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.75); color: white; padding: 16px; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;';
-        infoDiv.innerHTML = `
-            <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">${title}</h3>
-            <p style="font-size: 14px; margin-bottom: 8px;">${description}</p>
-            <div style="font-size: 12px; color: #d1d5db;">
-                <span>📸 ${photographer}</span> • <span>🌐 ${source}</span>
-            </div>
-        `;
-        
-        // Nút đóng
-        const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '×';
-        closeBtn.style.cssText = 'position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; border: none; font-size: 32px; font-weight: bold; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; padding: 0;';
-        closeBtn.onclick = function() { document.body.removeChild(modal); };
-        
-        imgContainer.appendChild(img);
-        imgContainer.appendChild(infoDiv);
-        imgContainer.appendChild(closeBtn);
-        modal.appendChild(imgContainer);
-        document.body.appendChild(modal);
-    }
-
-    function goBack() {
+    
+    let manager;
+    
+    function continueSelectedConversation() {
+        if (!manager.selectedId) return;
+        localStorage.setItem('agrisense_continue_conversation_id', manager.selectedId);
         window.location.href = 'index.html';
     }
-
+    
+    function deleteSelectedConversation() {
+        if (!manager.selectedId) return;
+        if (!confirm('Xóa cuộc hội thoại này?')) return;
+        
+        manager.conversations = manager.conversations.filter(c => c.id !== manager.selectedId);
+        localStorage.setItem('agrisense_chat_history', JSON.stringify(manager.conversations));
+        
+        manager.selectedId = null;
+        document.getElementById('messages-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-comment-dots"></i></div><div class="empty-state-text">Chọn một hội thoại để xem chi tiết</div></div>';
+        document.getElementById('continue-btn').style.display = 'none';
+        document.getElementById('delete-btn').style.display = 'none';
+        document.getElementById('chat-title').textContent = 'Chọn một hội thoại';
+        document.getElementById('chat-meta').textContent = '';
+        
+        manager.renderList();
+    }
+    
     document.addEventListener('DOMContentLoaded', () => {
-        new ChatHistoryManager();
+        manager = new HistoryManager();
     });
     </script>
 </body>

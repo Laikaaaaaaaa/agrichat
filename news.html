@@ -1131,29 +1131,15 @@
         const titleKey = normalized.normalizedTitle;
         const urlKey = article.url;
         
-        // Check if we've seen this title or URL before
-        if (!seen.has(titleKey) && !seen.has(urlKey)) {
-          // Additional check against existing articles for similarity
-          const isDuplicate = uniqueArticles.some(existing => {
-            const titleMatch = calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.95; // Very high threshold
-            const urlMatch = existing.url === article.url;
-            const descMatch = existing.description && article.description && 
-                             calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.95; // Very high threshold
-            const imageMatch = existing.urlToImage && article.urlToImage && 
-                              existing.urlToImage === article.urlToImage && 
-                              existing.urlToImage !== extractDefaultImage(article.source?.name);
-            
-            return titleMatch || urlMatch || descMatch || imageMatch;
-          });
-          
-          if (!isDuplicate) {
-            seen.add(titleKey);
-            seen.add(urlKey);
-            if (article.urlToImage) {
-              imageUrls.add(article.urlToImage);
-            }
-            uniqueArticles.push(normalized);
+        // Only check for EXACT duplicates: same URL or exact same normalized title
+        // Don't use similarity comparison as it removes too many legitimate articles from different sources
+        if (!seen.has(urlKey) && !seen.has(titleKey)) {
+          seen.add(titleKey);
+          seen.add(urlKey);
+          if (article.urlToImage) {
+            imageUrls.add(article.urlToImage);
           }
+          uniqueArticles.push(normalized);
         }
       }
       

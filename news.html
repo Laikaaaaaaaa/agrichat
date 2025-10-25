@@ -2254,28 +2254,18 @@
       card.className = 'news-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 fade-in-up';
       card.style.animationDelay = `${index * 0.1}s`;
 
-      // Generate SVG placeholder for articles without images (no external URL needed)
-      const generateSVGPlaceholder = (color, text) => {
-        const colors = {
-          '10b981': '#10b981',
-          '059669': '#059669', 
-          '047857': '#047857',
-          '065f46': '#065f46'
-        };
-        const bgColor = colors[color] || '#10b981';
-        const truncatedText = text.substring(0, 30).replace(/[^a-zA-Z0-9\s]/g, '');
-        const svg = `<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
-          <rect width="400" height="200" fill="${bgColor}"/>
-          <text x="50%" y="50%" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle" font-family="Arial">
-            ${truncatedText || 'AgriSense AI'}
-          </text>
-        </svg>`;
-        return 'data:image/svg+xml;base64,' + btoa(svg);
+      // Simple color mapping for placeholders
+      const colorMap = {
+        '10b981': '#10b981',
+        '059669': '#059669', 
+        '047857': '#047857',
+        '065f46': '#065f46'
       };
+      const randomColor = Object.keys(colorMap)[Math.floor(Math.random() * 4)];
+      const bgColor = colorMap[randomColor];
       
-      const randomColor = ['10b981', '059669', '047857', '065f46'].sort(() => Math.random() - 0.5)[0];
-      const svgPlaceholder = generateSVGPlaceholder(randomColor, article.title || 'AgriSense AI');
-      const imageUrl = article.urlToImage || svgPlaceholder;
+      // Use actual image if available, otherwise use CSS background
+      const imageUrl = article.urlToImage || null;
       const publishedDate = new Date(article.publishedAt).toLocaleDateString('vi-VN');
       const description = article.description || 'Không có mô tả';
       const displayCategory = getCategoryFromArticle(article);
@@ -2313,8 +2303,8 @@
       });
       
       card.innerHTML = `
-        <div class="relative">
-          <img src="${imageUrl}" alt="${article.title}" class="w-full h-40 md:h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI'">
+        <div class="relative" style="background: linear-gradient(135deg, ${bgColor} 0%, #047857 100%); min-height: 160px; overflow: hidden;">
+          ${imageUrl ? `<img src="${imageUrl}" alt="${article.title}" class="w-full h-40 md:h-48 object-cover" onerror="this.style.display='none';">` : ''}
           <div class="absolute top-3 left-3">
             <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm">
               ${sourceFlag} ${displayCategory}

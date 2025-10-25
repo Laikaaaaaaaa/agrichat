@@ -368,6 +368,21 @@
         this.conversations = stored ? JSON.parse(stored) : [];
       }
 
+      // 💾 Lưu session chat hiện tại (không cần auth, giữ lại khi reload)
+      saveCurrentSession() {
+        if (!this.currentConversation) {
+          return;
+        }
+
+        try {
+          // Lưu current session conversation vào localStorage
+          localStorage.setItem('agrisense_current_session', JSON.stringify(this.currentConversation));
+          console.log('💾 Session chat hiện tại đã lưu (không cần auth)');
+        } catch (e) {
+          console.error('❌ Lỗi lưu session:', e);
+        }
+      }
+
       saveConversations() {
         // ✅ Kiểm tra xem user đã đăng nhập chưa
         const isAuthenticated = this.isUserAuthenticated();
@@ -489,6 +504,30 @@
             return true;
           }
         }
+        
+        // ✅ Nếu không tìm thấy trong history, restore từ session localStorage
+        const sessionData = localStorage.getItem('agrisense_current_session');
+        if (sessionData) {
+          try {
+            this.currentConversation = JSON.parse(sessionData);
+            console.log('📱 Restored current session conversation (không có auth):', this.currentConversation.id);
+            
+            // Lưu ID vào sessionStorage để track
+            sessionStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
+            
+            // Cập nhật URL
+            this.updateURL(this.currentConversation.id);
+            
+            // Khôi phục tin nhắn lên chat box
+            setTimeout(() => {
+              this.restoreMessagesToUI();
+            }, 500);
+            return true;
+          } catch (e) {
+            console.error('❌ Lỗi restore session:', e);
+          }
+        }
+        
         return false;
       }
 
@@ -546,8 +585,14 @@
                 tempDiv.textContent = normalizedText;
                 let htmlText = tempDiv.innerHTML;
                 
-                // Add formatting
+                // Convert leading spaces to non-breaking spaces to preserve indentation
+                htmlText = htmlText.replace(/^( +)/gm, (match) => '&nbsp;'.repeat(match.length));
+                
+                // Add markdown formatting (heading, bold, italic)
                 htmlText = htmlText
+                  .replace(/^### (.*?)$/gm, '<h3 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h3>')
+                  .replace(/^## (.*?)$/gm, '<h2 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h2>')
+                  .replace(/^# (.*?)$/gm, '<h1 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h1>')
                   .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>');
                 
@@ -598,6 +643,9 @@
 
         this.conversations.unshift(this.currentConversation);
         this.saveConversations();
+        
+        // 💾 Luôn lưu session mới (không cần auth)
+        this.saveCurrentSession();
 
         console.log('🆕 Started new conversation:', conversationId, 'with title:', defaultTitle);
         return conversationId;
@@ -647,6 +695,9 @@
         this.saveConversations();
         console.log('💾 Conversations saved to localStorage');
         console.log('💬 Added message to conversation:', message.id);
+
+        // 💾 Luôn lưu session hiện tại (không cần auth)
+        this.saveCurrentSession();
 
         return message;
       }
@@ -955,8 +1006,14 @@
               tempDiv.textContent = normalizedText;
               let htmlText = tempDiv.innerHTML;
               
+              // Convert leading spaces to non-breaking spaces to preserve indentation
+              htmlText = htmlText.replace(/^( +)/gm, (match) => '&nbsp;'.repeat(match.length));
+              
               // Now safely add formatting
               htmlText = htmlText
+                .replace(/^### (.*?)$/gm, '<h3 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h3>')
+                .replace(/^## (.*?)$/gm, '<h2 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h2>')
+                .replace(/^# (.*?)$/gm, '<h1 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h1>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>');
               
@@ -1305,6 +1362,9 @@
         
         // Clear current conversation ID from sessionStorage since we're starting fresh
         sessionStorage.removeItem('agrisense_current_conversation_id');
+        
+        // Clear session localStorage as well
+        localStorage.removeItem('agrisense_current_session');
         
         // Clear URL parameter
         window.history.pushState({}, '', window.location.pathname);

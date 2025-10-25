@@ -852,6 +852,14 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // ✅ Kiểm tra nếu chưa đăng nhập thì redirect tới login
+        const isLoggedIn = localStorage.getItem('agrisense_user_logged_in') === 'true';
+        if (!isLoggedIn) {
+            console.warn('⚠️ Chưa đăng nhập, redirect tới login...');
+            window.location.href = 'login.html';
+            return;
+        }
+        
         new ChatHistoryManager();
     });
     </script>

@@ -581,12 +581,29 @@
               } else if (message.sender === 'bot') {
                 // Use same rendering as new messages - normalize + escape HTML then add formatting
                 const normalizedText = normalizeMarkdown(message.content);
-                const tempDiv = document.createElement('div');
-                tempDiv.textContent = normalizedText;
-                let htmlText = tempDiv.innerHTML;
                 
-                // Convert leading spaces to non-breaking spaces to preserve indentation
-                htmlText = htmlText.replace(/^( +)/gm, (match, group1) => '&nbsp;'.repeat(group1.length));
+                // Escape HTML but preserve leading spaces
+                function escapeHtmlPreserveSpaces(text) {
+                  const lines = text.split('\n');
+                  return lines.map(line => {
+                    // Capture leading spaces
+                    const leadingSpacesMatch = line.match(/^( *)/);
+                    const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : '';
+                    const lineWithoutLeadingSpaces = line.slice(leadingSpaces.length);
+                    
+                    // Escape the rest of the line
+                    const tempDiv = document.createElement('div');
+                    tempDiv.textContent = lineWithoutLeadingSpaces;
+                    const escapedLine = tempDiv.innerHTML;
+                    
+                    // Convert leading spaces to &nbsp;
+                    const nbsp = leadingSpaces.split('').map(() => '&nbsp;').join('');
+                    
+                    return nbsp + escapedLine;
+                  }).join('\n');
+                }
+                
+                let htmlText = escapeHtmlPreserveSpaces(normalizedText);
                 
                 // Add markdown formatting (heading, bold, italic)
                 htmlText = htmlText
@@ -1001,13 +1018,28 @@
           if (text) {
             const normalizedText = sender === 'bot' ? normalizeMarkdown(text) : text;
             if (sender === 'bot') {
-              // Create a temporary div to safely escape HTML
-              const tempDiv = document.createElement('div');
-              tempDiv.textContent = normalizedText;
-              let htmlText = tempDiv.innerHTML;
+              // Escape HTML but preserve leading spaces
+              function escapeHtmlPreserveSpaces(text) {
+                const lines = text.split('\n');
+                return lines.map(line => {
+                  // Capture leading spaces
+                  const leadingSpacesMatch = line.match(/^( *)/);
+                  const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : '';
+                  const lineWithoutLeadingSpaces = line.slice(leadingSpaces.length);
+                  
+                  // Escape the rest of the line
+                  const tempDiv = document.createElement('div');
+                  tempDiv.textContent = lineWithoutLeadingSpaces;
+                  const escapedLine = tempDiv.innerHTML;
+                  
+                  // Convert leading spaces to &nbsp;
+                  const nbsp = leadingSpaces.split('').map(() => '&nbsp;').join('');
+                  
+                  return nbsp + escapedLine;
+                }).join('\n');
+              }
               
-              // Convert leading spaces to non-breaking spaces to preserve indentation
-              htmlText = htmlText.replace(/^( +)/gm, (match, group1) => '&nbsp;'.repeat(group1.length));
+              let htmlText = escapeHtmlPreserveSpaces(normalizedText);
               
               // Now safely add formatting
               htmlText = htmlText

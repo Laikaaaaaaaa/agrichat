@@ -981,7 +981,9 @@
 
       const escaped = escapeHtml(preview);
 
-      return escaped.replace(/\n/g, '<br>');
+      // With white-space: pre-wrap, we don't need <br> anymore - just keep newlines
+      // The browser will render \n as line breaks automatically
+      return escaped;
     }
 
     // Global message handlers
@@ -1259,11 +1261,9 @@
 
                 setTimeout(typeNextCharacter, nextSpeed);
               } else {
-                if (renderer) {
-                  textContainer.innerHTML = renderer.render(normalizedText);
-                } else {
-                  textContainer.innerHTML = buildPreviewHtml(normalizedText);
-                }
+                // Always use buildPreviewHtml for consistency - don't re-render with markdown-it
+                // since normalizedText already has line breaks from normalizeMarkdown()
+                textContainer.innerHTML = buildPreviewHtml(normalizedText);
 
                 if (!chatBox.dataset.userScrolling) {
                   chatBox.scrollTop = chatBox.scrollHeight;

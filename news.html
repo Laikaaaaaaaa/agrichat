@@ -1253,6 +1253,8 @@
         
         console.log(`⚡ Load ${initialBatch.length} báo đầu tiên (còn ${window.remainingFeeds.length} báo)`);
         
+        let articlesSinceLastDisplay = 0;
+        
         // Load initial feeds sequentially with delays to avoid rate limiting
         for (const feed of initialBatch) {
           try {
@@ -1260,6 +1262,20 @@
             if (items && items.length > 0) {
               console.log(`  Feed: ${feed.name}: ${items.length} bài`);
               allLoadedArticles = [...allLoadedArticles, ...items];
+              articlesSinceLastDisplay += items.length;
+              
+              // Display as soon as we have 10+ articles
+              if (articlesSinceLastDisplay >= 10 && vietnameseNews.length === 0) {
+                // Remove duplicates, shuffle, and sort
+                allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+                allLoadedArticles = shuffleArray(allLoadedArticles);
+                allLoadedArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+                vietnameseNews = [...allLoadedArticles];
+                
+                console.log(`⚡ Display first ${vietnameseNews.length} articles immediately!`);
+                filterAndDisplayNews();
+                articlesSinceLastDisplay = 0;
+              }
             }
             // Add delay between requests
             await new Promise(resolve => setTimeout(resolve, 150));
@@ -1268,20 +1284,18 @@
           }
         }
         
-        console.log(`📦 Tổng articles trước remove duplicates: ${allLoadedArticles.length}`);
+        // If no display yet, do it now
+        if (vietnameseNews.length === 0) {
+          console.log(`📦 Tổng articles trước remove duplicates: ${allLoadedArticles.length}`);
+          allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+          console.log(`📦 Sau remove duplicates: ${allLoadedArticles.length}`);
+          allLoadedArticles = shuffleArray(allLoadedArticles);
+          allLoadedArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+          vietnameseNews = [...allLoadedArticles];
+          filterAndDisplayNews();
+        }
         
-        // Remove duplicates, shuffle, and sort
-        allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-        console.log(`📦 Sau remove duplicates: ${allLoadedArticles.length}`);
-        
-        allLoadedArticles = shuffleArray(allLoadedArticles); // Phân bổ ngẫu nhiên
-        allLoadedArticles.sort((a, b) => {
-          return new Date(b.publishedAt) - new Date(a.publishedAt);
-        });
-        
-        vietnameseNews = [...allLoadedArticles];
         loadedFeedsCount = initialBatch.length;
-        
         console.log(`✅ Đã load ${loadedFeedsCount} báo, có ${vietnameseNews.length} bài`);
         
         // Start loading more feeds in background (don't await)
@@ -1353,7 +1367,7 @@
                 title: article.title,
                 description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
                 url: article.link,
-                urlToImage: article.image_url || extractDefaultImage(feed.name),
+                urlToImage: article.image_url || null,  // Don't use extractDefaultImage - let createNewsCard generate unique placeholder
                 publishedAt: article.pubDate || new Date().toISOString(),
                 source: { name: article.source || feed.name },
                 content: article.content,
@@ -1423,7 +1437,7 @@
                   title: item.title,
                   description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : 'Không có mô tả',
                   url: item.link,
-                  urlToImage: getImageFromItem(item, feed.name),
+                  urlToImage: getImageFromItem(item, feed.name) || null,  // Let createNewsCard generate unique placeholder
                   publishedAt: item.pubDate,
                   source: { name: feed.name },
                   content: item.content || item.description,

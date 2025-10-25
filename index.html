@@ -145,9 +145,18 @@
       word-break: break-word !important;
     }
 
+    /* Reset all margins and spacing inside message bubble */
+    .message-bubble * {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      line-height: 1.2 !important;
+    }
+
     .message-bubble p {
       margin: 0 !important;
-      line-height: 1.55 !important;
+      line-height: 1.2 !important;
       word-spacing: normal !important;
     }
 
@@ -1540,9 +1549,18 @@
       content: none !important;
     }
 
+    /* Reset all margins inside bot message */
+    .message-wrapper.bot * {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      line-height: 1.2 !important;
+    }
+
     .message-wrapper.bot p {
       margin: 0 !important;
-      line-height: 1.55 !important;
+      line-height: 1.2 !important;
       word-spacing: normal !important;
       word-break: break-word !important;
     }

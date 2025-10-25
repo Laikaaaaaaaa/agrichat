@@ -1282,6 +1282,42 @@
     // Load a single RSS feed
     async function loadSingleFeed(feed) {
       try {
+        console.log(`📡 Loading: ${feed.name}`);
+        
+        // Strategy 1: Try backend /api/rss-parse FIRST (most reliable)
+        try {
+          console.log(`  → /api/rss-parse`);
+          const backendUrl = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=20`;
+          const response = await fetch(backendUrl, { timeout: 10000 });
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.success && data.articles && data.articles.length > 0) {
+              const newsItems = data.articles.map(article => ({
+                title: article.title,
+                description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
+                url: article.link,
+                urlToImage: article.image_url || null,
+                publishedAt: article.pubDate || new Date().toISOString(),
+                source: { name: article.source || feed.name },
+                content: article.content,
+                category: feed.category,
+                isVietnamese: true,
+                priority: feed.category === 'agriculture' ? 1 : 2
+              }));
+              
+              if (newsItems.length > 0) {
+                console.log(`✅ ${feed.name}: ${newsItems.length} bài (backend)`);
+                return newsItems;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`  ⚠️ Backend failed: ${e.message}`);
+        }
+        
+        // Strategy 2: Fallback to RSS2JSON
         const rssServices = [
           `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=20`,
           `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=20`
@@ -1289,7 +1325,50 @@
         
         for (const service of rssServices) {
           try {
+            console.log(`  → ${service.split('/')[2]}`);
             const response = await fetch(service, { timeout: 5000 });
+            
+            // Handle 422: Try backend again as fallback
+            if (response.status === 422) {
+              console.warn(`  ⚠️ RSS2JSON format error (422), trying backend...`);
+              try {
+                const backendUrl = `/api/rss-parse?url=${encodeURIComponent(feed.url)}&limit=20`;
+                const backendResponse = await fetch(backendUrl, { timeout: 10000 });
+                
+                if (backendResponse.ok) {
+                  const backendData = await backendResponse.json();
+                  if (backendData.success && backendData.articles && backendData.articles.length > 0) {
+                    const newsItems = backendData.articles.map(article => ({
+                      title: article.title,
+                      description: article.summary || article.content?.substring(0, 300) || 'Không có mô tả',
+                      url: article.link,
+                      urlToImage: article.image_url || null,
+                      publishedAt: article.pubDate || new Date().toISOString(),
+                      source: { name: article.source || feed.name },
+                      content: article.content,
+                      category: feed.category,
+                      isVietnamese: true,
+                      priority: feed.category === 'agriculture' ? 1 : 2
+                    }));
+                    
+                    if (newsItems.length > 0) {
+                      console.log(`✅ ${feed.name}: ${newsItems.length} bài (backend fallback)`);
+                      return newsItems;
+                    }
+                  }
+                }
+              } catch (fallbackErr) {
+                console.warn(`  ⚠️ Fallback failed: ${fallbackErr.message}`);
+              }
+              continue;
+            }
+            
+            // Handle rate limit: skip to next service
+            if (response.status === 429) {
+              console.warn(`  ⚠️ Rate limited (429), trying next service...`);
+              continue;
+            }
+            
             if (response.ok) {
               const data = await response.json();
               
@@ -1307,17 +1386,19 @@
                   priority: feed.category === 'agriculture' ? 1 : 2
                 }));
                 
-                console.log(`✅ ${feed.name}: ${newsItems.length} bài`);
+                console.log(`✅ ${feed.name}: ${newsItems.length} bài (RSS2JSON)`);
                 return newsItems;
               }
             }
           } catch (e) {
-            // Try next service
+            console.warn(`  ⚠️ ${service.split('/')[2]} error: ${e.message}`);
           }
         }
         
+        console.warn(`❌ ${feed.name}: không load được`);
         return [];
       } catch (error) {
+        console.error(`❌ ${feed.name} error: ${error.message}`);
         return [];
       }
     }

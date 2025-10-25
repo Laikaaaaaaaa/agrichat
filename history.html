@@ -9,48 +9,120 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background-color: #f9fafb;
+            background-color: #f0fdf4;
             min-height: 100vh;
         }
         header {
-            background: linear-gradient(to right, #16a34a, #15803d);
-            color: white;
-            padding: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background-color: #dcfce7;
+            border-bottom: 1px solid #bbf7d0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 12px 16px;
+            flex-shrink: 0;
+        }
+        @media (min-width: 768px) {
+            header {
+                padding: 16px 24px;
+            }
         }
         .header-container {
-            max-width: 1280px;
+            max-width: 100%;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 16px;
         }
         .header-left {
             display: flex;
             gap: 12px;
             align-items: center;
         }
+        .back-btn {
+            background-color: #16a34a;
+            color: white;
+            border: 2px solid #15803d;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .back-btn:hover {
+            background-color: #15803d;
+        }
+        .logo-img {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+        }
+        @media (min-width: 768px) {
+            .logo-img {
+                height: 56px;
+            }
+        }
+        .header-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+            display: none;
+        }
+        @media (min-width: 768px) {
+            .header-title {
+                display: inline;
+                font-size: 18px;
+            }
+        }
         .header-right {
             display: flex;
-            gap: 16px;
+            gap: 8px;
             align-items: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        @media (min-width: 768px) {
+            .header-right {
+                gap: 16px;
+                font-size: 14px;
+            }
         }
         main {
-            max-width: 1280px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 32px 16px;
-            height: calc(100vh - 200px);
+            padding: 16px;
+            height: calc(100vh - 140px);
+        }
+        @media (min-width: 768px) {
+            main {
+                padding: 24px;
+            }
+        }
+        .main-content {
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        @media (min-width: 768px) {
+            .main-content {
+                padding: 24px;
+            }
         }
         .grid-container {
             display: grid;
             grid-template-columns: 1fr 2fr;
             gap: 24px;
             height: 100%;
+            flex: 1;
         }
         .conversation-list-panel, .chat-panel {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -169,7 +241,6 @@
             color: #6b7280;
             text-align: center;
         }
-        .empty-state i { font-size: 48px; color: #d1d5db; margin-bottom: 16px; }
         .message {
             margin-bottom: 16px;
             display: flex;
@@ -187,22 +258,6 @@
         .message-time { font-size: 12px; margin-top: 4px; }
         .message.bot .message-time { color: #6b7280; }
         .message.user .message-time { color: #dcfce7; }
-        .back-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #6edc9b;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 9999px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.2s;
-        }
-        .back-button:hover { background-color: #6bd89e; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
@@ -229,74 +284,69 @@
     <header>
         <div class="header-container">
             <div class="header-left">
-                <i class="fas fa-history text-2xl"></i>
-                <h1 style="font-size: 24px; font-weight: bold;">Lịch sử hội thoại</h1>
+                <button onclick="goBack()" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="logo-img">
             </div>
             <div class="header-right">
-                <span style="font-size: 14px; opacity: 0.9;">AgriSense AI</span>
-                <div style="text-align: right;">
-                    <div style="font-size: 12px; opacity: 0.75;">Tổng cộng</div>
-                    <div id="total-conversations" style="font-weight: bold;">0 cuộc hội thoại</div>
-                </div>
+                <span>AgriSense AI</span>
             </div>
         </div>
     </header>
 
     <main>
-        <div class="grid-container">
-            <div class="conversation-list-panel custom-scrollbar">
-                <div class="panel-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div class="panel-title">
-                            <i class="fas fa-comments"></i>
-                            <span>Danh sách hội thoại</span>
-                        </div>
-                        <div class="button-group">
-                            <button id="fix-titles-btn" class="icon-btn" title="Sửa tên cuộc hội thoại">
-                                <i class="fas fa-magic"></i>
-                            </button>
-                            <button id="clear-all-btn" class="icon-btn" title="Xóa tất cả">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="search-box">
-                        <input type="text" id="search-conversations" placeholder="Tìm kiếm...">
-                        <i class="fas fa-search"></i>
-                    </div>
-                </div>
-                <div id="conversation-list" class="conversation-list custom-scrollbar"></div>
-            </div>
-            
-            <div class="chat-panel">
-                <div class="panel-header">
-                    <div id="chat-header">
-                        <div>
+        <div class="main-content">
+            <div class="grid-container">
+                <div class="conversation-list-panel custom-scrollbar">
+                    <div class="panel-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                             <div class="panel-title">
-                                <i class="fas fa-comment-dots"></i>
-                                <span>Chi tiết hội thoại</span>
+                                <i class="fas fa-comments"></i>
+                                <span>Danh sách hội thoại</span>
                             </div>
-                            <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Chọn một cuộc hội thoại để xem chi tiết</p>
+                            <div class="button-group">
+                                <button id="fix-titles-btn" class="icon-btn" title="Sửa tên cuộc hội thoại">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                                <button id="clear-all-btn" class="icon-btn" title="Xóa tất cả">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="search-box">
+                            <input type="text" id="search-conversations" placeholder="Tìm kiếm...">
+                            <i class="fas fa-search"></i>
                         </div>
                     </div>
+                    <div id="conversation-list" class="conversation-list custom-scrollbar"></div>
                 </div>
-                <div id="chat-messages" class="chat-messages custom-scrollbar">
-                    <div id="empty-state" class="empty-state">
-                        <div>
-                            <i class="fas fa-comments"></i>
-                            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
-                            <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                
+                <div class="chat-panel">
+                    <div class="panel-header">
+                        <div id="chat-header">
+                            <div>
+                                <div class="panel-title">
+                                    <i class="fas fa-comment-dots"></i>
+                                    <span>Chi tiết hội thoại</span>
+                                </div>
+                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Chọn một cuộc hội thoại để xem chi tiết</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="chat-messages" class="chat-messages custom-scrollbar">
+                        <div id="empty-state" class="empty-state">
+                            <div>
+                                <i class="fas fa-comments" style="font-size: 48px; color: #d1d5db; display: block; margin-bottom: 16px;"></i>
+                                <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
+                                <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
-
-    <a href="index.html" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        <span>Quay lại</span>
-    </a>
 
     <script>
     class ChatHistoryManager {
@@ -721,27 +771,27 @@
         
         // Tạo modal overlay
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 9999;';
         modal.onclick = function() { document.body.removeChild(modal); };
         
         // Tạo container ảnh
         const imgContainer = document.createElement('div');
-        imgContainer.className = 'relative max-w-4xl max-h-4xl p-4';
+        imgContainer.style.cssText = 'position: relative; max-width: 90vw; max-height: 90vh; padding: 16px;';
         imgContainer.onclick = function(e) { e.stopPropagation(); };
         
         // Tạo ảnh
         const img = document.createElement('img');
         img.src = imageUrl;
-        img.className = 'max-w-full max-h-full rounded-lg';
+        img.style.cssText = 'max-width: 100%; max-height: 100%; border-radius: 8px;';
         img.alt = title;
         
         // Thông tin ảnh
         const infoDiv = document.createElement('div');
-        infoDiv.className = 'absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-4 rounded-b-lg';
+        infoDiv.style.cssText = 'position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.75); color: white; padding: 16px; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;';
         infoDiv.innerHTML = `
-            <h3 class="text-lg font-bold mb-2">${title}</h3>
-            <p class="text-sm mb-2">${description}</p>
-            <div class="text-xs text-gray-300">
+            <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">${title}</h3>
+            <p style="font-size: 14px; margin-bottom: 8px;">${description}</p>
+            <div style="font-size: 12px; color: #d1d5db;">
                 <span>📸 ${photographer}</span> • <span>🌐 ${source}</span>
             </div>
         `;
@@ -749,7 +799,7 @@
         // Nút đóng
         const closeBtn = document.createElement('button');
         closeBtn.innerHTML = '×';
-        closeBtn.className = 'absolute top-2 right-2 text-white text-3xl font-bold bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75';
+        closeBtn.style.cssText = 'position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; border: none; font-size: 32px; font-weight: bold; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; padding: 0;';
         closeBtn.onclick = function() { document.body.removeChild(modal); };
         
         imgContainer.appendChild(img);
@@ -757,6 +807,10 @@
         imgContainer.appendChild(closeBtn);
         modal.appendChild(imgContainer);
         document.body.appendChild(modal);
+    }
+
+    function goBack() {
+        window.location.href = 'index.html';
     }
 
     document.addEventListener('DOMContentLoaded', () => {

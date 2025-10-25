@@ -579,40 +579,8 @@
               if (message.type === 'html') {
                 bubble.innerHTML += message.content;
               } else if (message.sender === 'bot') {
-                // Use same rendering as new messages - normalize + escape HTML then add formatting
-                const normalizedText = normalizeMarkdown(message.content);
-                
-                // Escape HTML but preserve leading spaces
-                function escapeHtmlPreserveSpaces(text) {
-                  const lines = text.split('\n');
-                  return lines.map(line => {
-                    // Capture leading spaces
-                    const leadingSpacesMatch = line.match(/^( *)/);
-                    const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : '';
-                    const lineWithoutLeadingSpaces = line.slice(leadingSpaces.length);
-                    
-                    // Escape the rest of the line
-                    const tempDiv = document.createElement('div');
-                    tempDiv.textContent = lineWithoutLeadingSpaces;
-                    const escapedLine = tempDiv.innerHTML;
-                    
-                    // Convert leading spaces to &nbsp;
-                    const nbsp = leadingSpaces.split('').map(() => '&nbsp;').join('');
-                    
-                    return nbsp + escapedLine;
-                  }).join('\n');
-                }
-                
-                let htmlText = escapeHtmlPreserveSpaces(normalizedText);
-                
-                // Add markdown formatting (heading, bold, italic)
-                htmlText = htmlText
-                  .replace(/^### (.*?)$/gm, '<h3 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h3>')
-                  .replace(/^## (.*?)$/gm, '<h2 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h2>')
-                  .replace(/^# (.*?)$/gm, '<h1 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h1>')
-                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/\*(.*?)\*/g, '<em>$1</em>');
-                
+                // Use same rendering function as typewriter for consistency
+                const htmlText = renderBotMessage(message.content);
                 bubble.innerHTML += htmlText;
               } else {
                 const tempDiv = document.createElement('div');
@@ -979,7 +947,21 @@
       // Collapse multiple blank lines
       preview = preview.replace(/\n{3,}/g, '\n\n');
 
-      // Escape HTML but preserve leading spaces and indentation
+      const escaped = escapeHtml(preview);
+
+      // Don't convert \n to <br> anymore - CSS white-space: pre-wrap will handle it
+      return escaped;
+    }
+
+    // Render bot messages with proper formatting (used by both restore and typewriter)
+    function renderBotMessage(text) {
+      if (!text) {
+        return '';
+      }
+
+      const normalizedText = normalizeMarkdown(text);
+      
+      // Escape HTML but preserve leading spaces
       function escapeHtmlPreserveSpaces(text) {
         const lines = text.split('\n');
         return lines.map(line => {
@@ -1000,14 +982,16 @@
         }).join('\n');
       }
       
-      let htmlText = escapeHtmlPreserveSpaces(preview);
+      let htmlText = escapeHtmlPreserveSpaces(normalizedText);
       
-      // Add formatting (bold, italic) but NOT headings since stripMarkdownPreview removed them
+      // Add markdown formatting (heading, bold, italic)
       htmlText = htmlText
+        .replace(/^### (.*?)$/gm, '<h3 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h3>')
+        .replace(/^## (.*?)$/gm, '<h2 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h2>')
+        .replace(/^# (.*?)$/gm, '<h1 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h1>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-      // With white-space: pre-wrap, \n renders as line breaks automatically
+      
       return htmlText;
     }
 
@@ -1045,38 +1029,8 @@
           if (text) {
             const normalizedText = sender === 'bot' ? normalizeMarkdown(text) : text;
             if (sender === 'bot') {
-              // Escape HTML but preserve leading spaces
-              function escapeHtmlPreserveSpaces(text) {
-                const lines = text.split('\n');
-                return lines.map(line => {
-                  // Capture leading spaces
-                  const leadingSpacesMatch = line.match(/^( *)/);
-                  const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : '';
-                  const lineWithoutLeadingSpaces = line.slice(leadingSpaces.length);
-                  
-                  // Escape the rest of the line
-                  const tempDiv = document.createElement('div');
-                  tempDiv.textContent = lineWithoutLeadingSpaces;
-                  const escapedLine = tempDiv.innerHTML;
-                  
-                  // Convert leading spaces to &nbsp;
-                  const nbsp = leadingSpaces.split('').map(() => '&nbsp;').join('');
-                  
-                  return nbsp + escapedLine;
-                }).join('\n');
-              }
-              
-              let htmlText = escapeHtmlPreserveSpaces(normalizedText);
-              
-              // Now safely add formatting
-              htmlText = htmlText
-                .replace(/^### (.*?)$/gm, '<h3 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h3>')
-                .replace(/^## (.*?)$/gm, '<h2 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h2>')
-                .replace(/^# (.*?)$/gm, '<h1 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h1>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>');
-              
-              bubble.innerHTML = htmlText;
+              // Use same rendering function for consistency
+              bubble.innerHTML = renderBotMessage(text);
             } else {
               bubble.textContent = normalizedText;
             }
@@ -1286,9 +1240,8 @@
 
                 setTimeout(typeNextCharacter, nextSpeed);
               } else {
-                // Always use buildPreviewHtml for consistency - don't re-render with markdown-it
-                // since normalizedText already has line breaks from normalizeMarkdown()
-                textContainer.innerHTML = buildPreviewHtml(normalizedText);
+                // Use same rendering function as restore for consistency
+                textContainer.innerHTML = renderBotMessage(originalText);
 
                 if (!chatBox.dataset.userScrolling) {
                   chatBox.scrollTop = chatBox.scrollHeight;

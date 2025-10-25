@@ -345,7 +345,22 @@
         this.currentConversation = null;
         this.conversations = [];
         this.loadConversations();
+        // Check if continuing from history page
+        this.checkContinueConversation();
         this.restoreFromURL(); // Ưu tiên URL trước
+      }
+      
+      checkContinueConversation() {
+        // Check if continuing a conversation from history.html
+        const conversationIdToContinue = localStorage.getItem('agrisense_continue_conversation_id');
+        if (conversationIdToContinue) {
+          // Remove the flag
+          localStorage.removeItem('agrisense_continue_conversation_id');
+          // Set URL to load this conversation
+          const newUrl = `${window.location.pathname}?c=${conversationIdToContinue}`;
+          window.history.replaceState({ conversationId: conversationIdToContinue }, '', newUrl);
+          console.log('🔄 Continuing conversation:', conversationIdToContinue);
+        }
       }
 
       loadConversations() {
@@ -517,17 +532,25 @@
             if (message.content && message.content.trim()) {
               if (message.type === 'html') {
                 bubble.innerHTML += message.content;
-              } else if (message.sender === 'bot' && window.markdownit) {
-                const md = window.markdownit({
-                  html: true,
-                  breaks: true,
-                  linkify: true,
-                  typographer: true
-                });
-                bubble.innerHTML += md.render(message.content);
+              } else if (message.sender === 'bot') {
+                // Use same rendering as new messages - escape HTML then add formatting
+                const tempDiv = document.createElement('div');
+                tempDiv.textContent = message.content;
+                let htmlText = tempDiv.innerHTML;
+                
+                // Add formatting
+                htmlText = htmlText
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                  .replace(/\n/g, '<br>');
+                
+                bubble.innerHTML += htmlText;
               } else {
-                const textNode = document.createTextNode(message.content);
-                bubble.appendChild(textNode);
+                const tempDiv = document.createElement('div');
+                tempDiv.textContent = message.content;
+                let htmlText = tempDiv.innerHTML;
+                htmlText = htmlText.replace(/\n/g, '<br>');
+                bubble.innerHTML += htmlText;
               }
             }
             

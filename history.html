@@ -534,11 +534,19 @@
                         <p class="conversation-preview">${preview}</p>
                         <div class="conversation-footer">
                             <span>${conv.messages.length} tin nhắn</span>
-                            <button class="delete-conversation delete-btn" 
-                                    data-conversation-id="${conv.id}"
-                                    title="Xóa cuộc hội thoại">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="continue-conversation" 
+                                        data-conversation-id="${conv.id}"
+                                        title="Tiếp tục cuộc hội thoại"
+                                        style="background: #16a34a; color: white; border: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                                    <i class="fas fa-play"></i> Tiếp tục
+                                </button>
+                                <button class="delete-conversation delete-btn" 
+                                        data-conversation-id="${conv.id}"
+                                        title="Xóa cuộc hội thoại">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -547,14 +555,27 @@
             conversationList.addEventListener('click', (e) => {
                 const conversationItem = e.target.closest('.conversation-item');
                 const deleteBtn = e.target.closest('.delete-conversation');
+                const continueBtn = e.target.closest('.continue-conversation');
                 
                 if (deleteBtn) {
                     e.stopPropagation();
                     this.deleteConversation(deleteBtn.dataset.conversationId);
+                } else if (continueBtn) {
+                    e.stopPropagation();
+                    this.continueConversation(continueBtn.dataset.conversationId);
                 } else if (conversationItem) {
                     this.selectConversation(conversationItem.dataset.conversationId);
                 }
             });
+        }
+        
+        continueConversation(conversationId) {
+            // Save selected conversation ID to localStorage so index.html can load it
+            const conversation = this.conversations.find(c => c.id === conversationId);
+            if (conversation) {
+                localStorage.setItem('agrisense_continue_conversation_id', conversationId);
+                window.location.href = 'index.html';
+            }
         }
         
         selectConversation(conversationId) {
@@ -581,8 +602,6 @@
             
             chatMessages.innerHTML = conversation.messages.map(message => {
                 const isBot = message.sender === 'bot';
-                const alignment = isBot ? 'text-left' : 'text-right';
-                const bgColor = isBot ? 'bg-gray-100' : 'bg-green-500 text-white';
                 
                 // Xử lý nội dung message
                 let contentHtml = '';
@@ -602,8 +621,11 @@
                         // Hiển thị HTML content trực tiếp (cho image galleries)
                         contentHtml += message.content;
                     } else {
-                        // Hiển thị text content thông thường
-                        contentHtml += `<div style="white-space: pre-line;">${message.content}</div>`;
+                        // Hiển thị text content - escape HTML entities và giữ nguyên newline
+                        const tempDiv = document.createElement('div');
+                        tempDiv.textContent = message.content;
+                        const escapedText = tempDiv.innerHTML;
+                        contentHtml += `<div style="white-space: pre-line; word-break: break-word;">${escapedText}</div>`;
                     }
                 }
                 

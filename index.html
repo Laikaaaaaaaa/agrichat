@@ -979,11 +979,36 @@
       // Collapse multiple blank lines
       preview = preview.replace(/\n{3,}/g, '\n\n');
 
-      const escaped = escapeHtml(preview);
+      // Escape HTML but preserve leading spaces and indentation
+      function escapeHtmlPreserveSpaces(text) {
+        const lines = text.split('\n');
+        return lines.map(line => {
+          // Capture leading spaces
+          const leadingSpacesMatch = line.match(/^( *)/);
+          const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1] : '';
+          const lineWithoutLeadingSpaces = line.slice(leadingSpaces.length);
+          
+          // Escape the rest of the line
+          const tempDiv = document.createElement('div');
+          tempDiv.textContent = lineWithoutLeadingSpaces;
+          const escapedLine = tempDiv.innerHTML;
+          
+          // Convert leading spaces to &nbsp;
+          const nbsp = leadingSpaces.split('').map(() => '&nbsp;').join('');
+          
+          return nbsp + escapedLine;
+        }).join('\n');
+      }
+      
+      let htmlText = escapeHtmlPreserveSpaces(preview);
+      
+      // Add formatting (bold, italic) but NOT headings since stripMarkdownPreview removed them
+      htmlText = htmlText
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-      // With white-space: pre-wrap, we don't need <br> anymore - just keep newlines
-      // The browser will render \n as line breaks automatically
-      return escaped;
+      // With white-space: pre-wrap, \n renders as line breaks automatically
+      return htmlText;
     }
 
     // Global message handlers

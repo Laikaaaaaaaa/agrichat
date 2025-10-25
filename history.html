@@ -2,677 +2,301 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- WebView Optimization -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="format-detection" content="telephone=no">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgriSense AI - Lịch sử hội thoại</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
-    <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
-    <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
-    <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
-    
-    <style>
-        /* Tailwind-like utility classes inline */
-        * { box-sizing: border-box; }
-        
-        .bg-gray-50 { background-color: #f9fafb; }
-        .bg-gray-100 { background-color: #f3f4f6; }
-        .bg-gray-300 { background-color: #d1d5db; }
-        .bg-gray-400 { background-color: #9ca3af; }
-        .bg-gray-500 { background-color: #6b7280; }
-        .bg-gray-600 { background-color: #4b5563; }
-        .bg-gray-800 { background-color: #1f2937; }
-        .bg-green-50 { background-color: #f0fdf4; }
-        .bg-green-100 { background-color: #dcfce7; }
-        .bg-green-200 { background-color: #bbf7d0; }
-        .bg-green-500 { background-color: #10b981; }
-        .bg-green-600 { background-color: #059669; }
-        .bg-green-700 { background-color: #047857; }
-        .bg-red-50 { background-color: #fef2f2; }
-        .bg-red-500 { background-color: #ef4444; }
-        .bg-red-600 { background-color: #dc2626; }
-        .bg-blue-500 { background-color: #3b82f6; }
-        .bg-emerald-50 { background-color: #f0fdf4; }
-        .bg-white { background-color: white; }
-        .bg-black { background-color: black; }
-        
-        .text-white { color: white; }
-        .text-gray-400 { color: #9ca3af; }
-        .text-gray-500 { color: #6b7280; }
-        .text-gray-600 { color: #4b5563; }
-        .text-gray-700 { color: #374151; }
-        .text-gray-800 { color: #1f2937; }
-        .text-gray-300 { color: #d1d5db; }
-        .text-blue-500 { color: #3b82f6; }
-        .text-green-500 { color: #10b981; }
-        .text-green-600 { color: #059669; }
-        .text-green-700 { color: #047857; }
-        .text-red-500 { color: #ef4444; }
-        .text-red-700 { color: #b91c1c; }
-        
-        .border { border: 1px solid #e5e7eb; }
-        .border-b { border-bottom: 1px solid #e5e7eb; }
-        .border-gray-200 { border-color: #e5e7eb; }
-        .border-gray-300 { border-color: #d1d5db; }
-        .border-green-200 { border-color: #bbf7d0; }
-        .border-green-500 { border-color: #10b981; }
-        .border-2 { border: 2px solid; }
-        
-        .rounded { border-radius: 0.375rem; }
-        .rounded-lg { border-radius: 0.5rem; }
-        .rounded-xl { border-radius: 0.75rem; }
-        .rounded-full { border-radius: 9999px; }
-        
-        .p-1 { padding: 0.25rem; }
-        .p-2 { padding: 0.5rem; }
-        .p-3 { padding: 0.75rem; }
-        .p-4 { padding: 1rem; }
-        .p-6 { padding: 1.5rem; }
-        .p-8 { padding: 2rem; }
-        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-        .px-4 { padding-left: 1rem; padding-right: 1rem; }
-        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
-        .pl-9 { padding-left: 2.25rem; }
-        .pl-10 { padding-left: 2.5rem; }
-        .pr-3 { padding-right: 0.75rem; }
-        .pr-4 { padding-right: 1rem; }
-        
-        .m-2 { margin: 0.5rem; }
-        .m-3 { margin: 0.75rem; }
-        .mb-2 { margin-bottom: 0.5rem; }
-        .mb-3 { margin-bottom: 0.75rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .ml-2 { margin-left: 0.5rem; }
-        .mr-2 { margin-right: 0.5rem; }
-        .mt-1 { margin-top: 0.25rem; }
-        
-        .flex { display: flex; }
-        .flex-1 { flex: 1; }
-        .flex-col { flex-direction: column; }
-        .flex-shrink-0 { flex-shrink: 0; }
-        .items-center { align-items: center; }
-        .items-start { align-items: flex-start; }
-        .justify-between { justify-content: space-between; }
-        .justify-center { justify-content: center; }
-        .gap-1 { gap: 0.25rem; }
-        .gap-2 { gap: 0.5rem; }
-        .gap-3 { gap: 0.75rem; }
-        .gap-4 { gap: 1rem; }
-        
-        .text-xs { font-size: 0.75rem; }
-        .text-sm { font-size: 0.875rem; }
-        .text-base { font-size: 1rem; }
-        .text-lg { font-size: 1.125rem; }
-        .text-4xl { font-size: 2.25rem; }
-        .text-5xl { font-size: 3rem; }
-        .text-6xl { font-size: 3.75rem; }
-        
-        .font-medium { font-weight: 500; }
-        .font-semibold { font-weight: 600; }
-        .font-bold { font-weight: 700; }
-        
-        .leading-tight { line-height: 1.25; }
-        .leading-relaxed { line-height: 1.625; }
-        
-        .w-full { width: 100%; }
-        .w-auto { width: auto; }
-        .min-w-0 { min-width: 0; }
-        .max-w-full { max-width: 100%; }
-        .max-w-2xl { max-width: 42rem; }
-        .max-w-4xl { max-width: 56rem; }
-        
-        .h-full { height: 100%; }
-        .h-12 { height: 3rem; }
-        .h-14 { height: 3.5rem; }
-        .min-h-screen { min-height: 100vh; }
-        
-        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .whitespace-nowrap { white-space: nowrap; }
-        .break-word { word-break: break-word; }
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-        
-        .hover\:bg-green-700:hover { background-color: #047857; }
-        .hover\:bg-red-50:hover { background-color: #fef2f2; }
-        .hover\:bg-red-600:hover { background-color: #dc2626; }
-        .hover\:text-red-700:hover { color: #b91c1c; }
-        .hover\:text-green-700:hover { color: #047857; }
-        .hover\:text-blue-600:hover { color: #2563eb; }
-        .hover\:shadow-xl:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-        
-        .transition { transition: all 0.3s ease; }
-        .transition-colors { transition: color, background-color 0.3s ease; }
-        .transition-all { transition: all 0.3s ease; }
-        
-        .hidden { display: none; }
-        .block { display: block; }
-        .inline-block { display: inline-block; }
-        .inline { display: inline; }
-        
-        @media (max-width: 767px) {
-            .hidden { display: none; }
-            .sm\:inline { display: inline; }
-            .md\:block { display: none; }
-            .md\:inline { display: none; }
-        }
-        @media (min-width: 768px) {
-            .sm\:inline { display: none; }
-            .md\:block { display: block; }
-            .md\:inline { display: inline; }
-        }
-    </style>
-    
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Markdown-it - local fallback if needed -->
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
     <style>
-        /* WebView Optimization */
-        * {
-            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-            -webkit-touch-callout: none;
-            -webkit-overflow-scrolling: touch;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #f9fafb;
+            min-height: 100vh;
         }
-        
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+        header {
+            background: linear-gradient(to right, #16a34a, #15803d);
+            color: white;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-        
-        /* Prevent image selection in WebView */
-        img {
-            -webkit-user-select: none;
-            user-select: none;
-            pointer-events: none;
-        }
-        
-        /* Better touch handling */
-        button, a, input, textarea, select {
-            -webkit-user-select: text;
-            user-select: text;
-        }
-        
-        :root {
-            --sidebar-w: 320px;
-            --z-sidebar: 3000;
-            --z-backdrop: 4000;
-        }
-        
-        /* Scrollbar styling */
-        .custom-scrollbar::-webkit-scrollbar { 
-            width: 8px; 
-            height: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track { 
-            background: #f1f5f9; 
-            border-radius: 4px; 
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb { 
-            background: linear-gradient(180deg, #10b981, #059669);
-            border-radius: 4px; 
-            transition: background 0.3s;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(180deg, #059669, #047857);
-        }
-        
-        /* Main container layout */
-        #main-container {
+        .header-container {
+            max-width: 1280px;
+            margin: 0 auto;
             display: flex;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-            width: 100%;
-            max-width: 100%;
-            background: white;
+            justify-content: space-between;
+            align-items: center;
         }
-        
-        /* Sidebar styling */
-        #history-sidebar {
-            width: var(--sidebar-w);
+        .header-left {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .header-right {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 16px;
+            height: calc(100vh - 200px);
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
             height: 100%;
-            background: #fff;
-            box-shadow: 2px 0 12px rgba(0,0,0,0.08);
-            transition: transform 0.36s cubic-bezier(0.25,0.46,0.45,0.94);
-            will-change: transform;
-            z-index: var(--z-sidebar);
-            flex-shrink: 0;
+        }
+        .conversation-list-panel, .chat-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
-        
-        #conversation-list {
+        .panel-header {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .panel-title {
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .panel-title i { color: #16a34a; }
+        .search-box {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px 10px 8px 32px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .search-box i { position: absolute; left: 10px; color: #9ca3af; }
+        .conversation-list {
             flex: 1;
             overflow-y: auto;
+            padding: 8px;
         }
-        
-        /* Chat content area */
-        #chat-content {
-            flex: 1;
+        .conversation-item {
+            border: 1px solid #e5e7eb;
+            margin: 8px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .conversation-item:hover { 
+            background-color: #f0fdf4;
+            border-color: #6de499;
+        }
+        .conversation-item.active {
+            background-color: #dcfce7;
+            border-color: #5bd889;
+        }
+        .conversation-header {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .conversation-title {
+            font-weight: 500;
+            font-size: 14px;
+            color: #1f2937;
+            flex: 1;
+            margin-right: 8px;
             overflow: hidden;
-            background: white;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        
-        /* Desktop: sidebar behavior */
-        @media (min-width: 768px) {
-            #history-sidebar {
-                position: relative;
-                transform: translateX(0);
-            }
-            #history-sidebar.closed {
-                transform: translateX(calc(-1 * var(--sidebar-w)));
-            }
+        .conversation-date {
+            font-size: 12px;
+            color: #6b7280;
+            white-space: nowrap;
         }
-        
-        /* Mobile: sidebar overlay */
-        @media (max-width: 767px) {
-            #history-sidebar {
-                position: fixed;
-                top: 80px;
-                left: 0;
-                bottom: 0;
-                transform: translateX(calc(-1 * var(--sidebar-w)));
-                transition: transform 0.28s ease;
-                z-index: 4500;
-            }
-            #history-sidebar.open {
-                transform: translateX(0);
-            }
-            
-            /* Backdrop for mobile */
-            #main-container.mobile-sidebar-open::before {
-                content: '';
-                position: fixed;
-                top: 80px;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 4000;
-                animation: fadeIn 0.28s ease;
-            }
-            
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
+        .conversation-preview {
+            font-size: 12px;
+            color: #4b5563;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+            max-height: 2.8em;
         }
-        
-        /* Toggle button */
-        #sidebar-toggle {
-            position: fixed;
-            top: 50%;
-            left: 0;
-            transform: translateY(-50%);
-            z-index: 5000;
-            background: transparent;
-            color: #10b981;
+        .conversation-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .delete-btn {
+            background: none;
             border: none;
-            width: 32px;
-            height: 70px;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .delete-btn:hover {
+            color: #dc2626;
+            background-color: #fee2e2;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .empty-state {
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            font-size: 28px;
-            font-weight: bold;
-            opacity: 0.7;
+            color: #6b7280;
+            text-align: center;
         }
-        
-        #sidebar-toggle:hover {
-            opacity: 1;
-            color: #059669;
-            transform: translateY(-50%) scale(1.2);
+        .empty-state i { font-size: 48px; color: #d1d5db; margin-bottom: 16px; }
+        .message {
+            margin-bottom: 16px;
+            display: flex;
         }
-        
-        #sidebar-toggle::before {
-            content: '»';
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
+        .message.user { justify-content: flex-end; }
+        .message.bot { justify-content: flex-start; }
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        
-        /* Change arrow when sidebar is open */
-        #main-container.mobile-sidebar-open #sidebar-toggle {
-            left: calc(var(--sidebar-w) + 12px);
-            opacity: 1;
-            pointer-events: all;
-        }
-        
-        #main-container.mobile-sidebar-open #sidebar-toggle::before {
-            content: '«';
-        }
-        
-        @media (min-width: 768px) {
-            #sidebar-toggle {
-                display: none;
-            }
-        }
-        
-        /* Conversation item styling */
-        .conversation-item { 
-            transition: all 0.3s ease; 
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-        .conversation-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 4px;
-            background: linear-gradient(180deg, #10b981, #059669);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
-        }
-        .conversation-item:hover {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            border-color: #10b981;
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-        }
-        .conversation-item:hover::before {
-            transform: scaleY(1);
-        }
-        .conversation-item.active { 
-            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-            border-color: #059669;
-            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.25);
-            transform: translateX(4px);
-        }
-        .conversation-item.active::before {
-            transform: scaleY(1);
-        }
-        
-        /* Message wrapper styling - giống index.html */
-        .message-wrapper {
-            margin-bottom: 12px;
-            animation: slideIn 0.3s ease;
-        }
-        
-        .message-wrapper.user {
-            text-align: right;
-        }
-        
-        .message-wrapper.bot {
-            text-align: left;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Message bubble styling - giống index.html */
-        .user-bubble {
-            display: inline-block;
-            background: #3b82f6;  /* Blue-500 giống index */
+        .message.bot .message-bubble { background-color: #f3f4f6; color: #1f2937; }
+        .message.user .message-bubble { background-color: #22c55e; color: white; }
+        .message-time { font-size: 12px; margin-top: 4px; }
+        .message.bot .message-time { color: #6b7280; }
+        .message.user .message-time { color: #dcfce7; }
+        .back-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #6edc9b;
             color: white;
-            padding: 8px 12px;
-            border-radius: 12px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            padding: 12px 24px;
+            border-radius: 9999px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+        .back-button:hover { background-color: #6bd89e; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px 8px;
             font-size: 14px;
-            max-width: 448px;  /* max-w-md */
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            text-align: left;
+            transition: all 0.2s;
         }
-        
-        .bot-bubble {
-            display: inline-block;
-            background: #f3f4f6;  /* Gray-100 giống index */
-            color: #1f2937;  /* Gray-800 */
-            padding: 8px 12px;
-            border-radius: 12px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            font-size: 14px;
-            max-width: 448px;  /* max-w-md */
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            overflow: hidden;
-        }
-        
-        /* Responsive sizes */
-        @media (min-width: 768px) {
-            .user-bubble, .bot-bubble {
-                padding: 12px;
-                font-size: 16px;
-                max-width: 672px;  /* max-w-2xl */
-            }
-        }
-        
-        /* Text truncation */
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.5;
-            max-height: 3em;
-        }
-        
-        /* Image galleries */
-        .image-gallery {
-            max-width: 600px !important;
-            margin: 15px auto !important;
-        }
-        .image-item {
-            background: white !important;
-            border-radius: 12px !important;
-            padding: 12px !important;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.12) !important;
-            transition: all 0.3s ease !important;
-            min-height: auto !important;
-            max-height: 280px !important;
-        }
-        .image-item:hover {
-            transform: translateY(-5px) !important;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.18) !important;
-        }
-        .image-item img {
-            width: 100% !important;
-            height: 140px !important;
-            object-fit: cover !important;
-            border-radius: 8px !important;
-            margin-bottom: 8px !important;
-            cursor: pointer !important;
-            transition: all 0.3s ease !important;
-        }
-        .image-item img:hover {
-            transform: scale(1.05) !important;
-        }
-        .image-item h4 {
-            font-size: 13px !important;
-            line-height: 1.3 !important;
-            min-height: auto !important;
-            max-height: 32px !important;
-            overflow: hidden !important;
-            margin: 6px 0 !important;
-        }
-        .image-item p {
-            font-size: 11px !important;
-            line-height: 1.3 !important;
-            min-height: auto !important;
-            max-height: 28px !important;
-            overflow: hidden !important;
-            margin: 4px 0 !important;
-        }
-        .image-item small {
-            font-size: 10px !important;
-        }
-        
-        /* Mobile optimization for image galleries */
-        @media (max-width: 768px) {
-            .image-gallery {
-                padding: 15px !important;
-                gap: 12px !important;
-            }
-            .image-item {
-                padding: 10px !important;
-                max-height: 240px !important;
-            }
-            .image-item img {
-                height: 120px !important;
-            }
-            .image-item h4 {
-                font-size: 12px !important;
-                max-height: 28px !important;
-            }
-            .image-item p {
-                font-size: 10px !important;
-                max-height: 24px !important;
-            }
-        }
-        
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-            .message-bubble {
-                max-width: 85% !important;
-            }
-        }
-        
-        /* Button hover effects */
-        .btn-hover {
-            transition: all 0.3s ease;
-        }
-        .btn-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* Empty state animation */
-        .empty-state-icon {
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-10px);
-            }
+        .icon-btn:hover { color: #1f2937; }
+        @media (max-width: 1024px) {
+            .grid-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
-    <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
-        <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
-            <div class="flex items-center gap-3">
-                <!-- Back button -->
-                <button onclick="window.location.href='index.html'" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <!-- Logo -->
-                <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="h-12 md:h-14 w-auto object-contain">
+<body class="custom-scrollbar">
+    <header>
+        <div class="header-container">
+            <div class="header-left">
+                <i class="fas fa-history text-2xl"></i>
+                <h1 style="font-size: 24px; font-weight: bold;">Lịch sử hội thoại</h1>
             </div>
-            <span class="text-xs md:text-sm text-gray-600 hidden md:block">Lịch sử hội thoại</span>
-            <div class="flex items-center gap-2 md:gap-4">
-                <div class="text-right">
-                    <div class="text-xs md:text-sm text-gray-600">Tổng cộng</div>
-                    <div id="total-conversations" class="font-bold text-green-700 text-sm">0 cuộc hội thoại</div>
+            <div class="header-right">
+                <span style="font-size: 14px; opacity: 0.9;">AgriSense AI</span>
+                <div style="text-align: right;">
+                    <div style="font-size: 12px; opacity: 0.75;">Tổng cộng</div>
+                    <div id="total-conversations" style="font-weight: bold;">0 cuộc hội thoại</div>
                 </div>
             </div>
         </div>
     </header>
 
-    <div id="main-container" class="w-full flex-1">
-        <!-- Mobile Toggle Button - Tab từ cạnh trái -->
-        <button id="sidebar-toggle" aria-label="Toggle sidebar"></button>
-            
-            <!-- Sidebar: Conversation List -->
-            <aside id="history-sidebar" class="custom-scrollbar">
-                <div class="p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 flex-shrink-0">
-                    <div class="flex items-center justify-between mb-3 md:mb-4">
-                        <h2 class="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-2">
-                            <i class="fas fa-comments text-green-600"></i>
-                            <span class="hidden sm:inline">Danh sách hội thoại</span>
-                            <span class="sm:hidden">Hội thoại</span>
-                        </h2>
-                        <div class="flex gap-2">
-
-                            <button id="clear-all-btn" class="text-red-500 hover:text-red-700 text-xs md:text-sm p-1 md:p-2 rounded hover:bg-red-50 transition-all btn-hover" title="Xóa tất cả">
+    <main>
+        <div class="grid-container">
+            <div class="conversation-list-panel custom-scrollbar">
+                <div class="panel-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div class="panel-title">
+                            <i class="fas fa-comments"></i>
+                            <span>Danh sách hội thoại</span>
+                        </div>
+                        <div class="button-group">
+                            <button id="fix-titles-btn" class="icon-btn" title="Sửa tên cuộc hội thoại">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                            <button id="clear-all-btn" class="icon-btn" title="Xóa tất cả">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="relative">
-                        <input type="text" id="search-conversations" placeholder="Tìm kiếm hội thoại..." 
-                               class="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 border border-gray-300 rounded-lg text-xs md:text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
-                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs md:text-sm"></i>
+                    <div class="search-box">
+                        <input type="text" id="search-conversations" placeholder="Tìm kiếm...">
+                        <i class="fas fa-search"></i>
                     </div>
                 </div>
-                <div id="conversation-list" class="flex-1 overflow-y-auto custom-scrollbar"></div>
-            </aside>
+                <div id="conversation-list" class="conversation-list custom-scrollbar"></div>
+            </div>
             
-            <!-- Chat Content Area -->
-            <main id="chat-content">
-                <div class="p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 flex-shrink-0">
-                    <div id="chat-header" class="flex items-center justify-between">
-                        <div class="flex-1 min-w-0">
-                            <h2 class="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-2 truncate">
-                                <i class="fas fa-comment-dots text-green-600"></i>
-                                <span id="conversation-title">Chi tiết hội thoại</span>
-                            </h2>
-                            <p class="text-xs md:text-sm text-gray-500 mt-1 hidden sm:block">Chọn một cuộc hội thoại để xem chi tiết</p>
-                        </div>
-                        <button id="continue-chat-btn" class="hidden bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all btn-hover flex items-center gap-2 text-sm">
-                            <i class="fas fa-arrow-right"></i>
-                            <span class="hidden md:inline">Tiếp tục trò chuyện</span>
-                            <span class="md:hidden">Tiếp tục</span>
-                        </button>
-                    </div>
-                </div>
-                <div id="chat-messages" class="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-4 bg-gradient-to-b from-gray-50 to-white">
-                    <div id="empty-state" class="h-full flex items-center justify-center text-gray-500">
-                        <div class="text-center px-4">
-                            <i class="fas fa-comments text-4xl md:text-6xl text-gray-300 mb-3 md:mb-4 empty-state-icon"></i>
-                            <h3 class="text-base md:text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
-                            <p class="text-xs md:text-sm text-gray-400">Chọn một cuộc hội thoại từ danh sách để xem chi tiết</p>
+            <div class="chat-panel">
+                <div class="panel-header">
+                    <div id="chat-header">
+                        <div>
+                            <div class="panel-title">
+                                <i class="fas fa-comment-dots"></i>
+                                <span>Chi tiết hội thoại</span>
+                            </div>
+                            <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Chọn một cuộc hội thoại để xem chi tiết</p>
                         </div>
                     </div>
                 </div>
-            </main>
+                <div id="chat-messages" class="chat-messages custom-scrollbar">
+                    <div id="empty-state" class="empty-state">
+                        <div>
+                            <i class="fas fa-comments"></i>
+                            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
+                            <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <a href="index.html" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        <span>Quay lại</span>
+    </a>
 
     <script>
     class ChatHistoryManager {
@@ -808,35 +432,9 @@
                 this.clearAllConversations();
             });
             
-            // Sidebar toggle functionality
-            const sidebarToggle = document.getElementById('sidebar-toggle');
-            const sidebar = document.getElementById('history-sidebar');
-            const mainContainer = document.getElementById('main-container');
-            
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Toggle clicked!'); // Debug log
-                    sidebar.classList.toggle('open');
-                    mainContainer.classList.toggle('mobile-sidebar-open');
-                });
-            }
-            
-            // Close sidebar when clicking backdrop on mobile
-            mainContainer.addEventListener('click', (e) => {
-                if (e.target === mainContainer && mainContainer.classList.contains('mobile-sidebar-open')) {
-                    sidebar.classList.remove('open');
-                    mainContainer.classList.remove('mobile-sidebar-open');
-                }
-            });
-            
-            // Close sidebar after selecting conversation on mobile
-            document.addEventListener('conversationSelected', () => {
-                if (window.innerWidth < 768) {
-                    sidebar.classList.remove('open');
-                    mainContainer.classList.remove('mobile-sidebar-open');
-                }
+            const fixTitlesBtn = document.getElementById('fix-titles-btn');
+            fixTitlesBtn.addEventListener('click', () => {
+                this.fixAllConversationTitles();
             });
         }
         
@@ -846,10 +444,10 @@
             
             if (conversations.length === 0) {
                 conversationList.innerHTML = `
-                    <div class="p-6 md:p-8 text-center text-gray-500">
-                        <i class="fas fa-comment-slash text-4xl md:text-5xl mb-3 text-gray-300"></i>
-                        <p class="font-medium text-sm md:text-base mb-2">Chưa có cuộc hội thoại nào</p>
-                        <p class="text-xs md:text-sm text-gray-400">Bắt đầu chat để tạo lịch sử</p>
+                    <div style="padding: 16px; text-align: center; color: #6b7280;">
+                        <i class="fas fa-comment-slash" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
+                        <p>Chưa có cuộc hội thoại nào</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Bắt đầu chat để tạo lịch sử</p>
                     </div>
                 `;
                 return;
@@ -858,53 +456,38 @@
             conversationList.innerHTML = conversations.map(conv => {
                 const lastMessage = conv.messages[conv.messages.length - 1];
                 let preview = 'Không có tin nhắn';
-                let previewIcon = '💬';
                 
                 if (lastMessage && lastMessage.content) {
                     if (lastMessage.type === 'html') {
+                        // Cho HTML content (image gallery), hiển thị text mô tả
                         if (lastMessage.content.includes('🖼️')) {
-                            preview = 'Thư viện ảnh';
-                            previewIcon = '🖼️';
+                            preview = '🖼️ Thư viện ảnh';
                         } else {
+                            // Loại bỏ HTML tags để lấy text content
                             const tempDiv = document.createElement('div');
                             tempDiv.innerHTML = lastMessage.content;
                             const textContent = tempDiv.textContent || tempDiv.innerText || '';
-                            preview = textContent.substring(0, 60) + (textContent.length > 60 ? '...' : '');
+                            preview = textContent.substring(0, 80) + (textContent.length > 80 ? '...' : '');
                         }
                     } else {
-                        preview = lastMessage.content.substring(0, 60) + (lastMessage.content.length > 60 ? '...' : '');
+                        // Text content thông thường
+                        preview = lastMessage.content.substring(0, 80) + (lastMessage.content.length > 80 ? '...' : '');
                     }
                 }
                 
-                // Count user and bot messages
-                const userMsgCount = conv.messages.filter(m => m.sender === 'user').length;
-                const botMsgCount = conv.messages.filter(m => m.sender === 'bot').length;
-                
                 return `
-                    <div class="conversation-item border border-gray-200 m-2 md:m-3 p-3 md:p-4 rounded-lg md:rounded-xl" 
-                         data-conversation-id="${conv.id}">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-semibold text-xs md:text-sm text-gray-800 truncate flex-1 mr-2 leading-tight">${conv.title}</h3>
-                            <span class="text-xs text-gray-500 whitespace-nowrap ml-2">${this.formatDate(conv.lastUpdated)}</span>
+                    <div class="conversation-item" data-conversation-id="${conv.id}">
+                        <div class="conversation-header">
+                            <h3 class="conversation-title">${conv.title}</h3>
+                            <span class="conversation-date">${this.formatDate(conv.lastUpdated)}</span>
                         </div>
-                        <p class="text-xs md:text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">${previewIcon} ${preview}</p>
-                        <div class="flex justify-between items-center text-xs">
-                            <div class="flex gap-3 text-gray-500">
-                                <span class="flex items-center gap-1">
-                                    <i class="fas fa-user text-blue-500"></i>
-                                    <span class="font-medium">${userMsgCount}</span>
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <i class="fas fa-robot text-green-500"></i>
-                                    <span class="font-medium">${botMsgCount}</span>
-                                </span>
-                                <span class="text-gray-400">•</span>
-                                <span class="font-medium text-gray-600">${conv.messages.length} tổng</span>
-                            </div>
-                            <button class="delete-conversation text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-all btn-hover" 
+                        <p class="conversation-preview">${preview}</p>
+                        <div class="conversation-footer">
+                            <span>${conv.messages.length} tin nhắn</span>
+                            <button class="delete-conversation delete-btn" 
                                     data-conversation-id="${conv.id}"
                                     title="Xóa cuộc hội thoại">
-                                <i class="fas fa-trash text-xs md:text-sm"></i>
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
@@ -936,25 +519,6 @@
             document.querySelector(`[data-conversation-id="${conversationId}"]`).classList.add('active');
             
             this.renderChatMessages(conversation);
-            
-            // Show "Continue Chat" button với conversation ID
-            const continueChatBtn = document.getElementById('continue-chat-btn');
-            const conversationTitle = document.getElementById('conversation-title');
-            
-            if (continueChatBtn) {
-                continueChatBtn.classList.remove('hidden');
-                continueChatBtn.onclick = () => {
-                    // Navigate to index.html with conversation ID in URL
-                    window.location.href = `index.html?c=${conversationId}`;
-                };
-            }
-            
-            if (conversationTitle) {
-                conversationTitle.textContent = conversation.title || 'Chi tiết hội thoại';
-            }
-            
-            // Trigger event for mobile sidebar close
-            document.dispatchEvent(new CustomEvent('conversationSelected'));
         }
         
         renderChatMessages(conversation) {
@@ -965,22 +529,10 @@
                 emptyState.style.display = 'none';
             }
             
-            // Debug: Log all messages
-            console.log('🔍 Rendering messages for conversation:', conversation.id);
-            console.log('📊 Total messages:', conversation.messages.length);
-            conversation.messages.forEach((msg, idx) => {
-                console.log(`Message ${idx}:`, {
-                    sender: msg.sender,
-                    hasContent: !!msg.content,
-                    contentLength: msg.content?.length || 0,
-                    hasImageUrl: !!msg.imageUrl,
-                    type: msg.type,
-                    timestamp: msg.timestamp
-                });
-            });
-            
             chatMessages.innerHTML = conversation.messages.map(message => {
                 const isBot = message.sender === 'bot';
+                const alignment = isBot ? 'text-left' : 'text-right';
+                const bgColor = isBot ? 'bg-gray-100' : 'bg-green-500 text-white';
                 
                 // Xử lý nội dung message
                 let contentHtml = '';
@@ -989,8 +541,7 @@
                 if (message.imageUrl) {
                     contentHtml += `<div class="message-image mb-2">
                         <img src="${message.imageUrl}" alt="Uploaded image" 
-                             class="max-w-full rounded-lg shadow-md cursor-pointer hover:shadow-xl transition-shadow" 
-                             style="max-height: 200px;" 
+                             style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;" 
                              onclick="openImageModal('${message.imageUrl}')">
                     </div>`;
                 }
@@ -1001,34 +552,22 @@
                         // Hiển thị HTML content trực tiếp (cho image galleries)
                         contentHtml += message.content;
                     } else {
-                        // Hiển thị text content với formatting
-                        contentHtml += message.content;
+                        // Hiển thị text content thông thường
+                        contentHtml += `<div style="white-space: pre-line;">${message.content}</div>`;
                     }
                 }
                 
-                // Skip ONLY if no content AND no image (completely empty)
-                if (!contentHtml.trim() && !message.imageUrl) {
-                    console.warn('⚠️ Skipping completely empty message:', message);
-                    return '';
-                }
-                
-                // Giống index.html - chỉ wrapper + bubble, không có avatar
                 return `
-                    <div class="message-wrapper ${isBot ? 'bot' : 'user'}">
-                        <div class="${isBot ? 'bot-bubble' : 'user-bubble'}">
+                    <div class="message ${isBot ? 'bot' : 'user'}">
+                        <div class="message-bubble">
                             ${contentHtml}
+                            <div class="message-time">${this.formatTime(message.timestamp)}</div>
                         </div>
                     </div>
                 `;
             }).join('');
             
-            // Scroll to bottom smoothly
-            setTimeout(() => {
-                chatMessages.scrollTo({
-                    top: chatMessages.scrollHeight,
-                    behavior: 'smooth'
-                });
-            }, 100);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
         
         searchConversations(query) {
@@ -1054,11 +593,11 @@
             if (this.selectedConversationId === conversationId) {
                 this.selectedConversationId = null;
                 document.getElementById('chat-messages').innerHTML = `
-                    <div id="empty-state" class="h-full flex items-center justify-center text-gray-500">
-                        <div class="text-center">
-                            <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
-                            <h3 class="text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
-                            <p class="text-sm">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                    <div id="empty-state" class="empty-state">
+                        <div>
+                            <i class="fas fa-comments" style="font-size: 48px; color: #d1d5db; display: block; margin-bottom: 16px;"></i>
+                            <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
+                            <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
                         </div>
                     </div>
                 `;
@@ -1079,11 +618,11 @@
             this.updateStats();
             
             document.getElementById('chat-messages').innerHTML = `
-                <div id="empty-state" class="h-full flex items-center justify-center text-gray-500">
-                    <div class="text-center">
-                        <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
-                        <h3 class="text-lg font-medium mb-2">Chưa có cuộc hội thoại nào được chọn</h3>
-                        <p class="text-sm">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
+                <div id="empty-state" class="empty-state">
+                    <div>
+                        <i class="fas fa-comments" style="font-size: 48px; color: #d1d5db; display: block; margin-bottom: 16px;"></i>
+                        <h3 style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có cuộc hội thoại nào được chọn</h3>
+                        <p style="font-size: 14px;">Chọn một cuộc hội thoại từ danh sách bên trái để xem chi tiết</p>
                     </div>
                 </div>
             `;
@@ -1222,36 +761,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         new ChatHistoryManager();
-        
-        // Debug helper
-        window.debugChatHistory = function() {
-            const stored = localStorage.getItem('agrisense_chat_history');
-            const conversations = stored ? JSON.parse(stored) : [];
-            
-            console.log('=== CHAT HISTORY DEBUG ===');
-            console.log('Total conversations:', conversations.length);
-            
-            conversations.forEach((conv, idx) => {
-                console.log(`\n📋 Conversation ${idx + 1}:`, conv.title);
-                console.log('   ID:', conv.id);
-                console.log('   Messages:', conv.messages.length);
-                
-                conv.messages.forEach((msg, msgIdx) => {
-                    const senderIcon = msg.sender === 'user' ? '👤' : '🤖';
-                    console.log(`   ${senderIcon} Message ${msgIdx + 1}:`, {
-                        sender: msg.sender,
-                        content: msg.content ? msg.content.substring(0, 50) + '...' : 'null',
-                        imageUrl: msg.imageUrl ? 'Yes (length: ' + msg.imageUrl.length + ')' : 'No',
-                        type: msg.type || 'text',
-                        timestamp: msg.timestamp
-                    });
-                });
-            });
-            
-            return conversations;
-        };
-        
-        console.log('💡 Tip: Run window.debugChatHistory() to see all conversations');
     });
     </script>
 </body>

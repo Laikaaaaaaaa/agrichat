@@ -1228,39 +1228,37 @@
       console.log(`🎯 Trang sẵn sàng với ${vietnameseNews.length} tin (đang tải thêm background)`);
     });
 
-    // Fetch Vietnamese RSS feeds - OPTIMIZED: Load only what's needed
+    // Fetch Vietnamese RSS feeds - Load ALL feeds
     async function loadVietnameseNews() {
-      console.log('🚀 Đang tải tin tức Việt Nam (chỉ load khi cần)...');
+      console.log('🚀 Đang tải tin tức Việt Nam...');
       
       try {
-        // Prioritize agricultural feeds first
-        const agricultureFeeds = vietnameseRSSFeeds.filter(feed => 
-          feed.category === 'agriculture' || feed.name.toLowerCase().includes('nông nghiệp') || 
-          feed.name.toLowerCase().includes('chăn nuôi') || feed.name.toLowerCase().includes('thủy sản')
-        );
-        const otherFeeds = vietnameseRSSFeeds.filter(feed => !agricultureFeeds.includes(feed));
-        const prioritizedFeeds = [...agricultureFeeds, ...otherFeeds];
+        // Load ALL feeds (no filtering/limiting)
+        const allFeeds = vietnameseRSSFeeds;
         
-        console.log(`📋 Ưu tiên ${agricultureFeeds.length} nguồn nông nghiệp, ${otherFeeds.length} nguồn khác`);
+        console.log(`📋 Tải ${allFeeds.length} nguồn RSS...`);
         
-        // LOAD ONLY FIRST 5 FEEDS for initial display (~ 50-100 articles)
-        const initialFeeds = prioritizedFeeds.slice(0, 5);
-        console.log(`⚡ Load ${initialFeeds.length} nguồn đầu tiên...`);
+        // Store full feed list
+        window.allPrioritizedFeeds = allFeeds;
+        window.remainingFeeds = [];
         
-        // Store full feed list for later loading
-        window.remainingFeeds = prioritizedFeeds.slice(5);
-        window.allPrioritizedFeeds = prioritizedFeeds;
+        // Load all feeds in parallel (with batching to avoid overload)
+        const batchSize = 10;
+        const batches = [];
         
-        // Load initial feeds in parallel
-        const feedPromises = initialFeeds.map(feed => loadSingleFeed(feed));
-        const results = await Promise.all(feedPromises);
-        
-        // Collect all articles
-        results.forEach(items => {
-          if (items && items.length > 0) {
-            allLoadedArticles = [...allLoadedArticles, ...items];
-          }
-        });
+        for (let i = 0; i < allFeeds.length; i += batchSize) {
+          const batch = allFeeds.slice(i, i + batchSize);
+          const feedPromises = batch.map(feed => loadSingleFeed(feed));
+          const results = await Promise.all(feedPromises);
+          
+          results.forEach(items => {
+            if (items && items.length > 0) {
+              allLoadedArticles = [...allLoadedArticles, ...items];
+            }
+          });
+          
+          console.log(`✅ Tải xong batch ${Math.ceil((i + batchSize) / batchSize)}/${Math.ceil(allFeeds.length / batchSize)}`);
+        }
         
         // Remove duplicates and sort
         allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
@@ -1270,7 +1268,7 @@
         });
         
         vietnameseNews = [...allLoadedArticles];
-        loadedFeedsCount = initialFeeds.length;
+        loadedFeedsCount = allFeeds.length;
         
         console.log(`✅ Đã load ${loadedFeedsCount} nguồn, có ${vietnameseNews.length} bài`);
         
@@ -1363,60 +1361,9 @@
     
     // Load more feeds when user clicks "Load More"
     async function loadMoreFeeds() {
-      if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
-        console.log('❌ Không còn nguồn RSS để load');
-        hasMoreNews = false;
-        return false;
-      }
-      
-      if (isLoading) {
-        console.log('⏳ Đang load, chờ tí...');
-        return false;
-      }
-      
-      isLoading = true;
-      updateHeaderStatus('Đang tải thêm tin tức...', true);
-      
-      // Load next 3 feeds
-      const nextBatch = window.remainingFeeds.slice(0, 3);
-      window.remainingFeeds = window.remainingFeeds.slice(3);
-      
-      console.log(`📦 Load thêm ${nextBatch.length} nguồn (còn ${window.remainingFeeds.length})`);
-      
-      const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
-      const results = await Promise.all(feedPromises);
-      
-      // Add new articles
-      results.forEach(items => {
-        if (items && items.length > 0) {
-          allLoadedArticles = [...allLoadedArticles, ...items];
-        }
-      });
-      
-      // Remove duplicates and sort
-      allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-      allLoadedArticles.sort((a, b) => {
-        if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
-        return new Date(b.publishedAt) - new Date(a.publishedAt);
-      });
-      
-      vietnameseNews = [...allLoadedArticles];
-      loadedFeedsCount += nextBatch.length;
-      
-      // Clear cache to force refresh
-      categoryCache = {
-        all: [],
-        agriculture: [],
-        technology: [],
-        climate: [],
-        livestock: []
-      };
-      
-      console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài`);
-      updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
-      
-      isLoading = false;
-      return true;
+      console.log('❌ Tất cả RSS feeds đã được load. Không có thêm để tải.');
+      hasMoreNews = false;
+      return false;
     }
 
     // Extract default image based on feed/category

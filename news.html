@@ -1246,14 +1246,21 @@
         // LOAD ONLY FIRST 5 FEEDS for initial display (~ 50-100 articles)
         const initialFeeds = prioritizedFeeds.slice(0, 5);
         console.log(`⚡ Load ${initialFeeds.length} nguồn đầu tiên...`);
+        console.log(`📝 Feeds: ${initialFeeds.map(f => f.name).join(', ')}`);
         
         // Store full feed list for later loading
         window.remainingFeeds = prioritizedFeeds.slice(5);
         window.allPrioritizedFeeds = prioritizedFeeds;
         
         // Load initial feeds in parallel
-        const feedPromises = initialFeeds.map(feed => loadSingleFeed(feed));
+        console.log(`🔄 Gọi loadSingleFeed cho ${initialFeeds.length} feeds...`);
+        const feedPromises = initialFeeds.map(feed => {
+          console.log(`→ Mapping ${feed.name}`);
+          return loadSingleFeed(feed);
+        });
+        console.log(`✋ Đợi ${feedPromises.length} promises...`);
         const results = await Promise.all(feedPromises);
+        console.log(`✓ Nhận ${results.length} kết quả`);
         
         // Collect all articles
         results.forEach(items => {

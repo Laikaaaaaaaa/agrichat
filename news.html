@@ -1386,16 +1386,7 @@
           console.warn(`  ⚠️ /api/rss-parse failed: ${e.message}`);
         }
         
-        // Strategy 2: For VnExpress, try alternative endpoints or skip RSS2JSON (they often return 422)
-        const isFeedProblematic = feed.url.includes('vnexpress.net');
-        
-        if (isFeedProblematic) {
-          console.warn(`  ⚠️ ${feed.name} often returns 422, skipping RSS2JSON services`);
-          console.warn(`❌ Không thể load ${feed.name} - yêu cầu cập nhật RSS endpoint`);
-          return [];
-        }
-        
-        // Strategy 3: Use RSS2JSON with exponential backoff retry (for non-VnExpress feeds)
+        // Strategy 2: Use RSS2JSON with exponential backoff retry
         const rssServices = [
           `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=99`,
           `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=99`
@@ -2263,10 +2254,28 @@
       card.className = 'news-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 fade-in-up';
       card.style.animationDelay = `${index * 0.1}s`;
 
-      // Use unique placeholder for each article if no image
+      // Generate SVG placeholder for articles without images (no external URL needed)
+      const generateSVGPlaceholder = (color, text) => {
+        const colors = {
+          '10b981': '#10b981',
+          '059669': '#059669', 
+          '047857': '#047857',
+          '065f46': '#065f46'
+        };
+        const bgColor = colors[color] || '#10b981';
+        const truncatedText = text.substring(0, 30).replace(/[^a-zA-Z0-9\s]/g, '');
+        const svg = `<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="400" height="200" fill="${bgColor}"/>
+          <text x="50%" y="50%" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle" font-family="Arial">
+            ${truncatedText || 'AgriSense AI'}
+          </text>
+        </svg>`;
+        return 'data:image/svg+xml;base64,' + btoa(svg);
+      };
+      
       const randomColor = ['10b981', '059669', '047857', '065f46'].sort(() => Math.random() - 0.5)[0];
-      const uniquePlaceholder = `https://via.placeholder.com/400x200/${randomColor}/ffffff?text=${encodeURIComponent(article.title?.substring(0, 20) || 'AgriSense AI')}`;
-      const imageUrl = article.urlToImage || uniquePlaceholder;
+      const svgPlaceholder = generateSVGPlaceholder(randomColor, article.title || 'AgriSense AI');
+      const imageUrl = article.urlToImage || svgPlaceholder;
       const publishedDate = new Date(article.publishedAt).toLocaleDateString('vi-VN');
       const description = article.description || 'Không có mô tả';
       const displayCategory = getCategoryFromArticle(article);

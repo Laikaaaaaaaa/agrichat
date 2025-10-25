@@ -1250,19 +1250,13 @@
 
     // Fetch Vietnamese RSS feeds - Load 10 feeds initially
     async function loadVietnameseNews() {
-      console.log('🚀 Đang tải 10 báo nông nghiệp đầu tiên...');
+      console.log('🚀 Đang tải 10 báo đầu tiên...');
       
       try {
-        // Filter only agriculture-related feeds
-        const allFeeds = vietnameseRSSFeeds.filter(feed => 
-          feed.category === 'agriculture' || 
-          feed.category === 'livestock' || 
-          feed.category === 'climate' ||
-          feed.name.toLowerCase().includes('nông') ||
-          feed.name.toLowerCase().includes('nông nghiệp')
-        );
+        // Load ALL feeds (bỏ filter tạm để debug)
+        const allFeeds = vietnameseRSSFeeds;
         
-        console.log(`📋 Lọc được ${allFeeds.length} báo nông nghiệp (từ ${vietnameseRSSFeeds.length} báo)`);
+        console.log(`📋 Tổng ${allFeeds.length} báo RSS`);
         
         // Store full feed list for lazy loading
         window.allPrioritizedFeeds = allFeeds;

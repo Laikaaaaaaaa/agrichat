@@ -1123,6 +1123,7 @@
     // Enhanced duplicate detection for RSS feeds
     function removeDuplicatesFromFeed(articles) {
       const seen = new Set();
+      const imageUrls = new Set(); // Track image URLs to detect duplicates
       const uniqueArticles = [];
       
       for (const article of articles) {
@@ -1134,21 +1135,39 @@
         if (!seen.has(titleKey) && !seen.has(urlKey)) {
           // Additional check against existing articles for similarity
           const isDuplicate = uniqueArticles.some(existing => {
-            return calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.75 ||
-                   (existing.url === article.url) ||
-                   (existing.description && article.description && 
-                    calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.8);
+            const titleMatch = calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.75;
+            const urlMatch = existing.url === article.url;
+            const descMatch = existing.description && article.description && 
+                             calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.8;
+            const imageMatch = existing.urlToImage && article.urlToImage && 
+                              existing.urlToImage === article.urlToImage && 
+                              existing.urlToImage !== extractDefaultImage(article.source?.name);
+            
+            return titleMatch || urlMatch || descMatch || imageMatch;
           });
           
           if (!isDuplicate) {
             seen.add(titleKey);
             seen.add(urlKey);
+            if (article.urlToImage) {
+              imageUrls.add(article.urlToImage);
+            }
             uniqueArticles.push(normalized);
           }
         }
       }
       
       return uniqueArticles;
+    }
+    
+    // Shuffle array để phân bổ articles ngẫu nhiên (Fisher-Yates)
+    function shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
     }
 
     // Initialize page
@@ -1230,11 +1249,19 @@
 
     // Fetch Vietnamese RSS feeds - Load 10 feeds initially
     async function loadVietnameseNews() {
-      console.log('🚀 Đang tải 10 báo đầu tiên...');
+      console.log('🚀 Đang tải 10 báo nông nghiệp đầu tiên...');
       
       try {
-        const allFeeds = vietnameseRSSFeeds;
-        console.log(`📋 Tổng ${allFeeds.length} nguồn RSS`);
+        // Filter only agriculture-related feeds
+        const allFeeds = vietnameseRSSFeeds.filter(feed => 
+          feed.category === 'agriculture' || 
+          feed.category === 'livestock' || 
+          feed.category === 'climate' ||
+          feed.name.toLowerCase().includes('nông') ||
+          feed.name.toLowerCase().includes('nông nghiệp')
+        );
+        
+        console.log(`📋 Lọc được ${allFeeds.length} báo nông nghiệp (từ ${vietnameseRSSFeeds.length} báo)`);
         
         // Store full feed list for lazy loading
         window.allPrioritizedFeeds = allFeeds;
@@ -1256,10 +1283,10 @@
           }
         });
         
-        // Remove duplicates and sort
+        // Remove duplicates, shuffle, and sort
         allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        allLoadedArticles = shuffleArray(allLoadedArticles); // Phân bổ ngẫu nhiên
         allLoadedArticles.sort((a, b) => {
-          if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
           return new Date(b.publishedAt) - new Date(a.publishedAt);
         });
         
@@ -1279,11 +1306,11 @@
     // Background loader - continuously load remaining feeds
     async function loadMoreFeedsBackground() {
       if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
-        console.log('✅ Tất cả feeds đã được load');
+        console.log('✅ Tất cả feeds nông nghiệp đã được load');
         return;
       }
       
-      console.log(`🔄 Tiếp tục load ${window.remainingFeeds.length} báo còn lại...`);
+      console.log(`🔄 Tiếp tục load ${window.remainingFeeds.length} báo nông nghiệp còn lại...`);
       
       // Load all remaining feeds in parallel
       const feedPromises = window.remainingFeeds.map(feed => loadSingleFeed(feed));
@@ -1296,10 +1323,10 @@
         }
       });
       
-      // Remove duplicates and sort
+      // Remove duplicates, shuffle, and sort
       allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+      allLoadedArticles = shuffleArray(allLoadedArticles); // Phân bổ ngẫu nhiên
       allLoadedArticles.sort((a, b) => {
-        if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
         return new Date(b.publishedAt) - new Date(a.publishedAt);
       });
       
@@ -1307,7 +1334,7 @@
       window.remainingFeeds = [];
       loadedFeedsCount = window.allPrioritizedFeeds.length;
       
-      console.log(`✅ Hoàn tất: ${loadedFeedsCount} báo, ${vietnameseNews.length} bài`);
+      console.log(`✅ Hoàn tát: ${loadedFeedsCount} báo nông nghiệp, ${vietnameseNews.length} bài`);
       
       // Update display with all news
       filterAndDisplayNews();
@@ -1402,7 +1429,7 @@
     // Load more feeds when user clicks "Load More"
     async function loadMoreFeeds() {
       if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
-        console.log('❌ Tất cả RSS feeds đã được load');
+        console.log('❌ Tất cả báo nông nghiệp đã được load');
         hasMoreNews = false;
         return false;
       }
@@ -1419,7 +1446,7 @@
       const nextBatch = window.remainingFeeds.slice(0, 10);
       window.remainingFeeds = window.remainingFeeds.slice(10);
       
-      console.log(`📦 Load thêm ${nextBatch.length} báo (còn ${window.remainingFeeds.length})`);
+      console.log(`📦 Load thêm ${nextBatch.length} báo nông nghiệp (còn ${window.remainingFeeds.length})`);
       
       const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
       const results = await Promise.all(feedPromises);
@@ -1431,10 +1458,10 @@
         }
       });
       
-      // Remove duplicates and sort
+      // Remove duplicates, shuffle, and sort
       allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+      allLoadedArticles = shuffleArray(allLoadedArticles); // Phân bổ ngẫu nhiên
       allLoadedArticles.sort((a, b) => {
-        if (a.priority !== b.priority) return (a.priority || 3) - (b.priority || 3);
         return new Date(b.publishedAt) - new Date(a.publishedAt);
       });
       
@@ -1450,7 +1477,7 @@
         livestock: []
       };
       
-      console.log(`✅ Tổng ${loadedFeedsCount} báo, ${vietnameseNews.length} bài`);
+      console.log(`✅ Tổng ${loadedFeedsCount} báo nông nghiệp, ${vietnameseNews.length} bài`);
       updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
       
       isLoading = false;

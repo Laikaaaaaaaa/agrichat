@@ -1135,10 +1135,10 @@
         if (!seen.has(titleKey) && !seen.has(urlKey)) {
           // Additional check against existing articles for similarity
           const isDuplicate = uniqueArticles.some(existing => {
-            const titleMatch = calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.75;
+            const titleMatch = calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.95; // Very high threshold
             const urlMatch = existing.url === article.url;
             const descMatch = existing.description && article.description && 
-                             calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.8;
+                             calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.95; // Very high threshold
             const imageMatch = existing.urlToImage && article.urlToImage && 
                               existing.urlToImage === article.urlToImage && 
                               existing.urlToImage !== extractDefaultImage(article.source?.name);
@@ -1157,6 +1157,7 @@
         }
       }
       
+      console.log(`🔄 removeDuplicatesFromFeed: ${articles.length} → ${uniqueArticles.length} articles`);
       return uniqueArticles;
     }
     
@@ -1276,15 +1277,22 @@
         const feedPromises = initialBatch.map(feed => loadSingleFeed(feed));
         const results = await Promise.all(feedPromises);
         
+        console.log(`📊 Kết quả từ ${initialBatch.length} feeds:`, results.map(r => r.length));
+        
         // Collect articles
-        results.forEach(items => {
+        results.forEach((items, idx) => {
           if (items && items.length > 0) {
+            console.log(`  Feed ${idx}: ${items.length} bài`);
             allLoadedArticles = [...allLoadedArticles, ...items];
           }
         });
         
+        console.log(`📦 Tổng articles trước remove duplicates: ${allLoadedArticles.length}`);
+        
         // Remove duplicates, shuffle, and sort
         allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        console.log(`📦 Sau remove duplicates: ${allLoadedArticles.length}`);
+        
         allLoadedArticles = shuffleArray(allLoadedArticles); // Phân bổ ngẫu nhiên
         allLoadedArticles.sort((a, b) => {
           return new Date(b.publishedAt) - new Date(a.publishedAt);

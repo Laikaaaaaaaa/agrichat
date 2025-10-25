@@ -1234,7 +1234,7 @@
       
       try {
         // Call backend API instead of direct RSS
-        const response = await fetch('/api/news/load?limit=100&category=all', {
+        const response = await fetch('/api/news/load?limit=100', {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -1255,12 +1255,23 @@
         
         // Process articles from backend
         let articles = data.articles || [];
+        console.log(`📚 Backend trả về ${articles.length} bài báo`);
         
-        // Add priority based on category
+        // Add priority based on category and generate proper images
         articles.forEach(article => {
           article.priority = (article.category === 'agriculture') ? 1 : 2;
           article.isVietnamese = true;
           article.publishedAt = article.pubDate || new Date().toISOString();
+          // Map 'link' to 'url' for consistency
+          article.url = article.link || article.url;
+          // Add placeholder image (will be handled by display function)
+          if (!article.urlToImage) {
+            article.urlToImage = getPlaceholderImage(article.title, article.category);
+          }
+          // Ensure all required fields exist
+          article.description = article.description || '';
+          article.source = article.source ? { name: article.source } : { name: 'AgriSense News' };
+          article.content = article.description;
         });
         
         // Remove duplicates and sort
@@ -1283,14 +1294,54 @@
       }
     }
     
+    // Helper: Generate proper placeholder images (inline data URIs, không external URLs)
+    function getPlaceholderImage(title, category) {
+      // Use inline SVG as base64 data URI - không cần internet
+      const colors = {
+        'agriculture': '#4CAF50',
+        'technology': '#FF9800',
+        'climate': '#2196F3',
+        'livestock': '#E91E63',
+        'default': '#9C27B0'
+      };
+      
+      const bgColor = colors[category] || colors['default'];
+      const textTruncated = title.substring(0, 30).replace(/"/g, '');
+      
+      // Create simple SVG
+      const svg = `<svg width="640" height="400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${bgColor};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${bgColor}dd;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect width="640" height="400" fill="url(#grad)"/>
+        <text x="320" y="200" font-family="Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" font-weight="bold">
+          ${textTruncated}
+        </text>
+        <text x="320" y="240" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" opacity="0.8">
+          AgriSense AI
+        </text>
+      </svg>`;
+      
+      const encoded = btoa(svg);
+      return `data:image/svg+xml;base64,${encoded}`;
+    }
+    
     // Load more feeds when user clicks "Load More"
     async function loadMoreFeeds() {
-      // Backend API will handle loading more automatically
-      // For now, just refresh with the same endpoint
+      if (isLoading) {
+        console.log('⏳ Đang load, chờ tí...');
+        return false;
+      }
+      
+      isLoading = true;
       updateHeaderStatus('Đang tải thêm tin tức...', true);
       
       try {
-        const response = await fetch('/api/news/load?limit=200&category=' + currentCategory, {
+        // Load more articles from backend
+        const response = await fetch('/api/news/load?limit=200', {
           method: 'GET'
         });
         
@@ -1305,13 +1356,32 @@
             article.priority = (article.category === 'agriculture') ? 1 : 2;
             article.isVietnamese = true;
             article.publishedAt = article.pubDate || new Date().toISOString();
+            article.url = article.link || article.url;
+            if (!article.urlToImage) {
+              article.urlToImage = getPlaceholderImage(article.title, article.category);
+            }
+            article.description = article.description || '';
+            article.source = article.source ? { name: article.source } : { name: 'AgriSense News' };
+            article.content = article.description;
           });
           
           vietnameseNews = articles;
+          
+          // Clear cache to force refresh with new data
+          categoryCache = {
+            all: [],
+            agriculture: [],
+            technology: [],
+            climate: [],
+            livestock: []
+          };
+          
           updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+          console.log(`✅ Loaded more news: ${vietnameseNews.length} total`);
           
           // Refresh display
           filterAndDisplayNews();
+          isLoading = false;
           return true;
         }
       } catch (error) {
@@ -1319,6 +1389,7 @@
         updateHeaderStatus('Không thể tải thêm tin tức', false);
       }
       
+      isLoading = false;
       return false;
     }
 

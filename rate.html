@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriSense AI - Đánh giá</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+    <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #f0fdf4;
+            min-height: 100vh;
+        }
+        header {
+            background-color: #dcfce7;
+            border-bottom: 1px solid #bbf7d0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        .header-container {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            height: 80px;
+        }
+        @media (min-width: 768px) {
+            .header-container {
+                padding: 16px 24px;
+                height: 80px;
+            }
+        }
+        .header-left {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .back-btn {
+            color: white;
+            background-color: #16a34a;
+            border: 2px solid #15803d;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            min-width: 36px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .back-btn:hover {
+            background-color: #15803d;
+        }
+        .logo-img {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+        }
+        @media (min-width: 768px) {
+            .logo-img {
+                height: 56px;
+            }
+        }
+        .header-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+            display: none;
+        }
+        @media (min-width: 768px) {
+            .header-title {
+                display: inline;
+                font-size: 18px;
+            }
+        }
+        .header-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        @media (min-width: 768px) {
+            .header-right {
+                gap: 16px;
+                font-size: 14px;
+            }
+        }
+        main {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 16px;
+            min-height: calc(100vh - 80px);
+        }
+        @media (min-width: 768px) {
+            main {
+                padding: 24px;
+            }
+        }
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .page-title i {
+            color: #16a34a;
+        }
+        .rate-form-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .star-rating {
+            display: flex;
+            gap: 12px;
+            font-size: 32px;
+        }
+        .star {
+            cursor: pointer;
+            color: #d1d5db;
+            transition: all 0.2s;
+        }
+        .star:hover,
+        .star.active {
+            color: #fbbf24;
+            transform: scale(1.1);
+        }
+        .rating-value {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        .submit-btn {
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .submit-btn:hover {
+            background-color: #15803d;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+        .submit-btn:disabled {
+            background-color: #d1d5db;
+            cursor: not-allowed;
+        }
+        .ratings-list {
+            display: grid;
+            gap: 16px;
+        }
+        .rating-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        .rating-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .rating-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .rating-user {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 14px;
+        }
+        .rating-date {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .rating-stars {
+            color: #fbbf24;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .rating-title {
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .rating-content {
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+        .empty-state i {
+            font-size: 48px;
+            color: #d1d5db;
+            display: block;
+            margin-bottom: 16px;
+        }
+        .error-message {
+            background-color: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .success-message {
+            background-color: #dcfce7;
+            color: #15803d;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .admin-only-notice {
+            background-color: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .admin-only-notice i {
+            font-size: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        @media (max-width: 1024px) {
+            .page-title {
+                font-size: 20px;
+            }
+            .rate-form-container {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="header-left">
+                <button onclick="goBack()" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="logo-img">
+            </div>
+            <div class="header-right">
+                <span>AgriSense AI</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="main-content">
+            <div class="page-title">
+                <i class="fas fa-star"></i>
+                <span>Đánh giá trang web</span>
+            </div>
+
+            <div class="admin-only-notice">
+                <i class="fas fa-shield-alt"></i>
+                <div>
+                    <strong>Khu vực Admin</strong>
+                    <p style="font-size: 12px; margin-top: 4px;">Chỉ quản trị viên có thể xem và quản lý các đánh giá từ người dùng.</p>
+                </div>
+            </div>
+
+            <div id="error-message" class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="error-text"></span>
+            </div>
+
+            <div id="success-message" class="success-message">
+                <i class="fas fa-check-circle"></i>
+                <span id="success-text"></span>
+            </div>
+
+            <div class="rate-form-container" id="rate-form-section">
+                <h2 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 20px;">
+                    <i class="fas fa-pen-fancy" style="color: #16a34a; margin-right: 8px;"></i>
+                    Chia sẻ trải nghiệm của bạn
+                </h2>
+
+                <form id="rate-form">
+                    <div class="form-group">
+                        <label for="rating-name">Tên của bạn (tùy chọn)</label>
+                        <input type="text" id="rating-name" placeholder="Nhập tên hoặc để trống để dùng email">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Đánh giá của bạn</label>
+                        <div class="star-rating" id="star-rating">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                        </div>
+                        <div class="rating-value">
+                            <span id="rating-selected">Vui lòng chọn số sao</span>
+                        </div>
+                        <input type="hidden" id="selected-rating" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rating-title">Tiêu đề đánh giá</label>
+                        <input type="text" id="rating-title" placeholder="Ví dụ: Ứng dụng rất hữu ích" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rating-content">Nội dung đánh giá</label>
+                        <textarea id="rating-content" placeholder="Chia sẻ trải nghiệm của bạn..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Gửi đánh giá
+                    </button>
+                </form>
+            </div>
+
+            <div style="margin-top: 32px;">
+                <h2 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">
+                    <i class="fas fa-list-ul" style="color: #16a34a; margin-right: 8px;"></i>
+                    Danh sách đánh giá
+                </h2>
+                <div id="ratings-container" class="ratings-list">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Chưa có đánh giá nào</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const ADMIN_EMAILS = ['abc23072009@gmail.com', 'abc23072000@gmail.com'];
+        let currentUserEmail = null;
+        let selectedRating = 0;
+
+        // Star rating handler
+        document.querySelectorAll('.star').forEach(star => {
+            star.addEventListener('click', function() {
+                selectedRating = this.dataset.rating;
+                document.getElementById('selected-rating').value = selectedRating;
+                
+                document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+                for (let i = 1; i <= selectedRating; i++) {
+                    document.querySelector(`[data-rating="${i}"]`).classList.add('active');
+                }
+                
+                const ratingText = {
+                    1: '1 sao - Không hài lòng',
+                    2: '2 sao - Bình thường',
+                    3: '3 sao - Tốt',
+                    4: '4 sao - Rất tốt',
+                    5: '5 sao - Xuất sắc'
+                };
+                document.getElementById('rating-selected').textContent = ratingText[selectedRating];
+            });
+            
+            star.addEventListener('mouseover', function() {
+                const hoverRating = this.dataset.rating;
+                document.querySelectorAll('.star').forEach((s, index) => {
+                    if (index < hoverRating) {
+                        s.style.color = '#fbbf24';
+                    } else {
+                        s.style.color = '#d1d5db';
+                    }
+                });
+            });
+        });
+
+        document.getElementById('star-rating').addEventListener('mouseleave', function() {
+            document.querySelectorAll('.star').forEach((s, index) => {
+                if (index < selectedRating) {
+                    s.style.color = '#fbbf24';
+                } else {
+                    s.style.color = '#d1d5db';
+                }
+            });
+        });
+
+        // Form submit
+        document.getElementById('rate-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (selectedRating === 0) {
+                showError('Vui lòng chọn số sao trước khi gửi');
+                return;
+            }
+            
+            const name = document.getElementById('rating-name').value || currentUserEmail;
+            const title = document.getElementById('rating-title').value;
+            const content = document.getElementById('rating-content').value;
+            
+            try {
+                const response = await fetch('/api/ratings/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rating: selectedRating,
+                        name: name,
+                        title: title,
+                        content: content
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Cảm ơn bạn đã đánh giá!');
+                    document.getElementById('rate-form').reset();
+                    selectedRating = 0;
+                    document.getElementById('selected-rating').value = 0;
+                    document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+                    document.getElementById('rating-selected').textContent = 'Vui lòng chọn số sao';
+                    loadRatings();
+                } else {
+                    showError(data.message || 'Có lỗi khi gửi đánh giá');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        });
+
+        // Load ratings
+        async function loadRatings() {
+            try {
+                const response = await fetch('/api/ratings/list');
+                const data = await response.json();
+                
+                if (data.success && data.ratings.length > 0) {
+                    const container = document.getElementById('ratings-container');
+                    container.innerHTML = data.ratings.map(rating => `
+                        <div class="rating-card">
+                            <div class="rating-header">
+                                <div>
+                                    <div class="rating-user">${rating.name}</div>
+                                    <div class="rating-date">${new Date(rating.createdAt).toLocaleDateString('vi-VN')}</div>
+                                </div>
+                            </div>
+                            <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
+                            <div class="rating-title">${rating.title}</div>
+                            <div class="rating-content">${rating.content}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải đánh giá:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            document.getElementById('error-text').textContent = message;
+            errorDiv.style.display = 'flex';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            document.getElementById('success-text').textContent = message;
+            successDiv.style.display = 'flex';
+            setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Check auth and load data
+        async function init() {
+            try {
+                const response = await fetch('/api/auth/profile');
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    currentUserEmail = data.user.email;
+                    
+                    // Check if admin
+                    if (!ADMIN_EMAILS.includes(data.user.email)) {
+                        // Show only the form, hide admin notice for non-admin
+                        document.getElementById('rate-form-section').style.display = 'block';
+                    }
+                    
+                    loadRatings();
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

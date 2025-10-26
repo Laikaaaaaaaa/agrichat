@@ -1088,16 +1088,11 @@
         }
 
         // ===== Mobile Sidebar Event Listeners =====
-        const toggleOpenBtn = document.getElementById('toggle-open-btn');
         const toggleCloseBtn = document.getElementById('toggle-close-btn');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-        if (toggleOpenBtn) {
-            toggleOpenBtn.addEventListener('click', openSidebar);
-        }
-
         if (toggleCloseBtn) {
-            toggleCloseBtn.addEventListener('click', closeSidebar);
+            toggleCloseBtn.addEventListener('click', toggleSidebar);
         }
 
         if (sidebarOverlay) {

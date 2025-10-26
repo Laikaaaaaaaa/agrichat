@@ -168,21 +168,23 @@
         
         .toggle-sidebar-btn {
             display: none;
-            background-color: #16a34a;
-            color: white;
-            border: 2px solid #15803d;
+            background-color: transparent;
+            color: #16a34a;
+            border: none;
             padding: 8px 12px;
-            border-radius: 8px;
+            border-radius: 0;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 20px;
             transition: all 0.2s;
             gap: 6px;
             align-items: center;
-            margin-bottom: 12px;
+            justify-content: center;
+            margin-bottom: 0;
         }
         
         .toggle-sidebar-btn:hover {
-            background-color: #15803d;
+            color: #15803d;
+            transform: scale(1.2);
         }
         
         @media (max-width: 767px) {
@@ -364,6 +366,38 @@
             transition: all 0.2s;
         }
         .icon-btn:hover { color: #1f2937; }
+        
+        /* Toggle button between sidebar and chat (desktop only) */
+        .toggle-divider-btn {
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: none;
+            border: none;
+            color: #16a34a;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 10;
+            transition: all 0.2s;
+        }
+        
+        .toggle-divider-btn:hover {
+            color: #15803d;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        
+        @media (min-width: 768px) {
+            .grid-container {
+                position: relative;
+            }
+            .toggle-divider-btn {
+                display: block;
+            }
+        }
+        
         @media (max-width: 1024px) {
             .grid-container { grid-template-columns: 1fr; }
         }
@@ -390,6 +424,11 @@
             <div id="sidebar-overlay" class="sidebar-overlay"></div>
             
             <div class="grid-container">
+                <!-- Toggle button between panels (desktop only) -->
+                <button id="toggle-divider-btn" class="toggle-divider-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                
                 <div class="conversation-list-panel" id="conversation-panel">
                     <!-- Toggle button for mobile inside the sidebar -->
                     <button id="toggle-close-btn" class="toggle-sidebar-btn">
@@ -934,16 +973,24 @@
     function openSidebar() {
         const panel = document.getElementById('conversation-panel');
         const overlay = document.getElementById('sidebar-overlay');
+        const dividerBtn = document.getElementById('toggle-divider-btn');
         if (panel) panel.classList.add('open');
         if (overlay) overlay.classList.add('active');
+        if (dividerBtn) {
+            dividerBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        }
         document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
 
     function closeSidebar() {
         const panel = document.getElementById('conversation-panel');
         const overlay = document.getElementById('sidebar-overlay');
+        const dividerBtn = document.getElementById('toggle-divider-btn');
         if (panel) panel.classList.remove('open');
         if (overlay) overlay.classList.remove('active');
+        if (dividerBtn) {
+            dividerBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        }
         document.body.style.overflow = 'auto'; // Re-enable scrolling
     }
 

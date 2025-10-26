@@ -6760,11 +6760,14 @@ def create_rating():
             # Use provided name or fall back to user's name
             rating_name = data.get('name', '') or user_name or user_email
             
+            # Get image data if provided
+            rating_image = data.get('image', None)
+            
             # Insert rating
             cursor.execute('''
-                INSERT INTO ratings (user_email, user_name, rating, title, content, created_at)
-                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ''', (user_email, rating_name, data['rating'], data['title'], data['content']))
+                INSERT INTO ratings (user_email, user_name, rating, title, content, image, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (user_email, rating_name, data['rating'], data['title'], data['content'], rating_image))
             
             conn.commit()
             rating_id = cursor.lastrowid
@@ -6813,7 +6816,7 @@ def get_ratings():
             
             # Get ratings - admin sees all, others see all (public data)
             cursor.execute('''
-                SELECT r.id, r.user_name, r.user_email, r.rating, r.title, r.content, r.created_at,
+                SELECT r.id, r.user_name, r.user_email, r.rating, r.title, r.content, r.created_at, r.image,
                        u.name, u.avatar_url
                 FROM ratings r
                 LEFT JOIN users u ON r.user_email = u.email
@@ -6822,7 +6825,7 @@ def get_ratings():
             
             ratings = []
             for row in cursor.fetchall():
-                rating_id, rating_name, rating_email, rating_val, title, content, created_at, user_name, avatar_url = row
+                rating_id, rating_name, rating_email, rating_val, title, content, created_at, image, user_name, avatar_url = row
                 ratings.append({
                     'id': rating_id,
                     'name': user_name or 'Ẩn danh',
@@ -6831,6 +6834,7 @@ def get_ratings():
                     'rating': rating_val,
                     'title': title,
                     'content': content,
+                    'image': image,
                     'date': created_at.split(' ')[0] if created_at else '',
                     'createdAt': created_at
                 })

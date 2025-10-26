@@ -289,10 +289,17 @@ def init_db():
             rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
             title TEXT NOT NULL,
             content TEXT NOT NULL,
+            image TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_email) REFERENCES users (email)
         )
     ''')
+    
+    # Add image column if it doesn't exist (for existing databases)
+    cursor.execute("PRAGMA table_info(ratings)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'image' not in columns:
+        cursor.execute('ALTER TABLE ratings ADD COLUMN image TEXT')
     
     conn.commit()
     conn.close()

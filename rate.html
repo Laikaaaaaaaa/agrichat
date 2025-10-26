@@ -371,6 +371,70 @@
             font-size: 14px;
             line-height: 1.6;
         }
+        .rating-image-container {
+            margin-top: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .rating-image-container img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .image-preview-container {
+            position: relative;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .image-preview-container img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
+        }
+        .remove-image-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+        .remove-image-btn:hover {
+            background-color: #f0fdf4;
+            transform: scale(1.1);
+        }
+        .image-upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            background-color: #f0fdf4;
+            border: 2px dashed #bbf7d0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #16a34a;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .image-upload-btn:hover {
+            border-color: #16a34a;
+            background-color: #dcfce7;
+        }
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -500,6 +564,21 @@
                         <label for="rating-content">Chia sẻ cảm nghĩ của bạn</label>
                         <textarea id="rating-content" placeholder="Bạn nghĩ gì về ứng dụng của chúng tôi?..." required></textarea>
                     </div>
+
+                    <div class="form-group">
+                        <label>Thêm ảnh (tùy chọn)</label>
+                        <div id="image-preview-area" style="display:none;" class="image-preview-container">
+                            <img id="rating-image-preview" src="" alt="Preview"/>
+                            <button type="button" class="remove-image-btn" onclick="removeRatingImage()">
+                                <i class="fas fa-times" style="color: #dc2626;"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="image-upload-btn" onclick="document.getElementById('rating-image-input').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Chọn ảnh</span>
+                        </button>
+                        <input type="file" id="rating-image-input" accept="image/*" style="display:none;" onchange="previewRatingImage(event)"/>
+                    </div>
                 </form>
             </div>
 
@@ -514,6 +593,33 @@
         const ADMIN_EMAILS = ['abc23072009@gmail.com', 'abc23072000@gmail.com'];
         let currentUserEmail = null;
         let selectedRating = 0;
+        let selectedRatingImage = null;
+
+        // Image preview functions
+        function previewRatingImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showError('Ảnh không được quá 5MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedRatingImage = e.target.result;
+                document.getElementById('rating-image-preview').src = selectedRatingImage;
+                document.getElementById('image-preview-area').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeRatingImage() {
+            selectedRatingImage = null;
+            document.getElementById('image-preview-area').style.display = 'none';
+            document.getElementById('rating-image-input').value = '';
+        }
 
         // Modal functions
         function openRatingModal() {
@@ -585,6 +691,7 @@
 
         async function submitRatingAsync() {
             const content = document.getElementById('rating-content').value;
+            const image = selectedRatingImage;
             
             try {
                 const response = await fetch('/api/ratings/create', {
@@ -594,7 +701,8 @@
                         rating: selectedRating,
                         name: currentUserEmail,
                         title: `Đánh giá ${selectedRating} sao`,
-                        content: content
+                        content: content,
+                        image: image
                     })
                 });
                 
@@ -604,7 +712,9 @@
                     showSuccess('Cảm ơn bạn đã đánh giá!');
                     document.getElementById('rate-form').reset();
                     selectedRating = 0;
+                    selectedRatingImage = null;
                     document.getElementById('selected-rating').value = 0;
+                    document.getElementById('image-preview-area').style.display = 'none';
                     document.querySelectorAll('.star').forEach(s => {
                         s.classList.remove('active');
                         s.style.color = '#d1d5db';
@@ -646,6 +756,11 @@
                             ? `<div class="avatar-placeholder">${firstLetter}</div>`
                             : '';
                         
+                        // Image display HTML
+                        const imageHTML = rating.image 
+                            ? `<div class="rating-image-container"><img src="${rating.image}" alt="Rating image"/></div>`
+                            : '';
+                        
                         return `
                         <div class="rating-card">
                             <div class="rating-header">
@@ -661,6 +776,7 @@
                             </div>
                             <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
                             <div class="rating-content">${rating.content}</div>
+                            ${imageHTML}
                         </div>
                         `;
                     }).join('');

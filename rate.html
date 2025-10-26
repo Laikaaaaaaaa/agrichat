@@ -518,6 +518,123 @@
                 max-height: 95vh;
             }
         }
+        /* Rating actions */
+        .rating-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .rating-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            transition: all 0.2s;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .rating-action-btn:hover {
+            background-color: #f0fdf4;
+            color: #16a34a;
+        }
+        .rating-action-btn.liked {
+            color: #16a34a;
+        }
+        .comments-section {
+            margin-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 12px;
+        }
+        .comments-header {
+            font-weight: 500;
+            color: #374151;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .comment-item {
+            background-color: #f9fafb;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid #bbf7d0;
+        }
+        .comment-user {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .comment-user-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #16a34a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .comment-user-name {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        .comment-user-email {
+            color: #9ca3af;
+        }
+        .comment-text {
+            font-size: 12px;
+            color: #374151;
+            line-height: 1.4;
+        }
+        .comment-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .comment-form input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .comment-form input:focus {
+            outline: none;
+            border-color: #16a34a;
+        }
+        .comment-form button {
+            padding: 6px 12px;
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .comment-form button:hover {
+            background-color: #15803d;
+        }
+        .toggle-comments-btn {
+            color: #16a34a;
+            cursor: pointer;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -755,6 +872,9 @@
                     ? `<div class="rating-image-container"><img src="${rating.image}" alt="Rating image"/></div>`
                     : '';
                 
+                const likeClass = rating.user_liked ? 'liked' : '';
+                const likeIcon = rating.user_liked ? 'fas' : 'far';
+                
                 return `
                 <div class="rating-card">
                     <div class="rating-header">
@@ -771,6 +891,26 @@
                     <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
                     <div class="rating-content">${rating.content}</div>
                     ${imageHTML}
+                    
+                    <div class="rating-actions">
+                        <button class="rating-action-btn ${likeClass}" onclick="toggleRatingLike(${rating.id}, this)">
+                            <i class="${likeIcon} fa-thumbs-up"></i>
+                            <span>${rating.likes_count || 0}</span>
+                        </button>
+                        <button class="rating-action-btn" onclick="toggleRatingComments(${rating.id})">
+                            <i class="fas fa-comment"></i>
+                            <span>${rating.comments_count || 0}</span>
+                        </button>
+                    </div>
+                    
+                    <div class="comments-section" id="comments-${rating.id}" style="display:none;">
+                        <div class="comments-header">Bình luận (${rating.comments_count || 0})</div>
+                        <div class="comments-list" id="comments-list-${rating.id}"></div>
+                        <div class="comment-form">
+                            <input type="text" placeholder="Viết bình luận..." class="comment-input" id="comment-input-${rating.id}"/>
+                            <button onclick="submitRatingComment(${rating.id})">Gửi</button>
+                        </div>
+                    </div>
                 </div>
                 `;
             }).join('');
@@ -931,6 +1071,127 @@
 
         function goToProfile(userSlug) {
             window.location.href = `profile/${userSlug}`;
+        }
+
+        // Like/Unlike functions
+        async function toggleRatingLike(ratingId, btn) {
+            try {
+                const isLiked = btn.classList.contains('liked');
+                const endpoint = isLiked ? 'unlike' : 'like';
+                
+                const response = await fetch(`/api/ratings/${ratingId}/${endpoint}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    btn.classList.toggle('liked');
+                    
+                    // Update likes count
+                    const rating = allRatings.find(r => r.id === ratingId);
+                    if (rating) {
+                        rating.user_liked = !rating.user_liked;
+                        rating.likes_count += isLiked ? -1 : 1;
+                        
+                        // Update UI
+                        const likeCount = btn.querySelector('span');
+                        likeCount.textContent = rating.likes_count;
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                showError('Lỗi khi thích đánh giá');
+            }
+        }
+
+        // Toggle comments section
+        async function toggleRatingComments(ratingId) {
+            const commentsSection = document.getElementById(`comments-${ratingId}`);
+            
+            if (commentsSection.style.display === 'none') {
+                commentsSection.style.display = 'block';
+                await loadRatingComments(ratingId);
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        }
+
+        // Load comments for rating
+        async function loadRatingComments(ratingId) {
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}/comments`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const commentsList = document.getElementById(`comments-list-${ratingId}`);
+                    
+                    if (data.comments.length === 0) {
+                        commentsList.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Chưa có bình luận</p>';
+                        return;
+                    }
+                    
+                    commentsList.innerHTML = data.comments.map(comment => {
+                        const userFirstLetter = (comment.user_name || 'A').charAt(0).toUpperCase();
+                        const avatarHTML = comment.avatar_url 
+                            ? `<img src="${comment.avatar_url}" alt="${comment.user_name}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"/>`
+                            : `<div class="comment-user-avatar">${userFirstLetter}</div>`;
+                        
+                        return `
+                        <div class="comment-item">
+                            <div class="comment-user">
+                                ${avatarHTML}
+                                <span class="comment-user-name">${comment.user_name}</span>
+                                <span class="comment-user-email">${comment.user_email}</span>
+                            </div>
+                            <div class="comment-text">${comment.content}</div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading comments:', error);
+            }
+        }
+
+        // Submit comment
+        async function submitRatingComment(ratingId) {
+            const input = document.getElementById(`comment-input-${ratingId}`);
+            const content = input.value.trim();
+            
+            if (!content) {
+                showError('Bình luận không được để trống');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    input.value = '';
+                    showSuccess('Bình luận đã được thêm');
+                    
+                    // Update comments count
+                    const rating = allRatings.find(r => r.id === ratingId);
+                    if (rating) {
+                        rating.comments_count++;
+                    }
+                    
+                    // Reload comments
+                    await loadRatingComments(ratingId);
+                } else {
+                    showError(data.message || 'Lỗi khi thêm bình luận');
+                }
+            } catch (error) {
+                console.error('Error submitting comment:', error);
+                showError('Lỗi kết nối');
+            }
         }
 
         // Check auth and load data

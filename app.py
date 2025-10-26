@@ -6824,8 +6824,24 @@ def get_ratings():
             ''')
             
             ratings = []
+            current_user_id = session['user_id']
+            
             for row in cursor.fetchall():
                 rating_id, rating_name, rating_email, rating_val, title, content, created_at, image, user_name, avatar_url = row
+                
+                # Get likes count
+                cursor.execute('SELECT COUNT(*) FROM rating_likes WHERE rating_id = ?', (rating_id,))
+                likes_count = cursor.fetchone()[0]
+                
+                # Check if user liked this rating
+                cursor.execute('SELECT COUNT(*) FROM rating_likes WHERE rating_id = ? AND user_id = ?', 
+                             (rating_id, current_user_id))
+                user_liked = cursor.fetchone()[0] > 0
+                
+                # Get comments count
+                cursor.execute('SELECT COUNT(*) FROM rating_comments WHERE rating_id = ?', (rating_id,))
+                comments_count = cursor.fetchone()[0]
+                
                 ratings.append({
                     'id': rating_id,
                     'name': user_name or 'Ẩn danh',
@@ -6835,6 +6851,9 @@ def get_ratings():
                     'title': title,
                     'content': content,
                     'image': image,
+                    'likes_count': likes_count,
+                    'user_liked': user_liked,
+                    'comments_count': comments_count,
                     'date': created_at.split(' ')[0] if created_at else '',
                     'createdAt': created_at
                 })
@@ -6898,6 +6917,157 @@ def delete_rating(rating_id):
     
     except Exception as e:
         logging.error(f"Ratings API Error: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
+
+
+@app.route('/api/ratings/<int:rating_id>/like', methods=['POST'])
+def like_rating(rating_id):
+    """Like a rating"""
+    try:
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+        
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            # Check if rating exists
+            cursor.execute('SELECT id FROM ratings WHERE id = ?', (rating_id,))
+            if not cursor.fetchone():
+                return jsonify({'success': False, 'message': 'Đánh giá không tồn tại'}), 404
+            
+            # Add like
+            cursor.execute('''
+                INSERT OR IGNORE INTO rating_likes (user_id, rating_id, created_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            ''', (session['user_id'], rating_id))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Đã thích'}), 201
+            
+        except Exception as e:
+            logging.error(f"Error liking rating: {e}")
+            return jsonify({'success': False, 'message': 'Lỗi khi thích'}), 500
+    
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
+
+
+@app.route('/api/ratings/<int:rating_id>/unlike', methods=['POST'])
+def unlike_rating(rating_id):
+    """Unlike a rating"""
+    try:
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+        
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('DELETE FROM rating_likes WHERE user_id = ? AND rating_id = ?', 
+                         (session['user_id'], rating_id))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Bỏ thích'}), 200
+            
+        except Exception as e:
+            logging.error(f"Error unliking rating: {e}")
+            return jsonify({'success': False, 'message': 'Lỗi khi bỏ thích'}), 500
+    
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
+
+
+@app.route('/api/ratings/<int:rating_id>/comment', methods=['POST'])
+def comment_rating(rating_id):
+    """Add comment to a rating"""
+    try:
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+        
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({'success': False, 'message': 'Bình luận không được để trống'}), 400
+        
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            # Check if rating exists
+            cursor.execute('SELECT id FROM ratings WHERE id = ?', (rating_id,))
+            if not cursor.fetchone():
+                return jsonify({'success': False, 'message': 'Đánh giá không tồn tại'}), 404
+            
+            # Add comment
+            cursor.execute('''
+                INSERT INTO rating_comments (user_id, rating_id, content, created_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (session['user_id'], rating_id, content))
+            
+            conn.commit()
+            comment_id = cursor.lastrowid
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Bình luận đã được thêm', 'comment_id': comment_id}), 201
+            
+        except Exception as e:
+            logging.error(f"Error adding comment: {e}")
+            return jsonify({'success': False, 'message': 'Lỗi khi thêm bình luận'}), 500
+    
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
+
+
+@app.route('/api/ratings/<int:rating_id>/comments', methods=['GET'])
+def get_rating_comments(rating_id):
+    """Get comments for a rating"""
+    try:
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+        
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT rc.id, rc.content, rc.created_at, u.id, u.name, u.email, u.avatar_url
+                FROM rating_comments rc
+                JOIN users u ON rc.user_id = u.id
+                WHERE rc.rating_id = ?
+                ORDER BY rc.created_at ASC
+            ''', (rating_id,))
+            
+            comments = []
+            for row in cursor.fetchall():
+                comments.append({
+                    'id': row[0],
+                    'content': row[1],
+                    'created_at': row[2],
+                    'user_id': row[3],
+                    'user_name': row[4],
+                    'user_email': row[5],
+                    'avatar_url': row[6]
+                })
+            
+            conn.close()
+            
+            return jsonify({'success': True, 'comments': comments}), 200
+            
+        except Exception as e:
+            logging.error(f"Error fetching comments: {e}")
+            return jsonify({'success': False, 'message': 'Lỗi khi tải bình luận'}), 500
+    
+    except Exception as e:
+        logging.error(f"Error: {e}")
         return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
 
 if __name__ == '__main__':

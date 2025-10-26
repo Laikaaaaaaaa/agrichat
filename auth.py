@@ -301,6 +301,32 @@ def init_db():
     if 'image' not in columns:
         cursor.execute('ALTER TABLE ratings ADD COLUMN image TEXT')
     
+    # Rating likes table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rating_likes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            rating_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (rating_id) REFERENCES ratings (id),
+            UNIQUE(user_id, rating_id)
+        )
+    ''')
+    
+    # Rating comments table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rating_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            rating_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (rating_id) REFERENCES ratings (id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 

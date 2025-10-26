@@ -134,6 +134,80 @@
             height: 100%;
             flex: 1;
         }
+        
+        /* Mobile responsive grid */
+        @media (max-width: 767px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            
+            .conversation-list-panel {
+                position: fixed;
+                left: 0;
+                top: 80px;
+                width: 280px;
+                height: calc(100vh - 80px);
+                z-index: 1000;
+                border-radius: 0;
+                border: none;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            }
+            
+            .conversation-list-panel.open {
+                transform: translateX(0);
+            }
+            
+            .chat-panel {
+                width: 100%;
+                height: 100%;
+            }
+        }
+        
+        .toggle-sidebar-btn {
+            display: none;
+            background-color: #16a34a;
+            color: white;
+            border: 2px solid #15803d;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .toggle-sidebar-btn:hover {
+            background-color: #15803d;
+        }
+        
+        @media (max-width: 767px) {
+            .toggle-sidebar-btn {
+                display: flex;
+            }
+        }
+        
+        /* Overlay for mobile */
+        @media (max-width: 767px) {
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 80px;
+                left: 0;
+                width: 100%;
+                height: calc(100vh - 80px);
+                background-color: rgba(0,0,0,0.3);
+                z-index: 999;
+            }
+            
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
         .conversation-list-panel, .chat-panel {
             background: white;
             border-radius: 12px;
@@ -312,8 +386,16 @@
 
     <main>
         <div class="main-content">
+            <!-- Sidebar overlay for mobile -->
+            <div id="sidebar-overlay" class="sidebar-overlay"></div>
+            
             <div class="grid-container">
-                <div class="conversation-list-panel custom-scrollbar">
+                <div class="conversation-list-panel" id="conversation-panel">
+                    <!-- Toggle button for mobile inside the sidebar -->
+                    <button id="toggle-close-btn" class="toggle-sidebar-btn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    
                     <div class="panel-header">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                             <div class="panel-title">
@@ -338,6 +420,11 @@
                 </div>
                 
                 <div class="chat-panel">
+                    <!-- Toggle button for mobile in header -->
+                    <button id="toggle-open-btn" class="toggle-sidebar-btn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    
                     <div class="panel-header">
                         <div id="chat-header">
                             <div>
@@ -843,6 +930,32 @@
         window.location.href = 'index.html';
     }
 
+    // ===== Mobile Sidebar Toggle Functions =====
+    function openSidebar() {
+        const panel = document.getElementById('conversation-panel');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (panel) panel.classList.add('open');
+        if (overlay) overlay.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling
+    }
+
+    function closeSidebar() {
+        const panel = document.getElementById('conversation-panel');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (panel) panel.classList.remove('open');
+        if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = 'auto'; // Re-enable scrolling
+    }
+
+    function toggleSidebar() {
+        const panel = document.getElementById('conversation-panel');
+        if (panel && panel.classList.contains('open')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    }
+
     function continueConversation() {
         const chatHistoryManager = window.chatHistoryManager;
         if (chatHistoryManager && chatHistoryManager.selectedConversationId) {
@@ -873,6 +986,37 @@
             console.error('❌ Lỗi kiểm tra auth:', error);
             window.location.href = '/login';
         }
+
+        // ===== Mobile Sidebar Event Listeners =====
+        const toggleOpenBtn = document.getElementById('toggle-open-btn');
+        const toggleCloseBtn = document.getElementById('toggle-close-btn');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        if (toggleOpenBtn) {
+            toggleOpenBtn.addEventListener('click', openSidebar);
+        }
+
+        if (toggleCloseBtn) {
+            toggleCloseBtn.addEventListener('click', closeSidebar);
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', closeSidebar);
+        }
+
+        // Close sidebar on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+
+        // Close sidebar when resizing to desktop view
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                closeSidebar();
+            }
+        });
     });
     </script>
 </body>

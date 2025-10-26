@@ -328,7 +328,7 @@
                 <span>Đánh giá trang web</span>
             </div>
 
-            <div class="admin-only-notice">
+            <div class="admin-only-notice" style="display: none;">
                 <i class="fas fa-shield-alt"></i>
                 <div>
                     <strong>Khu vực Admin</strong>
@@ -548,13 +548,6 @@
                 
                 if (data.success && data.user) {
                     currentUserEmail = data.user.email;
-                    
-                    // Check if admin
-                    if (!ADMIN_EMAILS.includes(data.user.email)) {
-                        // Show only the form, hide admin notice for non-admin
-                        document.getElementById('rate-form-section').style.display = 'block';
-                    }
-                    
                     loadRatings();
                 } else {
                     window.location.href = '/login';

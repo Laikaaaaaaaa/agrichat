@@ -200,6 +200,12 @@
             display: inline-block;
         }
         
+        @media (max-width: 767px) {
+            .toggle-sidebar-btn {
+                display: flex !important;
+            }
+        }
+        
         @media (min-width: 768px) {
             .toggle-sidebar-btn {
                 display: none !important;
@@ -245,32 +251,6 @@
             .toggle-divider-btn {
                 display: block;
             }
-        }
-        
-        /* Explicit styling for mobile close button */
-        #toggle-close-btn {
-            display: flex !important;
-            position: fixed !important;
-            left: 12px !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            background-color: white !important;
-            color: #16a34a !important;
-            border: 2px solid #16a34a !important;
-            padding: 10px !important;
-            border-radius: 8px !important;
-            cursor: pointer !important;
-            font-size: 18px !important;
-            z-index: 100 !important;
-            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15) !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        #toggle-close-btn:hover {
-            color: #15803d !important;
-            border-color: #15803d !important;
-            box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25) !important;
-            transform: translateY(calc(-50% - 3px)) !important;
         }
         
         /* Overlay for mobile */

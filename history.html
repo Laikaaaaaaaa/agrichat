@@ -440,12 +440,12 @@
 
     <!-- Toggle button at left screen edge (desktop 1025px+) -->
     <button id="toggle-divider-btn" class="toggle-divider-btn" onclick="toggleSidebar()">
-        <i class="fas fa-chevrons-right"></i>
+        ⟩⟩
     </button>
 
     <!-- Toggle button at left screen edge for mobile -->
     <button id="toggle-close-btn" class="toggle-sidebar-btn" onclick="toggleSidebar()">
-        <i class="fas fa-chevrons-right"></i>
+        ⟩⟩
     </button>
 
     <main>
@@ -1001,9 +1001,9 @@
             closeBtn.style.left = '292px';
         }
         
-        // Update icon for both buttons to << (chevrons-left)
-        if (closeBtn) closeBtn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
-        if (dividerBtn) dividerBtn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
+        // Update text for both buttons to << (left arrows)
+        if (closeBtn) closeBtn.textContent = '⟨⟨';
+        if (dividerBtn) dividerBtn.textContent = '⟨⟨';
         
         document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
@@ -1022,9 +1022,9 @@
             closeBtn.style.left = '12px';
         }
         
-        // Update icon for both buttons to >> (chevrons-right)
-        if (closeBtn) closeBtn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
-        if (dividerBtn) dividerBtn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
+        // Update text for both buttons to >> (right arrows)
+        if (closeBtn) closeBtn.textContent = '⟩⟩';
+        if (dividerBtn) dividerBtn.textContent = '⟩⟩';
         
         document.body.style.overflow = 'auto'; // Re-enable scrolling
     }

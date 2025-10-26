@@ -305,18 +305,61 @@
         }
         .rating-header {
             display: flex;
-            justify-content: space-between;
+            gap: 12px;
             align-items: flex-start;
             margin-bottom: 12px;
         }
-        .rating-user {
-            font-weight: 500;
+        .rating-user-avatar {
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .rating-user-avatar img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #dcfce7;
+        }
+        .rating-user-avatar .avatar-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #16a34a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            border: 2px solid #dcfce7;
+        }
+        .rating-user-avatar:hover {
+            transform: scale(1.05);
+        }
+        .rating-user-info {
+            flex: 1;
+        }
+        .rating-user-name {
+            font-weight: 600;
             color: #1f2937;
             font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .rating-user-name:hover {
+            color: #16a34a;
+        }
+        .rating-user-email {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 2px;
         }
         .rating-date {
             font-size: 12px;
             color: #9ca3af;
+            margin-left: auto;
+            white-space: nowrap;
         }
         .rating-stars {
             color: #fbbf24;
@@ -588,18 +631,39 @@
                 
                 if (data.success && data.ratings.length > 0) {
                     const container = document.getElementById('ratings-container');
-                    container.innerHTML = data.ratings.map(rating => `
+                    container.innerHTML = data.ratings.map(rating => {
+                        // Get first letter of user name for avatar placeholder
+                        const userName = rating.name || 'A';
+                        const firstLetter = userName.charAt(0).toUpperCase();
+                        const userEmail = rating.email || '';
+                        const userSlug = userEmail.split('@')[0];
+                        
+                        // Avatar HTML
+                        const avatarHTML = rating.avatar_url 
+                            ? `<img src="${rating.avatar_url}" alt="${userName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>`
+                            : '';
+                        const placeholderHTML = !rating.avatar_url 
+                            ? `<div class="avatar-placeholder">${firstLetter}</div>`
+                            : '';
+                        
+                        return `
                         <div class="rating-card">
                             <div class="rating-header">
-                                <div>
-                                    <div class="rating-user">${rating.name}</div>
-                                    <div class="rating-date">${new Date(rating.createdAt).toLocaleDateString('vi-VN')}</div>
+                                <div class="rating-user-avatar" onclick="goToProfile('${userSlug}')">
+                                    ${avatarHTML}
+                                    ${placeholderHTML}
                                 </div>
+                                <div class="rating-user-info">
+                                    <div class="rating-user-name" onclick="goToProfile('${userSlug}')">${userName}</div>
+                                    <div class="rating-user-email">${userEmail}</div>
+                                </div>
+                                <div class="rating-date">${new Date(rating.createdAt).toLocaleDateString('vi-VN')}</div>
                             </div>
                             <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
                             <div class="rating-content">${rating.content}</div>
                         </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 }
             } catch (error) {
                 console.error('Lỗi khi tải đánh giá:', error);
@@ -622,6 +686,10 @@
 
         function goBack() {
             window.location.href = 'index.html';
+        }
+
+        function goToProfile(userSlug) {
+            window.location.href = `profile/${userSlug}`;
         }
 
         // Check auth and load data

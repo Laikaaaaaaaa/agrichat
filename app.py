@@ -6813,17 +6813,21 @@ def get_ratings():
             
             # Get ratings - admin sees all, others see all (public data)
             cursor.execute('''
-                SELECT id, user_name, rating, title, content, created_at
-                FROM ratings
-                ORDER BY created_at DESC
+                SELECT r.id, r.user_name, r.user_email, r.rating, r.title, r.content, r.created_at,
+                       u.name, u.avatar_url
+                FROM ratings r
+                LEFT JOIN users u ON r.user_email = u.email
+                ORDER BY r.created_at DESC
             ''')
             
             ratings = []
             for row in cursor.fetchall():
-                rating_id, rating_name, rating_val, title, content, created_at = row
+                rating_id, rating_name, rating_email, rating_val, title, content, created_at, user_name, avatar_url = row
                 ratings.append({
                     'id': rating_id,
-                    'name': rating_name or 'Ẩn danh',
+                    'name': user_name or 'Ẩn danh',
+                    'email': rating_email,
+                    'avatar_url': avatar_url,
                     'rating': rating_val,
                     'title': title,
                     'content': content,

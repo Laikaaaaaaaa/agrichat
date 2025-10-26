@@ -1070,6 +1070,7 @@
 
         <!-- Danger Zone -->
         <div class="pt-2">
+          <h4 class="text-sm font-semibold text-red-600 px-4 py-2 uppercase tracking-wide">TÀI KHOẢN</h4>
           <button onclick="logoutUser()" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded transition-colors text-left">
             <i class="fas fa-sign-out-alt text-red-600 w-5"></i>
             <div class="flex-1">
@@ -1253,6 +1254,7 @@
     let selectedImage = null;
     let mentionedUsers = [];
     let hashtags = [];
+    let userPosts = [];  // Store user posts for access in edit modal
     
     // Helper function to make API calls with credentials
     function apiCall(url, options = {}) {
@@ -2107,7 +2109,7 @@
         const data = await response.json();
         
         if (data.success) {
-          const userPosts = data.posts.filter(post => post.user_id === userId);
+          userPosts = data.posts.filter(post => post.user_id === userId);
           document.getElementById('posts-count').textContent = userPosts.length;
           
           const container = document.getElementById('user-posts-container');
@@ -2206,7 +2208,7 @@
       const profileUrl = getProfileUrl(post.user_id, post.username_slug);
       
       return `
-        <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-shadow post-card mb-2 sm:mb-4">
+        <div class="bg-white rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-shadow post-card mb-2 sm:mb-4" data-post-id="${post.id}">
           <!-- Post Header -->
           <div class="p-2.5 sm:p-4 flex items-center justify-between">
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -2459,13 +2461,15 @@
     
     // Edit post modal
     function editPostModal(postId) {
-      // Find post from rendered posts
-      const postCard = document.querySelector(`[data-post-id="${postId}"]`) || 
-                       document.querySelector(`[data-id="${postId}"]`);
-      if (!postCard) return;
+      // Find post from userPosts array
+      const post = userPosts.find(p => p.id === postId);
+      if (!post) {
+        console.error('Post not found:', postId);
+        return;
+      }
       
-      const contentEl = postCard.querySelector('.post-content, .rating-content, p[style*="whitespace"]');
-      const currentContent = contentEl ? contentEl.textContent : '';
+      // Get content from post object
+      const currentContent = post.content || post.description || '';
       
       // Store postId for use in submitEditPost
       window.currentEditPostId = postId;
@@ -2475,7 +2479,8 @@
       document.getElementById('edit-post-modal').classList.add('active');
       
       // Close menu
-      document.getElementById(`menu-${postId}`).classList.remove('show');
+      const menu = document.getElementById(`menu-${postId}`);
+      if (menu) menu.classList.remove('show');
     }
     
     // Close edit post modal

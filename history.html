@@ -1002,15 +1002,8 @@
         }
         
         // Update icon for both buttons to << (chevrons-left)
-        [closeBtn, dividerBtn].forEach(btn => {
-            if (btn) {
-                const icon = btn.querySelector('i');
-                if (icon) {
-                    icon.classList.remove('fa-chevrons-right');
-                    icon.classList.add('fa-chevrons-left');
-                }
-            }
-        });
+        if (closeBtn) closeBtn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
+        if (dividerBtn) dividerBtn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
         
         document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
@@ -1030,15 +1023,8 @@
         }
         
         // Update icon for both buttons to >> (chevrons-right)
-        [closeBtn, dividerBtn].forEach(btn => {
-            if (btn) {
-                const icon = btn.querySelector('i');
-                if (icon) {
-                    icon.classList.remove('fa-chevrons-left');
-                    icon.classList.add('fa-chevrons-right');
-                }
-            }
-        });
+        if (closeBtn) closeBtn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
+        if (dividerBtn) dividerBtn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
         
         document.body.style.overflow = 'auto'; // Re-enable scrolling
     }

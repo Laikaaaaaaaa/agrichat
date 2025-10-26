@@ -52,6 +52,20 @@ cursor.execute('''
     )
 ''')
 
+# Create ratings table for website feedback
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_email TEXT NOT NULL,
+        user_name TEXT,
+        rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_email) REFERENCES users (email)
+    )
+''')
+
 conn.commit()
 conn.close()
 

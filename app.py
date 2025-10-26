@@ -4902,6 +4902,12 @@ def forum():
     return send_from_directory(HERE, 'forum.html')
 
 
+@app.route('/rate')
+def rate():
+    """Trang đánh giá trang web"""
+    return send_from_directory(HERE, 'rate.html')
+
+
 
 
 @app.route('/map_vietnam')
@@ -6710,6 +6716,181 @@ def api_get_feed():
             'success': False,
             'error': str(e)
         }), 500
+
+
+# ==================== RATINGS API ====================
+
+@app.route('/api/ratings/create', methods=['POST'])
+def create_rating():
+    """Create a new website rating/review"""
+    try:
+        # Check if user is authenticated
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+        
+        data = request.get_json()
+        
+        # Validation
+        if not data.get('rating'):
+            return jsonify({'success': False, 'message': 'Vui lòng chọn số sao'}), 400
+        
+        if not isinstance(data.get('rating'), int) or data['rating'] < 1 or data['rating'] > 5:
+            return jsonify({'success': False, 'message': 'Số sao phải từ 1-5'}), 400
+        
+        if not data.get('title'):
+            return jsonify({'success': False, 'message': 'Vui lòng nhập tiêu đề'}), 400
+        
+        if not data.get('content'):
+            return jsonify({'success': False, 'message': 'Vui lòng nhập nội dung'}), 400
+        
+        # Get user email from session
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT email, name FROM users WHERE id = ?', (session['user_id'],))
+            user_row = cursor.fetchone()
+            
+            if not user_row:
+                return jsonify({'success': False, 'message': 'Người dùng không tồn tại'}), 404
+            
+            user_email = user_row[0]
+            user_name = user_row[1]
+            
+            # Use provided name or fall back to user's name
+            rating_name = data.get('name', '') or user_name or user_email
+            
+            # Insert rating
+            cursor.execute('''
+                INSERT INTO ratings (user_email, user_name, rating, title, content, created_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (user_email, rating_name, data['rating'], data['title'], data['content']))
+            
+            conn.commit()
+            rating_id = cursor.lastrowid
+            conn.close()
+            
+            logging.info(f"✅ Rating created by {user_email}: {rating_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Cảm ơn bạn đã đánh giá!',
+                'rating_id': rating_id
+            }), 201
+            
+        except Exception as e:
+            logging.error(f"Error creating rating: {e}")
+            return jsonify({'success': False, 'message': 'Lỗi khi lưu đánh giá'}), 500
+    
+    except Exception as e:
+        logging.error(f"Ratings API Error: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
+
+
+@app.route('/api/ratings/list', methods=['GET'])
+def get_ratings():
+    """Get all ratings (only for authenticated users, admin sees all)"""
+    try:
+        # Check if user is authenticated
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+        
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            # Check if user is admin
+            ADMIN_EMAILS = ['abc23072009@gmail.com', 'abc23072000@gmail.com']
+            
+            cursor.execute('SELECT email FROM users WHERE id = ?', (session['user_id'],))
+            user_row = cursor.fetchone()
+            
+            if not user_row:
+                return jsonify({'success': False, 'message': 'Người dùng không tồn tại'}), 404
+            
+            user_email = user_row[0]
+            is_admin = user_email in ADMIN_EMAILS
+            
+            # Get ratings - admin sees all, others see all (public data)
+            cursor.execute('''
+                SELECT id, user_name, rating, title, content, created_at
+                FROM ratings
+                ORDER BY created_at DESC
+            ''')
+            
+            ratings = []
+            for row in cursor.fetchall():
+                rating_id, rating_name, rating_val, title, content, created_at = row
+                ratings.append({
+                    'id': rating_id,
+                    'name': rating_name or 'Ẩn danh',
+                    'rating': rating_val,
+                    'title': title,
+                    'content': content,
+                    'date': created_at.split(' ')[0] if created_at else '',
+                    'createdAt': created_at
+                })
+            
+            conn.close()
+            
+            logging.info(f"✅ Fetched {len(ratings)} ratings")
+            
+            return jsonify({
+                'success': True,
+                'ratings': ratings,
+                'count': len(ratings),
+                'isAdmin': is_admin
+            }), 200
+            
+        except Exception as e:
+            logging.error(f"Error fetching ratings: {e}")
+            return jsonify({'success': False, 'message': 'Lỗi khi tải đánh giá'}), 500
+    
+    except Exception as e:
+        logging.error(f"Ratings API Error: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
+
+
+@app.route('/api/ratings/delete/<int:rating_id>', methods=['DELETE'])
+def delete_rating(rating_id):
+    """Delete a rating (admin only)"""
+    try:
+        # Check if user is authenticated
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+        
+        # Check if user is admin
+        ADMIN_EMAILS = ['abc23072009@gmail.com', 'abc23072000@gmail.com']
+        
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT email FROM users WHERE id = ?', (session['user_id'],))
+            user_row = cursor.fetchone()
+            
+            if not user_row or user_row[0] not in ADMIN_EMAILS:
+                return jsonify({'success': False, 'message': 'Chỉ quản trị viên có quyền xóa'}), 403
+            
+            # Delete rating
+            cursor.execute('DELETE FROM ratings WHERE id = ?', (rating_id,))
+            conn.commit()
+            conn.close()
+            
+            logging.info(f"✅ Rating deleted by {user_row[0]}: {rating_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Đánh giá đã được xóa'
+            }), 200
+            
+        except Exception as e:
+            logging.error(f"Error deleting rating: {e}")
+            return jsonify({'success': False, 'message': 'Lỗi khi xóa đánh giá'}), 500
+    
+    except Exception as e:
+        logging.error(f"Ratings API Error: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
 
 if __name__ == '__main__':
     run_local()

@@ -2177,29 +2177,25 @@
           
           <!-- Comments Section (Hidden by default) -->
           <div id="comments-${post.id}" class="hidden border-t border-gray-100 bg-gray-50">
-            <div class="p-4">
-              <div class="flex items-start gap-3 mb-3">
-                <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                  ${currentUserId ? 'U' : '?'}
-                </div>
-                <div class="flex-1">
-                  <textarea 
-                    id="comment-input-${post.id}"
-                    placeholder="Viết bình luận..." 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
-                    rows="2"
-                  ></textarea>
-                  <button 
-                    onclick="submitForumComment(${post.id})" 
-                    class="mt-2 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                  >
-                    Gửi
-                  </button>
-                </div>
+            <!-- Comment Input -->
+            <div class="p-3 sm:p-4 border-b border-gray-200">
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  id="comment-input-${post.id}"
+                  placeholder="Viết bình luận..." 
+                  class="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-green-600 text-sm sm:text-base"
+                  onkeypress="if(event.key==='Enter') submitForumComment(${post.id})"
+                />
+                <button onclick="submitForumComment(${post.id})" class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors flex-shrink-0">
+                  <i class="fas fa-paper-plane text-sm"></i>
+                </button>
               </div>
-              <div id="comments-list-${post.id}" class="space-y-3">
-                <p class="text-center text-gray-500 text-sm py-4">Đang tải bình luận...</p>
-              </div>
+            </div>
+            
+            <!-- Comments List -->
+            <div id="comments-list-${post.id}" class="space-y-3 p-3 sm:p-4">
+              <p class="text-center text-gray-500 text-sm py-4">Đang tải bình luận...</p>
             </div>
           </div>
         </div>

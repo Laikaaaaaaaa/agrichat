@@ -863,23 +863,25 @@
             console.log('Response status:', response.status);
             console.log('Response ok:', response.ok);
             
-            if (!response.ok || response.status === 401 || response.status === 403) {
-                console.warn('⚠️ Chưa đăng nhập hoặc hết phiên, redirect tới login...');
-                console.warn('Response:', response.status, response.statusText);
+            // First check HTTP status
+            if (response.status === 401 || response.status === 403) {
+                console.warn('⚠️ Chưa đăng nhập hoặc hết phiên (HTTP ' + response.status + '), redirect tới login...');
                 window.location.href = '/login';
                 return;
             }
             
+            // Then parse and check response data
             const data = await response.json();
             console.log('Auth response data:', data);
             
-            if (!data || !data.user) {
-                console.warn('⚠️ Không tìm thấy user, redirect tới login...');
+            // Check if response was successful
+            if (!data.success || !data.user) {
+                console.warn('⚠️ Không tìm thấy user hoặc error:', data.message);
                 window.location.href = '/login';
                 return;
             }
             
-            console.log('✅ User đã xác thực:', data.user);
+            console.log('✅ User đã xác thực:', data.user.email);
             new ChatHistoryManager();
             
         } catch (error) {

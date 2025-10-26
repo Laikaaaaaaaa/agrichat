@@ -87,6 +87,77 @@
       color: #16a34a;
     }
     
+    /* Post menu dropdown */
+    .post-menu-btn {
+      background: none;
+      border: none;
+      padding: 0.25rem;
+      cursor: pointer;
+      color: #9ca3af;
+      transition: color 0.2s;
+      position: relative;
+    }
+    
+    .post-menu-btn:hover {
+      color: #374151;
+    }
+    
+    .post-menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      min-width: 200px;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      margin-top: 0.5rem;
+    }
+    
+    .post-menu-dropdown.show {
+      display: flex;
+    }
+    
+    .post-menu-item {
+      padding: 0.75rem 1rem;
+      border: none;
+      background: none;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: #374151;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+    }
+    
+    .post-menu-item:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .post-menu-item:last-child {
+      border-radius: 0 0 8px 8px;
+    }
+    
+    .post-menu-item:hover {
+      background-color: #f3f4f6;
+    }
+    
+    .post-menu-item.delete:hover {
+      background-color: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .post-menu-item i {
+      width: 1rem;
+      text-align: center;
+    }
+    
     .modal {
       display: none;
       position: fixed;
@@ -783,11 +854,28 @@
                 <i class="far fa-clock mr-1"></i>${timeAgo}
               </p>
             </div>
-            ${currentUser && currentUser.id === post.user_id ? `
-              <button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0">
-                <i class="fas fa-trash text-sm"></i>
+            <!-- Post menu -->
+            <div class="relative" style="flex-shrink: 0;">
+              <button onclick="togglePostMenu(event, ${post.id})" class="post-menu-btn" title="Thêm tùy chọn">
+                <i class="fas fa-ellipsis-v"></i>
               </button>
-            ` : ''}
+              <div class="post-menu-dropdown" id="menu-${post.id}">
+                <button onclick="reportPost(${post.id})" class="post-menu-item">
+                  <i class="fas fa-flag"></i>
+                  <span>Báo cáo</span>
+                </button>
+                ${currentUser && currentUser.id === post.user_id ? `
+                  <button onclick="editPostModal(${post.id})" class="post-menu-item">
+                    <i class="fas fa-edit"></i>
+                    <span>Chỉnh sửa</span>
+                  </button>
+                  <button onclick="deletePost(${post.id})" class="post-menu-item delete">
+                    <i class="fas fa-trash"></i>
+                    <span>Xóa</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
           </div>
           
           <!-- Post Content -->
@@ -1560,6 +1648,97 @@
       }
     }
     
+    // Toggle post menu dropdown
+    function togglePostMenu(event, postId) {
+      event.stopPropagation();
+      const menu = document.getElementById(`menu-${postId}`);
+      
+      // Close all other menus
+      document.querySelectorAll('.post-menu-dropdown.show').forEach(m => {
+        if (m !== menu) m.classList.remove('show');
+      });
+      
+      menu.classList.toggle('show');
+    }
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
+        menu.classList.remove('show');
+      });
+    });
+    
+    // Report post
+    async function reportPost(postId) {
+      const reason = prompt('Vui lòng cho biết lý do báo cáo:\n1. Spam\n2. Nội dung không phù hợp\n3. Lừa đảo\n4. Khác');
+      
+      if (!reason) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm.', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi báo cáo bài viết', 'error');
+        }
+      } catch (error) {
+        console.error('Error reporting post:', error);
+        showAlert('Có lỗi xảy ra', 'error');
+      }
+      
+      // Close menu
+      document.getElementById(`menu-${postId}`).classList.remove('show');
+    }
+    
+    // Edit post modal
+    function editPostModal(postId) {
+      const post = allPosts.find(p => p.id === postId);
+      if (!post) return;
+      
+      const editContent = prompt('Chỉnh sửa bài viết:', post.content);
+      if (editContent === null) return;
+      
+      updatePost(postId, editContent);
+      
+      // Close menu
+      document.getElementById(`menu-${postId}`).classList.remove('show');
+    }
+    
+    // Update post
+    async function updatePost(postId, content) {
+      if (!content.trim()) {
+        showAlert('Nội dung không thể trống', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadPosts();
+          showAlert('Cập nhật bài viết thành công!', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi cập nhật bài viết', 'error');
+        }
+      } catch (error) {
+        console.error('Error updating post:', error);
+        showAlert('Có lỗi xảy ra', 'error');
+      }
+    }
+    
     // Delete post
     async function deletePost(postId) {
       if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
@@ -1578,6 +1757,10 @@
       } catch (error) {
         console.error('Error deleting post:', error);
       }
+      
+      // Close menu
+      const menu = document.getElementById(`menu-${postId}`);
+      if (menu) menu.classList.remove('show');
     }
     
     // Delete comment

@@ -1030,6 +1030,12 @@
         const closeBtn = document.getElementById('toggle-close-btn');
         if (panel) panel.classList.add('open');
         if (overlay) overlay.classList.add('active');
+        
+        // Di chuyển nút theo sidebar
+        if (closeBtn) {
+            closeBtn.style.left = '292px';
+        }
+        
         if (dividerBtn) {
             const icon = dividerBtn.querySelector('i');
             if (icon) {
@@ -1060,6 +1066,12 @@
         const closeBtn = document.getElementById('toggle-close-btn');
         if (panel) panel.classList.remove('open');
         if (overlay) overlay.classList.remove('active');
+        
+        // Kéo nút lại vị trí cũ
+        if (closeBtn) {
+            closeBtn.style.left = '12px';
+        }
+        
         if (dividerBtn) {
             const icon = dividerBtn.querySelector('i');
             if (icon) {

@@ -992,6 +992,7 @@
         const overlay = document.getElementById('sidebar-overlay');
         const dividerBtn = document.getElementById('toggle-divider-btn');
         const closeBtn = document.getElementById('toggle-close-btn');
+        
         if (panel) panel.classList.add('open');
         if (overlay) overlay.classList.add('active');
         
@@ -1000,16 +1001,13 @@
             closeBtn.style.left = '292px';
         }
         
-        // Update both buttons' icons to <<
+        // Update icon for both buttons to << (chevrons-left)
         [closeBtn, dividerBtn].forEach(btn => {
             if (btn) {
                 const icon = btn.querySelector('i');
                 if (icon) {
-                    icon.style.transform = 'rotateY(360deg)';
-                    setTimeout(() => {
-                        btn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
-                        btn.querySelector('i').style.transform = 'rotateY(0deg)';
-                    }, 150);
+                    icon.classList.remove('fa-chevrons-right');
+                    icon.classList.add('fa-chevrons-left');
                 }
             }
         });
@@ -1022,6 +1020,7 @@
         const overlay = document.getElementById('sidebar-overlay');
         const dividerBtn = document.getElementById('toggle-divider-btn');
         const closeBtn = document.getElementById('toggle-close-btn');
+        
         if (panel) panel.classList.remove('open');
         if (overlay) overlay.classList.remove('active');
         
@@ -1030,16 +1029,13 @@
             closeBtn.style.left = '12px';
         }
         
-        // Update both buttons' icons to >>
+        // Update icon for both buttons to >> (chevrons-right)
         [closeBtn, dividerBtn].forEach(btn => {
             if (btn) {
                 const icon = btn.querySelector('i');
                 if (icon) {
-                    icon.style.transform = 'rotateY(360deg)';
-                    setTimeout(() => {
-                        btn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
-                        btn.querySelector('i').style.transform = 'rotateY(0deg)';
-                    }, 150);
+                    icon.classList.remove('fa-chevrons-left');
+                    icon.classList.add('fa-chevrons-right');
                 }
             }
         });
@@ -1088,12 +1084,7 @@
         }
 
         // ===== Mobile Sidebar Event Listeners =====
-        const toggleCloseBtn = document.getElementById('toggle-close-btn');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
-
-        if (toggleCloseBtn) {
-            toggleCloseBtn.addEventListener('click', toggleSidebar);
-        }
 
         if (sidebarOverlay) {
             sidebarOverlay.addEventListener('click', closeSidebar);

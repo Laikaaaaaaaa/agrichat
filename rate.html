@@ -77,18 +77,6 @@
                 height: 56px;
             }
         }
-        .header-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
-            display: none;
-        }
-        @media (min-width: 768px) {
-            .header-title {
-                display: inline;
-                font-size: 18px;
-            }
-        }
         .header-right {
             display: flex;
             gap: 8px;
@@ -117,11 +105,18 @@
             max-width: 1200px;
             margin: 0 auto;
         }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
         .page-title {
             font-size: 24px;
             font-weight: bold;
             color: #1f2937;
-            margin-bottom: 24px;
             display: flex;
             gap: 12px;
             align-items: center;
@@ -129,13 +124,89 @@
         .page-title i {
             color: #16a34a;
         }
-        .rate-form-container {
+        .new-rating-btn {
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .new-rating-btn:hover {
+            background-color: #15803d;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
             background: white;
             border-radius: 12px;
-            border: 1px solid #e5e7eb;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #dcfce7;
+        }
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .modal-close:hover {
+            color: #1f2937;
+        }
+        .modal-body {
             padding: 24px;
-            margin-bottom: 32px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         .form-group {
             margin-bottom: 20px;
@@ -147,7 +218,6 @@
             margin-bottom: 8px;
             font-size: 14px;
         }
-        .form-group input,
         .form-group textarea {
             width: 100%;
             padding: 10px 12px;
@@ -156,16 +226,13 @@
             font-family: inherit;
             font-size: 14px;
             transition: all 0.2s;
+            resize: vertical;
+            min-height: 100px;
         }
-        .form-group input:focus,
         .form-group textarea:focus {
             outline: none;
             border-color: #16a34a;
             box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
-        }
-        .form-group textarea {
-            resize: vertical;
-            min-height: 120px;
         }
         .star-rating {
             display: flex;
@@ -187,25 +254,40 @@
             color: #6b7280;
             margin-top: 8px;
         }
-        .submit-btn {
-            background-color: #16a34a;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .submit-btn,
+        .cancel-btn {
+            flex: 1;
+            padding: 10px 16px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.2s;
             font-size: 14px;
+            border: none;
+        }
+        .submit-btn {
+            background-color: #16a34a;
+            color: white;
         }
         .submit-btn:hover {
             background-color: #15803d;
             box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
         }
-        .submit-btn:disabled {
-            background-color: #d1d5db;
-            cursor: not-allowed;
+        .cancel-btn {
+            background-color: #e5e7eb;
+            color: #1f2937;
         }
+        .cancel-btn:hover {
+            background-color: #d1d5db;
+        }
+
         .ratings-list {
             display: grid;
             gap: 16px;
@@ -241,22 +323,18 @@
             font-size: 16px;
             margin-bottom: 8px;
         }
-        .rating-title {
-            font-weight: 500;
-            color: #1f2937;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
         .rating-content {
             color: #4b5563;
             font-size: 14px;
             line-height: 1.6;
-            margin-bottom: 12px;
         }
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #6b7280;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
         }
         .empty-state i {
             font-size: 48px;
@@ -264,44 +342,34 @@
             display: block;
             margin-bottom: 16px;
         }
-        .error-message {
-            background-color: #fee2e2;
-            color: #dc2626;
+        .error-message,
+        .success-message {
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
+            align-items: center;
+            gap: 12px;
+        }
+        .error-message {
+            background-color: #fee2e2;
+            color: #dc2626;
         }
         .success-message {
             background-color: #dcfce7;
             color: #15803d;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
         }
-        .admin-only-notice {
-            background-color: #fef3c7;
-            border: 1px solid #fcd34d;
-            color: #92400e;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-        .admin-only-notice i {
-            font-size: 20px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        @media (max-width: 1024px) {
+        @media (max-width: 768px) {
             .page-title {
                 font-size: 20px;
             }
-            .rate-form-container {
-                padding: 16px;
+            .new-rating-btn {
+                font-size: 12px;
+                padding: 8px 16px;
+            }
+            .modal-content {
+                width: 95%;
+                max-height: 95vh;
             }
         }
     </style>
@@ -323,17 +391,15 @@
 
     <main>
         <div class="main-content">
-            <div class="page-title">
-                <i class="fas fa-star"></i>
-                <span>Đánh giá trang web</span>
-            </div>
-
-            <div class="admin-only-notice" style="display: none;">
-                <i class="fas fa-shield-alt"></i>
-                <div>
-                    <strong>Khu vực Admin</strong>
-                    <p style="font-size: 12px; margin-top: 4px;">Chỉ quản trị viên có thể xem và quản lý các đánh giá từ người dùng.</p>
+            <div class="page-header">
+                <div class="page-title">
+                    <i class="fas fa-star"></i>
+                    <span>Đánh giá trang web</span>
                 </div>
+                <button class="new-rating-btn" onclick="openRatingModal()">
+                    <i class="fas fa-plus"></i>
+                    <span>Thêm đánh giá</span>
+                </button>
             </div>
 
             <div id="error-message" class="error-message">
@@ -346,18 +412,32 @@
                 <span id="success-text"></span>
             </div>
 
-            <div class="rate-form-container" id="rate-form-section">
-                <h2 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 20px;">
-                    <i class="fas fa-pen-fancy" style="color: #16a34a; margin-right: 8px;"></i>
-                    Chia sẻ trải nghiệm của bạn
-                </h2>
-
-                <form id="rate-form">
-                    <div class="form-group">
-                        <label for="rating-name">Tên của bạn (tùy chọn)</label>
-                        <input type="text" id="rating-name" placeholder="Nhập tên hoặc để trống để dùng email">
+            <div style="margin-top: 24px;">
+                <div id="ratings-container" class="ratings-list">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Chưa có đánh giá nào</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
+    <!-- Rating Modal -->
+    <div id="rating-modal" class="modal-overlay" onclick="if(event.target === this) closeRatingModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-pen-fancy" style="color: #16a34a;"></i>
+                    Chia sẻ trải nghiệm
+                </h2>
+                <button class="modal-close" onclick="closeRatingModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="rate-form">
                     <div class="form-group">
                         <label>Đánh giá của bạn</label>
                         <div class="star-rating" id="star-rating">
@@ -374,45 +454,37 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="rating-title">Tiêu đề đánh giá</label>
-                        <input type="text" id="rating-title" placeholder="Ví dụ: Ứng dụng rất hữu ích" required>
+                        <label for="rating-content">Chia sẻ cảm nghĩ của bạn</label>
+                        <textarea id="rating-content" placeholder="Bạn nghĩ gì về ứng dụng của chúng tôi?..." required></textarea>
                     </div>
-
-                    <div class="form-group">
-                        <label for="rating-content">Nội dung đánh giá</label>
-                        <textarea id="rating-content" placeholder="Chia sẻ trải nghiệm của bạn..." required></textarea>
-                    </div>
-
-                    <button type="submit" class="submit-btn">
-                        <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Gửi đánh giá
-                    </button>
                 </form>
             </div>
 
-            <div style="margin-top: 32px;">
-                <h2 style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">
-                    <i class="fas fa-list-ul" style="color: #16a34a; margin-right: 8px;"></i>
-                    Danh sách đánh giá
-                </h2>
-                <div id="ratings-container" class="ratings-list">
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>Chưa có đánh giá nào</p>
-                    </div>
-                </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="closeRatingModal()">Hủy</button>
+                <button class="submit-btn" onclick="submitRating()">Gửi đánh giá</button>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
         const ADMIN_EMAILS = ['abc23072009@gmail.com', 'abc23072000@gmail.com'];
         let currentUserEmail = null;
         let selectedRating = 0;
 
+        // Modal functions
+        function openRatingModal() {
+            document.getElementById('rating-modal').classList.add('active');
+        }
+
+        function closeRatingModal() {
+            document.getElementById('rating-modal').classList.remove('active');
+        }
+
         // Star rating handler
         document.querySelectorAll('.star').forEach(star => {
             star.addEventListener('click', function() {
-                selectedRating = this.dataset.rating;
+                selectedRating = parseInt(this.dataset.rating);
                 document.getElementById('selected-rating').value = selectedRating;
                 
                 document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
@@ -431,9 +503,9 @@
             });
             
             star.addEventListener('mouseover', function() {
-                const hoverRating = this.dataset.rating;
+                const hoverRating = parseInt(this.dataset.rating);
                 document.querySelectorAll('.star').forEach((s, index) => {
-                    if (index < hoverRating) {
+                    if ((index + 1) <= hoverRating) {
                         s.style.color = '#fbbf24';
                     } else {
                         s.style.color = '#d1d5db';
@@ -444,7 +516,7 @@
 
         document.getElementById('star-rating').addEventListener('mouseleave', function() {
             document.querySelectorAll('.star').forEach((s, index) => {
-                if (index < selectedRating) {
+                if ((index + 1) <= selectedRating) {
                     s.style.color = '#fbbf24';
                 } else {
                     s.style.color = '#d1d5db';
@@ -453,16 +525,22 @@
         });
 
         // Form submit
-        document.getElementById('rate-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            if (selectedRating === 0) {
-                showError('Vui lòng chọn số sao trước khi gửi');
+        function submitRating() {
+            if (selectedRating === 0 || selectedRating < 1 || selectedRating > 5) {
+                showError('Vui lòng chọn số sao từ 1 đến 5');
                 return;
             }
             
-            const name = document.getElementById('rating-name').value || currentUserEmail;
-            const title = document.getElementById('rating-title').value;
+            const content = document.getElementById('rating-content').value.trim();
+            if (!content) {
+                showError('Vui lòng nhập nội dung đánh giá');
+                return;
+            }
+
+            submitRatingAsync();
+        }
+
+        async function submitRatingAsync() {
             const content = document.getElementById('rating-content').value;
             
             try {
@@ -471,8 +549,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         rating: selectedRating,
-                        name: name,
-                        title: title,
+                        name: currentUserEmail,
+                        title: `Đánh giá ${selectedRating} sao`,
                         content: content
                     })
                 });
@@ -484,16 +562,23 @@
                     document.getElementById('rate-form').reset();
                     selectedRating = 0;
                     document.getElementById('selected-rating').value = 0;
-                    document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+                    document.querySelectorAll('.star').forEach(s => {
+                        s.classList.remove('active');
+                        s.style.color = '#d1d5db';
+                    });
                     document.getElementById('rating-selected').textContent = 'Vui lòng chọn số sao';
-                    loadRatings();
+                    
+                    setTimeout(() => {
+                        closeRatingModal();
+                        loadRatings();
+                    }, 1000);
                 } else {
                     showError(data.message || 'Có lỗi khi gửi đánh giá');
                 }
             } catch (error) {
                 showError('Lỗi kết nối: ' + error.message);
             }
-        });
+        }
 
         // Load ratings
         async function loadRatings() {
@@ -512,7 +597,6 @@
                                 </div>
                             </div>
                             <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
-                            <div class="rating-title">${rating.title}</div>
                             <div class="rating-content">${rating.content}</div>
                         </div>
                     `).join('');

@@ -466,6 +466,50 @@
             background-color: #dcfce7;
             color: #15803d;
         }
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            flex-wrap: wrap;
+        }
+        .filter-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+        .filter-btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .filter-btn:hover {
+            border-color: #16a34a;
+            color: #16a34a;
+        }
+        .filter-btn.active {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+            color: #16a34a;
+        }
+        .filter-btn.all-ratings {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+            color: #16a34a;
+        }
         @media (max-width: 768px) {
             .page-title {
                 font-size: 20px;
@@ -517,6 +561,35 @@
             <div id="success-message" class="success-message">
                 <i class="fas fa-check-circle"></i>
                 <span id="success-text"></span>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <span class="filter-label">Lọc theo:</span>
+                <button class="filter-btn all-ratings" onclick="filterRatings(0)">
+                    <i class="fas fa-list"></i>
+                    <span>Tất cả</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(5)">
+                    <i class="fas fa-star"></i>
+                    <span>5 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(4)">
+                    <i class="fas fa-star"></i>
+                    <span>4 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(3)">
+                    <i class="fas fa-star"></i>
+                    <span>3 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(2)">
+                    <i class="fas fa-star"></i>
+                    <span>2 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(1)">
+                    <i class="fas fa-star"></i>
+                    <span>1 sao</span>
+                </button>
             </div>
 
             <div style="margin-top: 24px;">
@@ -594,6 +667,8 @@
         let currentUserEmail = null;
         let selectedRating = 0;
         let selectedRatingImage = null;
+        let currentFilter = 0;
+        let allRatings = [];
 
         // Image preview functions
         function previewRatingImage(event) {
@@ -619,6 +694,82 @@
             selectedRatingImage = null;
             document.getElementById('image-preview-area').style.display = 'none';
             document.getElementById('rating-image-input').value = '';
+        }
+
+        // Filter functions
+        function filterRatings(stars) {
+            currentFilter = stars;
+            
+            // Update button active states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Find and activate the clicked button
+            if (stars === 0) {
+                document.querySelector('.filter-btn.all-ratings').classList.add('active');
+            } else {
+                event.target.closest('.filter-btn').classList.add('active');
+            }
+            
+            // Display filtered ratings
+            displayFilteredRatings();
+        }
+
+        function displayFilteredRatings() {
+            const container = document.getElementById('ratings-container');
+            
+            let filtered = allRatings;
+            if (currentFilter > 0) {
+                filtered = allRatings.filter(rating => rating.rating === currentFilter);
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>${currentFilter > 0 ? `Không có đánh giá ${currentFilter} sao` : 'Chưa có đánh giá nào'}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filtered.map(rating => {
+                const userName = rating.name || 'A';
+                const firstLetter = userName.charAt(0).toUpperCase();
+                const userEmail = rating.email || '';
+                const userSlug = userEmail.split('@')[0];
+                
+                const avatarHTML = rating.avatar_url 
+                    ? `<img src="${rating.avatar_url}" alt="${userName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>`
+                    : '';
+                const placeholderHTML = !rating.avatar_url 
+                    ? `<div class="avatar-placeholder">${firstLetter}</div>`
+                    : '';
+                
+                const imageHTML = rating.image 
+                    ? `<div class="rating-image-container"><img src="${rating.image}" alt="Rating image"/></div>`
+                    : '';
+                
+                return `
+                <div class="rating-card">
+                    <div class="rating-header">
+                        <div class="rating-user-avatar" onclick="goToProfile('${userSlug}')">
+                            ${avatarHTML}
+                            ${placeholderHTML}
+                        </div>
+                        <div class="rating-user-info">
+                            <div class="rating-user-name" onclick="goToProfile('${userSlug}')">${userName}</div>
+                            <div class="rating-user-email">${userEmail}</div>
+                        </div>
+                        <div class="rating-date">${new Date(rating.createdAt).toLocaleDateString('vi-VN')}</div>
+                    </div>
+                    <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
+                    <div class="rating-content">${rating.content}</div>
+                    ${imageHTML}
+                </div>
+                `;
+            }).join('');
         }
 
         // Modal functions
@@ -740,46 +891,16 @@
                 const data = await response.json();
                 
                 if (data.success && data.ratings.length > 0) {
-                    const container = document.getElementById('ratings-container');
-                    container.innerHTML = data.ratings.map(rating => {
-                        // Get first letter of user name for avatar placeholder
-                        const userName = rating.name || 'A';
-                        const firstLetter = userName.charAt(0).toUpperCase();
-                        const userEmail = rating.email || '';
-                        const userSlug = userEmail.split('@')[0];
-                        
-                        // Avatar HTML
-                        const avatarHTML = rating.avatar_url 
-                            ? `<img src="${rating.avatar_url}" alt="${userName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>`
-                            : '';
-                        const placeholderHTML = !rating.avatar_url 
-                            ? `<div class="avatar-placeholder">${firstLetter}</div>`
-                            : '';
-                        
-                        // Image display HTML
-                        const imageHTML = rating.image 
-                            ? `<div class="rating-image-container"><img src="${rating.image}" alt="Rating image"/></div>`
-                            : '';
-                        
-                        return `
-                        <div class="rating-card">
-                            <div class="rating-header">
-                                <div class="rating-user-avatar" onclick="goToProfile('${userSlug}')">
-                                    ${avatarHTML}
-                                    ${placeholderHTML}
-                                </div>
-                                <div class="rating-user-info">
-                                    <div class="rating-user-name" onclick="goToProfile('${userSlug}')">${userName}</div>
-                                    <div class="rating-user-email">${userEmail}</div>
-                                </div>
-                                <div class="rating-date">${new Date(rating.createdAt).toLocaleDateString('vi-VN')}</div>
-                            </div>
-                            <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
-                            <div class="rating-content">${rating.content}</div>
-                            ${imageHTML}
-                        </div>
-                        `;
-                    }).join('');
+                    allRatings = data.ratings;
+                    currentFilter = 0;
+                    
+                    // Reset filter buttons
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    document.querySelector('.filter-btn.all-ratings').classList.add('active');
+                    
+                    displayFilteredRatings();
                 }
             } catch (error) {
                 console.error('Lỗi khi tải đánh giá:', error);

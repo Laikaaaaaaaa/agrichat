@@ -167,7 +167,7 @@
         }
         
         .toggle-sidebar-btn {
-            display: flex !important;
+            display: flex;
             position: fixed;
             left: 12px;
             top: 50%;
@@ -195,21 +195,40 @@
             transform: translateY(calc(-50% - 3px));
         }
         
-        .toggle-sidebar-btn i {
-            transition: transform 0.3s ease;
-            display: inline-block;
-        }
-        
-        @media (max-width: 767px) {
-            .toggle-sidebar-btn {
-                display: flex !important;
-            }
-        }
-        
         @media (min-width: 768px) {
             .toggle-sidebar-btn {
-                display: none !important;
+                display: none;
             }
+        }
+        
+        /* Ensure mobile button always has proper styling */
+        #toggle-close-btn {
+            display: flex;
+            position: fixed;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: white;
+            color: #16a34a;
+            border: 2px solid #16a34a;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+            transition: all 0.3s ease;
+            gap: 6px;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        
+        #toggle-close-btn:hover {
+            color: #15803d;
+            border-color: #15803d;
+            box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
+            transform: translateY(calc(-50% - 3px));
         }
         
         /* Toggle button at left edge for desktop (1025px+) */

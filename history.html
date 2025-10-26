@@ -179,7 +179,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 18px;
-            transition: all 0.3s ease;
+            transition: left 0.3s ease;
             gap: 6px;
             align-items: center;
             justify-content: center;
@@ -476,6 +476,11 @@
         <i class="fas fa-chevrons-right"></i>
     </button>
 
+    <!-- Toggle button at left screen edge for mobile -->
+    <button id="toggle-close-btn" class="toggle-sidebar-btn" onclick="closeSidebar()">
+        <i class="fas fa-chevrons-right"></i>
+    </button>
+
     <main>
         <div class="main-content">
             <!-- Sidebar overlay for mobile -->
@@ -483,10 +488,6 @@
             
             <div class="grid-container">
                 <div class="conversation-list-panel" id="conversation-panel">
-                    <!-- Toggle button at left screen edge for mobile -->
-                    <button id="toggle-close-btn" class="toggle-sidebar-btn" onclick="closeSidebar()">
-                        <i class="fas fa-chevrons-left"></i>
-                    </button>
                     
                     <div class="panel-header">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -1034,6 +1035,14 @@
         // Di chuyển nút theo sidebar
         if (closeBtn) {
             closeBtn.style.left = '292px';
+            const icon = closeBtn.querySelector('i');
+            if (icon) {
+                icon.style.transform = 'rotateY(360deg)';
+                setTimeout(() => {
+                    closeBtn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
+                    closeBtn.querySelector('i').style.transform = 'rotateY(0deg)';
+                }, 150);
+            }
         }
         
         if (dividerBtn) {
@@ -1043,16 +1052,6 @@
                 setTimeout(() => {
                     dividerBtn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
                     dividerBtn.querySelector('i').style.transform = 'rotateY(0deg)';
-                }, 150);
-            }
-        }
-        if (closeBtn) {
-            const icon = closeBtn.querySelector('i');
-            if (icon) {
-                icon.style.transform = 'rotateY(360deg)';
-                setTimeout(() => {
-                    closeBtn.innerHTML = '<i class="fas fa-chevrons-left"></i>';
-                    closeBtn.querySelector('i').style.transform = 'rotateY(0deg)';
                 }, 150);
             }
         }
@@ -1070,6 +1069,14 @@
         // Kéo nút lại vị trí cũ
         if (closeBtn) {
             closeBtn.style.left = '12px';
+            const icon = closeBtn.querySelector('i');
+            if (icon) {
+                icon.style.transform = 'rotateY(360deg)';
+                setTimeout(() => {
+                    closeBtn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
+                    closeBtn.querySelector('i').style.transform = 'rotateY(0deg)';
+                }, 150);
+            }
         }
         
         if (dividerBtn) {
@@ -1079,16 +1086,6 @@
                 setTimeout(() => {
                     dividerBtn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
                     dividerBtn.querySelector('i').style.transform = 'rotateY(0deg)';
-                }, 150);
-            }
-        }
-        if (closeBtn) {
-            const icon = closeBtn.querySelector('i');
-            if (icon) {
-                icon.style.transform = 'rotateY(360deg)';
-                setTimeout(() => {
-                    closeBtn.innerHTML = '<i class="fas fa-chevrons-right"></i>';
-                    closeBtn.querySelector('i').style.transform = 'rotateY(0deg)';
                 }, 150);
             }
         }

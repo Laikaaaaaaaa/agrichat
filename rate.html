@@ -551,79 +551,149 @@
             color: #16a34a;
         }
         .comments-section {
-            margin-top: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
             border-top: 1px solid #e5e7eb;
-            padding-top: 12px;
         }
         .comments-header {
-            font-weight: 500;
-            color: #374151;
-            font-size: 13px;
-            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 14px;
+            margin-bottom: 12px;
         }
         .comment-item {
-            background-color: #f9fafb;
-            border-radius: 6px;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            border-left: 3px solid #bbf7d0;
-        }
-        .comment-user {
             display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
-            font-size: 12px;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+        .comment-user-avatar-link {
+            display: flex;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .comment-user-avatar-link:hover {
+            opacity: 0.8;
         }
         .comment-user-avatar {
-            width: 20px;
-            height: 20px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             object-fit: cover;
-            background-color: #16a34a;
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: bold;
+            color: white;
+        }
+        .comment-user-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        @media (min-width: 640px) {
+            .comment-user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+        }
+        .comment-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .comment-bubble {
+            background-color: #f3f4f6;
+            border-radius: 18px;
+            padding: 8px 12px;
+            display: inline-block;
+            max-width: 85%;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        @media (min-width: 640px) {
+            .comment-bubble {
+                padding: 10px 14px;
+                max-width: 75%;
+                border-radius: 20px;
+            }
         }
         .comment-user-name {
-            font-weight: 500;
-            color: #1f2937;
+            font-weight: 600;
+            font-size: 13px;
+            color: #111827;
+            display: block;
+            margin-bottom: 2px;
+            text-decoration: none;
         }
-        .comment-user-email {
-            color: #9ca3af;
+        .comment-user-name:hover {
+            text-decoration: underline;
         }
         .comment-text {
-            font-size: 12px;
+            font-size: 13px;
             color: #374151;
             line-height: 1.4;
+        }
+        @media (min-width: 640px) {
+            .comment-text {
+                font-size: 14px;
+            }
+        }
+        .comment-meta {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+            padding-left: 0;
+        }
+        @media (min-width: 640px) {
+            .comment-meta {
+                gap: 12px;
+                font-size: 12px;
+            }
+        }
+        .comment-delete-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 11px;
+            padding: 0;
+            transition: color 0.2s;
+        }
+        .comment-delete-btn:hover {
+            color: #dc2626;
         }
         .comment-form {
             display: flex;
             gap: 8px;
-            margin-top: 8px;
+            margin-top: 12px;
         }
         .comment-form input {
             flex: 1;
-            padding: 6px 10px;
+            padding: 8px 12px;
             border: 1px solid #d1d5db;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: inherit;
         }
         .comment-form input:focus {
             outline: none;
             border-color: #16a34a;
+            background-color: #f0fdf4;
         }
         .comment-form button {
-            padding: 6px 12px;
+            padding: 8px 16px;
             background-color: #16a34a;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             transition: all 0.2s;
         }
@@ -1105,6 +1175,32 @@
             }
         }
 
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Get time ago string (matching forum.html)
+        function getTimeAgo(createdAt) {
+            const now = new Date();
+            const created = new Date(createdAt);
+            const seconds = Math.floor((now - created) / 1000);
+            
+            if (seconds < 60) return 'vừa xong';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} phút trước`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} giờ trước`;
+            const days = Math.floor(hours / 24);
+            if (days < 7) return `${days} ngày trước`;
+            const weeks = Math.floor(days / 7);
+            if (weeks < 4) return `${weeks} tuần trước`;
+            
+            return created.toLocaleDateString('vi-VN');
+        }
+
         // Toggle comments section
         async function toggleRatingComments(ratingId) {
             const commentsSection = document.getElementById(`comments-${ratingId}`);
@@ -1127,24 +1223,37 @@
                     const commentsList = document.getElementById(`comments-list-${ratingId}`);
                     
                     if (data.comments.length === 0) {
-                        commentsList.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Chưa có bình luận</p>';
+                        commentsList.innerHTML = '<p style="color: #9ca3af; font-size: 13px; text-align: center; padding: 16px 0;">Chưa có bình luận</p>';
                         return;
                     }
                     
                     commentsList.innerHTML = data.comments.map(comment => {
-                        const userFirstLetter = (comment.user_name || 'A').charAt(0).toUpperCase();
-                        const avatarHTML = comment.avatar_url 
-                            ? `<img src="${comment.avatar_url}" alt="${comment.user_name}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"/>`
-                            : `<div class="comment-user-avatar">${userFirstLetter}</div>`;
+                        const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+                        const userFirstLetter = userName.charAt(0).toUpperCase();
+                        const timeAgo = getTimeAgo(comment.created_at);
+                        
+                        // Create avatar HTML (image or placeholder with gradient)
+                        let avatarHTML;
+                        if (comment.avatar_url) {
+                            avatarHTML = `<img src="${comment.avatar_url}" class="comment-user-avatar" alt="${escapeHtml(userName)}" />`;
+                        } else {
+                            avatarHTML = `<div class="comment-user-avatar" style="background: linear-gradient(135deg, #16a34a, #15803d);">${userFirstLetter}</div>`;
+                        }
                         
                         return `
                         <div class="comment-item">
-                            <div class="comment-user">
+                            <a href="/profile/${comment.user_id}" class="comment-user-avatar-link">
                                 ${avatarHTML}
-                                <span class="comment-user-name">${comment.user_name}</span>
-                                <span class="comment-user-email">${comment.user_email}</span>
+                            </a>
+                            <div class="comment-content">
+                                <div class="comment-bubble">
+                                    <a href="/profile/${comment.user_id}" class="comment-user-name">${escapeHtml(userName)}</a>
+                                    <p class="comment-text">${escapeHtml(comment.content)}</p>
+                                </div>
+                                <div class="comment-meta">
+                                    <span>${timeAgo}</span>
+                                </div>
                             </div>
-                            <div class="comment-text">${comment.content}</div>
                         </div>
                         `;
                     }).join('');

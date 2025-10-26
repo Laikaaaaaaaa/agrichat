@@ -179,7 +179,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 18px;
-            transition: left 0.3s ease;
+            transition: all 0.3s ease;
             gap: 6px;
             align-items: center;
             justify-content: center;
@@ -192,7 +192,7 @@
             color: #15803d;
             border-color: #15803d;
             box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
-            transform: translateY(-50%) translateY(-3px);
+            transform: translateY(calc(-50% - 3px));
         }
         
         .toggle-sidebar-btn i {
@@ -223,13 +223,16 @@
             z-index: 100;
             transition: all 0.3s ease;
             box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
         
         .toggle-divider-btn:hover {
             color: #15803d;
             border-color: #15803d;
             box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
-            transform: translateY(-50%) translateY(-3px);
+            transform: translateY(calc(-50% - 3px));
         }
         
         .toggle-divider-btn i {

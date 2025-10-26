@@ -168,6 +168,10 @@
         
         .toggle-sidebar-btn {
             display: none;
+            position: absolute;
+            right: -24px;
+            top: 50%;
+            transform: translateY(-50%);
             background-color: transparent;
             color: #16a34a;
             border: none;
@@ -180,11 +184,16 @@
             align-items: center;
             justify-content: center;
             margin-bottom: 0;
+            z-index: 100;
         }
         
         .toggle-sidebar-btn:hover {
             color: #15803d;
-            transform: scale(1.2);
+            transform: translateY(-50%) scale(1.2);
+        }
+        
+        .conversation-list-panel {
+            position: relative;
         }
         
         @media (max-width: 767px) {
@@ -367,11 +376,11 @@
         }
         .icon-btn:hover { color: #1f2937; }
         
-        /* Toggle button at left screen edge (1025px+ desktop only) */
+        /* Toggle button at sidebar right edge (1025px+ desktop only) */
         .toggle-divider-btn {
             display: none;
-            position: fixed;
-            left: 290px;
+            position: absolute;
+            right: -24px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
@@ -387,6 +396,10 @@
         .toggle-divider-btn:hover {
             color: #15803d;
             transform: translateY(-50%) scale(1.2);
+        }
+        
+        .grid-container {
+            position: relative;
         }
         
         /* Only show on large desktop (1025px+) */
@@ -421,7 +434,7 @@
             <!-- Sidebar overlay for mobile -->
             <div id="sidebar-overlay" class="sidebar-overlay"></div>
             
-            <!-- Toggle button at screen edge (1025px+ desktop only) -->
+            <!-- Toggle button at sidebar edge (1025px+ desktop only) -->
             <button id="toggle-divider-btn" class="toggle-divider-btn" onclick="toggleSidebar()">
                 <i class="fas fa-chevrons-right"></i>
             </button>
@@ -430,7 +443,7 @@
                 <div class="conversation-list-panel" id="conversation-panel">
                     <!-- Toggle button for mobile inside the sidebar -->
                     <button id="toggle-close-btn" class="toggle-sidebar-btn">
-                        <i class="fas fa-chevron-left"></i>
+                        <i class="fas fa-chevrons-left"></i>
                     </button>
                     
                     <div class="panel-header">

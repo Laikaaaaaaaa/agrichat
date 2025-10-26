@@ -168,8 +168,8 @@
         
         .toggle-sidebar-btn {
             display: flex;
-            position: absolute;
-            right: -24px;
+            position: fixed;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             background-color: transparent;
@@ -192,9 +192,38 @@
             transform: translateY(-50%) scale(1.2);
         }
         
-        @media (max-width: 1024px) {
+        @media (min-width: 768px) {
             .toggle-sidebar-btn {
                 display: none;
+            }
+        }
+        
+        /* Toggle button at left edge for desktop (1025px+) */
+        .toggle-divider-btn {
+            display: none;
+            position: fixed;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #16a34a;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 100;
+            transition: all 0.2s;
+        }
+        
+        .toggle-divider-btn:hover {
+            color: #15803d;
+            transform: translateY(-50%) scale(1.2);
+        }
+        
+        /* Only show on large desktop (1025px+) */
+        @media (min-width: 1025px) {
+            .toggle-divider-btn {
+                display: block;
             }
         }
         
@@ -425,19 +454,19 @@
         </div>
     </header>
 
+    <!-- Toggle button at left screen edge (desktop 1025px+) -->
+    <button id="toggle-divider-btn" class="toggle-divider-btn" onclick="toggleSidebar()">
+        <i class="fas fa-chevrons-right"></i>
+    </button>
+
     <main>
         <div class="main-content">
             <!-- Sidebar overlay for mobile -->
             <div id="sidebar-overlay" class="sidebar-overlay"></div>
             
             <div class="grid-container">
-                <!-- Toggle button at sidebar edge (for desktop) -->
-                <button id="toggle-divider-btn" class="toggle-divider-btn" onclick="toggleSidebar()">
-                    <i class="fas fa-chevrons-right"></i>
-                </button>
-                
                 <div class="conversation-list-panel" id="conversation-panel">
-                    <!-- Toggle button at sidebar right edge for mobile -->
+                    <!-- Toggle button at left screen edge for mobile -->
                     <button id="toggle-close-btn" class="toggle-sidebar-btn" onclick="closeSidebar()">
                         <i class="fas fa-chevrons-left"></i>
                     </button>

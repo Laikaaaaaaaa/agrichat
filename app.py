@@ -4666,16 +4666,26 @@ def api_get_profile():
     """API lấy thông tin profile"""
     user_id = session.get('user_id')
     
-    logging.info(f"🔍 /api/auth/profile called - user_id in session: {user_id}")
-    logging.info(f"📋 Session data: {dict(session)}")
-    logging.info(f"🍪 Request cookies: {request.cookies}")
-    
     if not user_id:
-        logging.warning(f"⚠️ /api/auth/profile - No user_id in session, returning 401")
+        logging.warning(f"⚠️ /api/auth/profile - No user_id in session")
+        logging.debug(f"📋 Session data: {dict(session)}")
+        logging.debug(f"🍪 Request cookies: {request.cookies}")
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     
+    logging.info(f"✅ /api/auth/profile - user_id: {user_id}")
     result = auth.get_user_profile(user_id)
     return jsonify(result)
+
+
+@app.route('/api/test-session', methods=['GET'])
+def test_session():
+    """Test endpoint to check session"""
+    user_id = session.get('user_id')
+    return jsonify({
+        'has_session': user_id is not None,
+        'user_id': user_id,
+        'session_keys': list(session.keys())
+    })
 
 
 @app.route('/api/auth/current-user', methods=['GET'])

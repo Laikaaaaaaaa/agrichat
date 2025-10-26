@@ -505,11 +505,6 @@
             border-color: #16a34a;
             color: #16a34a;
         }
-        .filter-btn.all-ratings {
-            background-color: #dcfce7;
-            border-color: #16a34a;
-            color: #16a34a;
-        }
         @media (max-width: 768px) {
             .page-title {
                 font-size: 20px;
@@ -566,7 +561,7 @@
             <!-- Filter Bar -->
             <div class="filter-bar">
                 <span class="filter-label">Lọc theo:</span>
-                <button class="filter-btn all-ratings" onclick="filterRatings(0)">
+                <button class="filter-btn" onclick="filterRatings(0)">
                     <i class="fas fa-list"></i>
                     <span>Tất cả</span>
                 </button>
@@ -589,6 +584,10 @@
                 <button class="filter-btn" onclick="filterRatings(1)">
                     <i class="fas fa-star"></i>
                     <span>1 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings('hasImage')">
+                    <i class="fas fa-image"></i>
+                    <span>Có ảnh</span>
                 </button>
             </div>
 
@@ -706,11 +705,7 @@
             });
             
             // Find and activate the clicked button
-            if (stars === 0) {
-                document.querySelector('.filter-btn.all-ratings').classList.add('active');
-            } else {
-                event.target.closest('.filter-btn').classList.add('active');
-            }
+            event.target.closest('.filter-btn').classList.add('active');
             
             // Display filtered ratings
             displayFilteredRatings();
@@ -722,13 +717,22 @@
             let filtered = allRatings;
             if (currentFilter > 0) {
                 filtered = allRatings.filter(rating => rating.rating === currentFilter);
+            } else if (currentFilter === 'hasImage') {
+                filtered = allRatings.filter(rating => rating.image);
             }
             
             if (filtered.length === 0) {
+                let emptyText = 'Chưa có đánh giá nào';
+                if (currentFilter > 0) {
+                    emptyText = `Không có đánh giá ${currentFilter} sao`;
+                } else if (currentFilter === 'hasImage') {
+                    emptyText = 'Không có đánh giá nào có ảnh';
+                }
+                
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <p>${currentFilter > 0 ? `Không có đánh giá ${currentFilter} sao` : 'Chưa có đánh giá nào'}</p>
+                        <p>${emptyText}</p>
                     </div>
                 `;
                 return;

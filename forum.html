@@ -491,6 +491,52 @@
     </div>
   </div>
   
+  <!-- Edit Post Modal -->
+  <div id="edit-post-modal" class="modal">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-2xl w-full mx-3 sm:mx-4 max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800">Chỉnh sửa bài viết</h2>
+        <button onclick="closeEditPostModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-lg sm:text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-3 sm:p-4">
+        <!-- User Info -->
+        <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div id="edit-modal-user-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+            <i class="fas fa-user text-sm sm:text-base"></i>
+          </div>
+          <div>
+            <h3 id="edit-modal-user-name" class="font-semibold text-gray-800 text-sm sm:text-base">Đang tải...</h3>
+          </div>
+        </div>
+        
+        <!-- Post Content -->
+        <div class="relative mb-3 sm:mb-4">
+          <textarea 
+            id="edit-post-content" 
+            rows="5" 
+            placeholder="Chỉnh sửa nội dung bài viết..."
+            class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:border-green-600 resize-none"
+          ></textarea>
+        </div>
+        
+        <!-- Bottom Action Bar -->
+        <div class="flex gap-2 sm:gap-3 justify-end">
+          <button onclick="closeEditPostModal()" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors text-sm sm:text-base">
+            Hủy
+          </button>
+          <button onclick="submitEditPost()" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
+            Lưu
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- Hidden File Input -->
   <input type="file" id="post-image-input" accept="image/*" class="hidden" />
   
@@ -1702,13 +1748,35 @@
       const post = allPosts.find(p => p.id === postId);
       if (!post) return;
       
-      const editContent = prompt('Chỉnh sửa bài viết:', post.content);
-      if (editContent === null) return;
+      // Store postId for use in submitEditPost
+      window.currentEditPostId = postId;
       
-      updatePost(postId, editContent);
+      // Populate modal
+      document.getElementById('edit-post-content').value = post.content;
+      document.getElementById('edit-post-modal').classList.add('active');
       
       // Close menu
       document.getElementById(`menu-${postId}`).classList.remove('show');
+    }
+    
+    // Close edit post modal
+    function closeEditPostModal() {
+      document.getElementById('edit-post-modal').classList.remove('active');
+      window.currentEditPostId = null;
+    }
+    
+    // Submit edited post
+    async function submitEditPost() {
+      const postId = window.currentEditPostId;
+      const content = document.getElementById('edit-post-content').value.trim();
+      
+      if (!content) {
+        showAlert('Nội dung không thể trống', 'error');
+        return;
+      }
+      
+      await updatePost(postId, content);
+      closeEditPostModal();
     }
     
     // Update post

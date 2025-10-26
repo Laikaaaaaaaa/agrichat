@@ -919,6 +919,29 @@
         </div>
     </div>
 
+    <!-- Edit Rating Modal -->
+    <div id="edit-rating-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Chỉnh sửa đánh giá</h2>
+                <button class="close-btn" onclick="closeEditRatingModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-rating-form">
+                    <div class="form-group">
+                        <label>Nội dung</label>
+                        <textarea id="edit-rating-content" placeholder="Bạn nghĩ gì về ứng dụng của chúng tôi?..." required></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="closeEditRatingModal()">Hủy</button>
+                <button class="submit-btn" onclick="submitEditRating()">Lưu</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const ADMIN_EMAILS = ['abc23072009@gmail.com', 'abc23072000@gmail.com'];
         let currentUserEmail = null;
@@ -1142,13 +1165,35 @@
             const rating = allRatings.find(r => r.id === ratingId);
             if (!rating) return;
             
-            const editContent = prompt('Chỉnh sửa đánh giá:', rating.content);
-            if (editContent === null) return;
+            // Store ratingId for use in submitEditRating
+            window.currentEditRatingId = ratingId;
             
-            updateRating(ratingId, editContent);
+            // Populate modal
+            document.getElementById('edit-rating-content').value = rating.content;
+            document.getElementById('edit-rating-modal').classList.add('active');
             
             // Close menu
             document.getElementById(`menu-${ratingId}`).classList.remove('show');
+        }
+        
+        // Close edit rating modal
+        function closeEditRatingModal() {
+            document.getElementById('edit-rating-modal').classList.remove('active');
+            window.currentEditRatingId = null;
+        }
+        
+        // Submit edited rating
+        async function submitEditRating() {
+            const ratingId = window.currentEditRatingId;
+            const content = document.getElementById('edit-rating-content').value.trim();
+            
+            if (!content) {
+                showError('Nội dung không thể trống');
+                return;
+            }
+            
+            await updateRating(ratingId, content);
+            closeEditRatingModal();
         }
         
         // Update rating

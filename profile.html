@@ -117,11 +117,7 @@
       box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
     
-    /* Settings menu always visible when parent is shown */
-    #owner-actions-mobile {
-      display: block !important;
-    }
-    
+    /* Settings menu visibility */
     #settings-menu.hidden {
       display: none !important;
     }
@@ -2383,7 +2379,7 @@
                   const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
                   const userAvatar = comment.user_avatar
                     ? `<img src="${comment.user_avatar}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />`
-                    : `<div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+                    : `<div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
                   
                   const profileLink = comment.username_slug || comment.user_id;
                   const timeAgo = getTimeAgo(comment.created_at);
@@ -2400,6 +2396,9 @@
                         </div>
                         <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4">
                           <span>${timeAgo}</span>
+                          ${currentUserId && currentUserId === comment.user_id ? `
+                            <button onclick="deleteProfileComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
+                          ` : ''}
                         </div>
                       </div>
                     </div>
@@ -2418,6 +2417,80 @@
         }
       } catch (error) {
         console.error('Error submitting comment:', error);
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
+    }
+    
+    // Delete comment
+    async function deleteProfileComment(postId, commentId) {
+      if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments/${commentId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Bình luận đã được xóa!', 'success');
+          
+          // Reload comments
+          const commentsSection = document.getElementById(`comments-${postId}`);
+          if (!commentsSection.classList.contains('hidden')) {
+            try {
+              const commentsResponse = await fetch(`/api/forum/posts/${postId}/comments`);
+              const commentsData = await commentsResponse.json();
+              
+              if (commentsData.success && commentsData.comments) {
+                const commentsList = document.getElementById(`comments-list-${postId}`);
+                if (commentsData.comments.length === 0) {
+                  commentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">Chưa có bình luận nào</p>';
+                } else {
+                  commentsList.innerHTML = commentsData.comments.map(comment => {
+                    const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+                    const userAvatar = comment.user_avatar
+                      ? `<img src="${comment.user_avatar}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />`
+                      : `<div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+                    
+                    const profileLink = comment.username_slug || comment.user_id;
+                    const timeAgo = getTimeAgo(comment.created_at);
+                    
+                    return `
+                      <div class="flex gap-2 mb-2">
+                        <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                          ${userAvatar}
+                        </a>
+                        <div class="flex-1 min-w-0">
+                          <div class="comment-bubble bg-gray-100 rounded-2xl px-3 sm:px-4 py-2 inline-block">
+                            <a href="/profile/${profileLink}" class="font-semibold text-xs sm:text-sm text-gray-800 hover:underline block">${escapeHtml(userName)}</a>
+                            <p class="text-gray-700 text-sm sm:text-base break-words">${escapeHtml(comment.content)}</p>
+                          </div>
+                          <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4">
+                            <span>${timeAgo}</span>
+                            ${currentUserId && currentUserId === comment.user_id ? `
+                              <button onclick="deleteProfileComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
+                            ` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('');
+                }
+              }
+            } catch (error) {
+              console.error('Error reloading comments:', error);
+            }
+          }
+          
+          // Reload posts to update comment count
+          setTimeout(() => loadUserPosts(currentUserId), 500);
+        } else {
+          showAlert(data.message || 'Lỗi khi xóa bình luận', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error);
         showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
       }
     }

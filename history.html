@@ -854,22 +854,32 @@
     document.addEventListener('DOMContentLoaded', async () => {
         // ✅ Kiểm tra auth từ server (giống profile.html)
         try {
-            const response = await fetch('/api/auth/profile');
+            console.log('🔐 Checking auth with /api/auth/profile...');
+            const response = await fetch('/api/auth/profile', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
             
             if (!response.ok || response.status === 401 || response.status === 403) {
                 console.warn('⚠️ Chưa đăng nhập hoặc hết phiên, redirect tới login...');
+                console.warn('Response:', response.status, response.statusText);
                 window.location.href = '/login';
                 return;
             }
             
             const data = await response.json();
+            console.log('Auth response data:', data);
+            
             if (!data || !data.user) {
                 console.warn('⚠️ Không tìm thấy user, redirect tới login...');
                 window.location.href = '/login';
                 return;
             }
             
-            console.log('✅ User đã xác thực:', data.user.username);
+            console.log('✅ User đã xác thực:', data.user);
             new ChatHistoryManager();
             
         } catch (error) {

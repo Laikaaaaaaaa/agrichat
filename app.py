@@ -4372,6 +4372,9 @@ def get_user_profile(identifier):
     except Exception as e:
         logging.error(f"Error getting user profile: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+    except Exception as e:
+        logging.error(f"Error getting user profile: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @app.route('/api/profile/notifications', methods=['GET'])

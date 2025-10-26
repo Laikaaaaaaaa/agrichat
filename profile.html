@@ -1520,7 +1520,9 @@
         console.log('Profile loaded:', {
           currentUserId,
           profileUserId,
-          isOwnProfile: profileData.is_own_profile
+          isOwnProfile: profileData.is_own_profile,
+          profileData_is_own_profile: profileData.is_own_profile,
+          typeof_is_own_profile: typeof profileData.is_own_profile
         });
         
         // Update URL based on profile ownership
@@ -1630,7 +1632,7 @@
       }
       
       // Show/hide UI elements based on ownership
-      console.log('Updating UI - isOwnProfile:', isOwnProfile);
+      console.log('Updating UI - isOwnProfile:', isOwnProfile, 'profileData.is_own_profile:', profileData.is_own_profile, 'currentUserId:', currentUserId, 'profileUserId:', profileUserId);
       
       if (isOwnProfile) {
         // Owner view
@@ -1638,6 +1640,7 @@
         const ownerActions = document.getElementById('owner-actions');
         if (ownerActions) ownerActions.style.display = 'block';
         const ownerActionsMobile = document.getElementById('owner-actions-mobile');
+        console.log('Setting owner-actions-mobile to display:block, element:', ownerActionsMobile);
         if (ownerActionsMobile) ownerActionsMobile.style.display = 'block';
         const visitorActions = document.getElementById('visitor-actions');
         if (visitorActions) visitorActions.style.display = 'none';
@@ -1658,6 +1661,7 @@
         const ownerActions = document.getElementById('owner-actions');
         if (ownerActions) ownerActions.style.display = 'none';
         const ownerActionsMobile = document.getElementById('owner-actions-mobile');
+        console.log('Setting owner-actions-mobile to display:none, element:', ownerActionsMobile);
         if (ownerActionsMobile) ownerActionsMobile.style.display = 'none';
         const visitorActions = document.getElementById('visitor-actions');
         if (visitorActions) visitorActions.style.display = 'flex';
@@ -2378,27 +2382,24 @@
                 commentsList.innerHTML = commentsData.comments.map(comment => {
                   const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
                   const userAvatar = comment.user_avatar
-                    ? `<img src="${comment.user_avatar}" class="w-full h-full rounded-full object-cover" />`
-                    : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                        ${userName.charAt(0).toUpperCase()}
-                      </div>`;
+                    ? `<img src="${comment.user_avatar}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />`
+                    : `<div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+                  
+                  const profileLink = comment.username_slug || comment.user_id;
+                  const timeAgo = getTimeAgo(comment.created_at);
                   
                   return `
-                    <div class="flex items-start gap-3">
-                      <a href="/profile/${comment.username_slug || comment.user_id}" class="flex-shrink-0">
+                    <div class="flex gap-2 mb-2">
+                      <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
                         ${userAvatar}
                       </a>
-                      <div class="flex-1">
-                        <div class="bg-white rounded-2xl px-4 py-2.5 inline-block">
-                          <a href="/profile/${comment.username_slug || comment.user_id}" class="font-semibold text-gray-900 hover:underline text-sm">
-                            ${userName}
-                          </a>
-                          <p class="text-gray-800 mt-1 text-sm">${escapeHtml(comment.content)}</p>
+                      <div class="flex-1 min-w-0">
+                        <div class="comment-bubble bg-gray-100 rounded-2xl px-3 sm:px-4 py-2 inline-block">
+                          <a href="/profile/${profileLink}" class="font-semibold text-xs sm:text-sm text-gray-800 hover:underline block">${escapeHtml(userName)}</a>
+                          <p class="text-gray-700 text-sm sm:text-base break-words">${escapeHtml(comment.content)}</p>
                         </div>
-                        <div class="flex items-center gap-4 mt-1 px-4 text-xs text-gray-500">
-                          <span>${getTimeAgo(comment.created_at)}</span>
-                          <button class="hover:underline">Thích</button>
-                          <button class="hover:underline">Trả lời</button>
+                        <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4">
+                          <span>${timeAgo}</span>
                         </div>
                       </div>
                     </div>

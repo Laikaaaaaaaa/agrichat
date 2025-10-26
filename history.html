@@ -708,8 +708,10 @@
         
         updateStats() {
             const totalElement = document.getElementById('total-conversations');
-            const count = this.conversations.length;
-            totalElement.textContent = `${count} cuộc hội thoại`;
+            if (totalElement) {
+                const count = this.conversations.length;
+                totalElement.textContent = `${count} cuộc hội thoại`;
+            }
         }
         
         formatDate(dateString) {

@@ -4940,7 +4940,9 @@ def html_files(filename):
     """Serve HTML files directly"""
     if filename.endswith('.html'):
         return send_from_directory(HERE, filename)
-    return "File not found", 404
+    # For non-HTML files, return 404 which will be caught by error handler
+    from flask import abort
+    abort(404)
 
 
 @app.route('/api/log', methods=['POST'])
@@ -7077,39 +7079,60 @@ def get_rating_comments(rating_id):
 
 @app.errorhandler(404)
 def page_not_found(error):
-    """Handle 404 Not Found errors - redirect to error page"""
-    return redirect(f'/error.html?code=404&message=Không tìm thấy&description=Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa.'), 404
+    """Handle 404 Not Found errors - serve error page"""
+    try:
+        return send_from_directory(HERE, 'error.html'), 404
+    except:
+        return f'<html><head><meta charset="utf-8"><title>404</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>404 - Không tìm thấy</h1><p>Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa.</p><a href="/">Quay về trang chủ</a></body></html>', 404
 
 @app.errorhandler(405)
 def method_not_allowed(error):
     """Handle 405 Method Not Allowed errors"""
-    return redirect(f'/error.html?code=405&message=Phương thức không được hỗ trợ&description=HTTP method này không được phép cho tài nguyên này.'), 405
+    try:
+        return send_from_directory(HERE, 'error.html'), 405
+    except:
+        return f'<html><head><meta charset="utf-8"><title>405</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>405 - Phương thức không được hỗ trợ</h1><p>HTTP method này không được phép cho tài nguyên này.</p><a href="/">Quay về trang chủ</a></body></html>', 405
 
 @app.errorhandler(400)
 def bad_request(error):
     """Handle 400 Bad Request errors"""
-    return redirect(f'/error.html?code=400&message=Yêu cầu không hợp lệ&description=Dữ liệu gửi đi không đúng định dạng.'), 400
+    try:
+        return send_from_directory(HERE, 'error.html'), 400
+    except:
+        return f'<html><head><meta charset="utf-8"><title>400</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>400 - Yêu cầu không hợp lệ</h1><p>Dữ liệu gửi đi không đúng định dạng.</p><a href="/">Quay về trang chủ</a></body></html>', 400
 
 @app.errorhandler(403)
 def forbidden(error):
     """Handle 403 Forbidden errors"""
-    return redirect(f'/error.html?code=403&message=Truy cập bị từ chối&description=Bạn không có quyền truy cập tài nguyên này.'), 403
+    try:
+        return send_from_directory(HERE, 'error.html'), 403
+    except:
+        return f'<html><head><meta charset="utf-8"><title>403</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>403 - Truy cập bị từ chối</h1><p>Bạn không có quyền truy cập tài nguyên này.</p><a href="/">Quay về trang chủ</a></body></html>', 403
 
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 Internal Server errors"""
     logging.error(f"Internal Server Error: {error}")
-    return redirect(f'/error.html?code=500&message=Lỗi máy chủ&description=Server gặp lỗi nội bộ. Vui lòng thử lại sau.'), 500
+    try:
+        return send_from_directory(HERE, 'error.html'), 500
+    except:
+        return f'<html><head><meta charset="utf-8"><title>500</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>500 - Lỗi máy chủ</h1><p>Server gặp lỗi nội bộ. Vui lòng thử lại sau.</p><a href="/">Quay về trang chủ</a></body></html>', 500
 
 @app.errorhandler(502)
 def bad_gateway(error):
     """Handle 502 Bad Gateway errors"""
-    return redirect(f'/error.html?code=502&message=Bad Gateway&description=Server gateway gặp lỗi.'), 502
+    try:
+        return send_from_directory(HERE, 'error.html'), 502
+    except:
+        return f'<html><head><meta charset="utf-8"><title>502</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>502 - Bad Gateway</h1><p>Server gateway gặp lỗi.</p><a href="/">Quay về trang chủ</a></body></html>', 502
 
 @app.errorhandler(503)
 def service_unavailable(error):
     """Handle 503 Service Unavailable errors"""
-    return redirect(f'/error.html?code=503&message=Dịch vụ không khả dụng&description=Server đang bảo trì. Vui lòng quay lại sau.'), 503
+    try:
+        return send_from_directory(HERE, 'error.html'), 503
+    except:
+        return f'<html><head><meta charset="utf-8"><title>503</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>503 - Dịch vụ không khả dụng</h1><p>Server đang bảo trì. Vui lòng quay lại sau.</p><a href="/">Quay về trang chủ</a></body></html>', 503
 
 if __name__ == '__main__':
     run_local()

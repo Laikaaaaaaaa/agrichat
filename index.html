@@ -992,12 +992,13 @@
       let htmlText = escapeHtmlPreserveSpaces(normalizedText);
       
       // Add markdown formatting (heading, bold, italic)
+      // IMPORTANT: Process bold FIRST before italic to avoid double-processing
       htmlText = htmlText
         .replace(/^### (.*?)$/gm, '<h3 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h3>')
         .replace(/^## (.*?)$/gm, '<h2 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h2>')
         .replace(/^# (.*?)$/gm, '<h1 style="font-weight: 600; color: #166534; margin: 4px 0 2px 0; display: block;">$1</h1>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold: **text** → <strong>text</strong>
+        .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>'); // Italic: *text* → <em>text</em> (but NOT **text**)
       
       return htmlText;
     }

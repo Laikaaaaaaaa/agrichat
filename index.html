@@ -2905,10 +2905,9 @@
             <i class="fas fa-cloud text-green-700 text-sm md:text-lg"></i>
             Khí hậu & Thời tiết
           </h2>
-          <!-- Location permission button -->
-          <button id="request-location-btn" class="hidden text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full transition-all flex items-center gap-1.5 shadow-sm hover:shadow-md" onclick="requestPreciseLocation()">
-            <i class="fas fa-crosshairs text-xs"></i>
-            <span>Vị trí chính xác</span>
+          <!-- Location permission button - Icon only -->
+          <button id="request-location-btn" class="text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-all duration-200 shadow-sm hover:shadow-md" onclick="requestPreciseLocation()" title="Lấy vị trí chính xác">
+            <i class="fas fa-location-dot text-lg md:text-xl"></i>
           </button>
         </div>
 
@@ -7490,8 +7489,8 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
         ipWeather.location_country !== 'Việt Nam';
       
       if (locationBtn && isLikelyWrongLocation) {
-        locationBtn.classList.remove('hidden');
-        console.log('🔔 Showing location permission button (detected wrong country)');
+        // Button always visible now (icon style)
+        console.log('🔔 Location button is available (detected different country)');
       }
       
       renderWeatherDisplay(weatherEl, {
@@ -7902,9 +7901,9 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
         subEl.innerHTML = '<span class="text-xs">Vui lòng cho phép truy cập vị trí trong cài đặt trình duyệt</span>';
       }
       
-      // Show button again for retry
+      // Button always visible now (icon style)
       if (locationBtn) {
-        setTimeout(() => locationBtn.classList.remove('hidden'), 2000);
+        console.log('Location button ready for retry');
       }
     }
   };

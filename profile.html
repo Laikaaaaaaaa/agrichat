@@ -2480,22 +2480,41 @@
       });
     });
     
-    // Report post
-    async function reportPost(postId) {
-      const reason = prompt('Vui lòng cho biết lý do báo cáo:\n1. Spam\n2. Nội dung không phù hợp\n3. Lừa đảo\n4. Khác');
+    // Report post - Open modal
+    function reportPost(postId) {
+      window.currentReportPostId = postId;
+      document.getElementById('report-modal').classList.add('active');
+      document.getElementById(`menu-${postId}`)?.classList.remove('show');
+      // Reset form
+      document.querySelectorAll('input[name="report-reason"]')[0].checked = true;
+      document.getElementById('report-details').value = '';
+    }
+    
+    // Close report modal
+    function closeReportModal() {
+      document.getElementById('report-modal').classList.remove('active');
+      window.currentReportPostId = null;
+    }
+    
+    // Submit report
+    async function submitReportModal() {
+      const postId = window.currentReportPostId;
+      if (!postId) return;
       
-      if (!reason) return;
+      const reason = document.querySelector('input[name="report-reason"]:checked').value;
+      const details = document.getElementById('report-details').value.trim();
       
       try {
         const response = await fetch(`/api/forum/posts/${postId}/report`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason })
+          body: JSON.stringify({ reason, details })
         });
         
         const data = await response.json();
         
         if (data.success) {
+          closeReportModal();
           showAlert('Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm.', 'success');
         } else {
           showAlert(data.message || 'Lỗi khi báo cáo bài viết', 'error');
@@ -2504,17 +2523,15 @@
         console.error('Error reporting post:', error);
         showAlert('Có lỗi xảy ra', 'error');
       }
-      
-      // Close menu
-      document.getElementById(`menu-${postId}`).classList.remove('show');
     }
     
     // Edit post modal
     function editPostModal(postId) {
-      // Find post from all posts
-      const post = allPosts.find(p => p.id === postId);
+      // Find post from userPosts array (all posts data)
+      const post = userPosts.find(p => p.id === postId);
       if (!post) {
         console.error('Post not found:', postId);
+        console.log('Available posts:', userPosts);
         return;
       }
       

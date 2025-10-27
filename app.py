@@ -7070,5 +7070,46 @@ def get_rating_comments(rating_id):
         logging.error(f"Error: {e}")
         return jsonify({'success': False, 'message': 'Lỗi hệ thống'}), 500
 
+
+# ============================================================================
+# GLOBAL ERROR HANDLERS - Catch all unmatched routes and server errors
+# ============================================================================
+
+@app.errorhandler(404)
+def page_not_found(error):
+    """Handle 404 Not Found errors - redirect to error page"""
+    return redirect(f'/error.html?code=404&message=Không tìm thấy&description=Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa.'), 404
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Handle 405 Method Not Allowed errors"""
+    return redirect(f'/error.html?code=405&message=Phương thức không được hỗ trợ&description=HTTP method này không được phép cho tài nguyên này.'), 405
+
+@app.errorhandler(400)
+def bad_request(error):
+    """Handle 400 Bad Request errors"""
+    return redirect(f'/error.html?code=400&message=Yêu cầu không hợp lệ&description=Dữ liệu gửi đi không đúng định dạng.'), 400
+
+@app.errorhandler(403)
+def forbidden(error):
+    """Handle 403 Forbidden errors"""
+    return redirect(f'/error.html?code=403&message=Truy cập bị từ chối&description=Bạn không có quyền truy cập tài nguyên này.'), 403
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 Internal Server errors"""
+    logging.error(f"Internal Server Error: {error}")
+    return redirect(f'/error.html?code=500&message=Lỗi máy chủ&description=Server gặp lỗi nội bộ. Vui lòng thử lại sau.'), 500
+
+@app.errorhandler(502)
+def bad_gateway(error):
+    """Handle 502 Bad Gateway errors"""
+    return redirect(f'/error.html?code=502&message=Bad Gateway&description=Server gateway gặp lỗi.'), 502
+
+@app.errorhandler(503)
+def service_unavailable(error):
+    """Handle 503 Service Unavailable errors"""
+    return redirect(f'/error.html?code=503&message=Dịch vụ không khả dụng&description=Server đang bảo trì. Vui lòng quay lại sau.'), 503
+
 if __name__ == '__main__':
     run_local()

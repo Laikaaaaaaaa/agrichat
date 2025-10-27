@@ -2847,6 +2847,66 @@
       </button>
     </div>
   </div>
+  <script>
+    // Show the forum notification every 10 minutes. If user closes it, store timestamp
+    (function() {
+      const notif = document.getElementById('forum-notification');
+      const closeBtn = document.getElementById('close-forum-notification');
+      if (!notif) return;
+
+      const SHOW_INTERVAL = 10 * 60 * 1000; // 10 minutes in ms
+
+      function showNotif() {
+        try {
+          if (notif.style.display === 'flex') return; // already visible
+          notif.style.display = 'flex';
+          // ensure animation class exists
+          notif.classList.add('animate-slide-down');
+        } catch (e) {
+          console.error('Error showing forum notification', e);
+        }
+      }
+
+      function hideNotif() {
+        try {
+          notif.style.display = 'none';
+          notif.classList.remove('animate-slide-down');
+          localStorage.setItem('forumNotificationClosedAt', String(Date.now()));
+        } catch (e) {
+          console.error('Error hiding forum notification', e);
+        }
+      }
+
+      if (closeBtn) closeBtn.addEventListener('click', hideNotif);
+
+      // On load: show immediately if not closed within last interval
+      try {
+        const lastClosed = parseInt(localStorage.getItem('forumNotificationClosedAt') || '0', 10) || 0;
+        const now = Date.now();
+        if (now - lastClosed >= SHOW_INTERVAL) {
+          // small delay so page layout stabilizes
+          setTimeout(showNotif, 800);
+        }
+      } catch (e) {
+        // fallback: show once after small delay
+        setTimeout(showNotif, 800);
+      }
+
+      // Periodic showing every 10 minutes
+      setInterval(() => {
+        try {
+          const lastClosed = parseInt(localStorage.getItem('forumNotificationClosedAt') || '0', 10) || 0;
+          const now = Date.now();
+          if (now - lastClosed >= SHOW_INTERVAL) {
+            showNotif();
+          }
+        } catch (e) {
+          console.error('Error in forum notification interval', e);
+          showNotif();
+        }
+      }, SHOW_INTERVAL);
+    })();
+  </script>
 
   <!-- Header -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0 h-20 relative">

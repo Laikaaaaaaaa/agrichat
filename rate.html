@@ -919,6 +919,44 @@
         </div>
     </div>
 
+    <!-- Report Rating Modal -->
+    <div id="report-rating-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Báo cáo đánh giá</h2>
+                <button onclick="closeReportRatingModal()" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Vui lòng chọn lý do báo cáo:</p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="spam" style="width: 16px; height: 16px; cursor: pointer;" checked>
+                        <span style="font-size: 14px;">Spam</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="inappropriate" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-size: 14px;">Nội dung không phù hợp</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="fraud" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-size: 14px;">Lừa đảo</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="other" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-size: 14px;">Khác</span>
+                    </label>
+                </div>
+                
+                <textarea id="rating-report-details" placeholder="Chi tiết thêm (tùy chọn)..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; height: 80px; font-size: 13px;" spellcheck="false"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeReportRatingModal()" style="flex: 1; padding: 10px; margin-right: 5px; background: #f0f0f0; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: background 0.2s;">Hủy</button>
+                <button onclick="submitReportRatingModal()" style="flex: 1; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: background 0.2s;">Báo cáo</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Rating Modal -->
     <div id="edit-rating-modal" class="modal">
         <div class="modal-content">
@@ -930,7 +968,7 @@
                 <form id="edit-rating-form">
                     <div class="form-group">
                         <label>Nội dung</label>
-                        <textarea id="edit-rating-content" placeholder="Bạn nghĩ gì về ứng dụng của chúng tôi?..." required></textarea>
+                        <textarea id="edit-rating-content" placeholder="Bạn nghĩ gì về ứng dụng của chúng tôi?..." required spellcheck="false"></textarea>
                     </div>
                 </form>
             </div>
@@ -1220,6 +1258,51 @@
                 }
             } catch (error) {
                 console.error('Error updating rating:', error);
+                showError('Có lỗi xảy ra');
+            }
+        }
+        
+        // Report rating - Open modal
+        function reportRating(ratingId) {
+            window.currentReportRatingId = ratingId;
+            document.getElementById('report-rating-modal').classList.add('active');
+            document.getElementById(`menu-${ratingId}`)?.classList.remove('show');
+            // Reset form
+            document.querySelectorAll('input[name="rating-report-reason"]')[0].checked = true;
+            document.getElementById('rating-report-details').value = '';
+        }
+        
+        // Close report modal
+        function closeReportRatingModal() {
+            document.getElementById('report-rating-modal').classList.remove('active');
+            window.currentReportRatingId = null;
+        }
+        
+        // Submit report
+        async function submitReportRatingModal() {
+            const ratingId = window.currentReportRatingId;
+            if (!ratingId) return;
+            
+            const reason = document.querySelector('input[name="rating-report-reason"]:checked').value;
+            const details = document.getElementById('rating-report-details').value.trim();
+            
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason, details })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeReportRatingModal();
+                    showSuccess('Cảm ơn bạn đã báo cáo');
+                } else {
+                    showError(data.message || 'Lỗi khi báo cáo đánh giá');
+                }
+            } catch (error) {
+                console.error('Error reporting rating:', error);
                 showError('Có lỗi xảy ra');
             }
         }

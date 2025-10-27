@@ -569,7 +569,14 @@
               imgContainer.className = 'mb-2';
               const img = document.createElement('img');
               img.src = message.imageUrl;
-              img.className = 'max-w-full rounded-lg';
+              img.className = 'rounded-lg border shadow-sm';
+              // Apply same sizing as when first sent
+              img.style.maxWidth = '250px';
+              img.style.maxHeight = '250px';
+              img.style.width = 'auto';
+              img.style.height = 'auto';
+              img.style.display = 'block';
+              img.style.objectFit = 'cover';
               imgContainer.appendChild(img);
               bubble.appendChild(imgContainer);
             }

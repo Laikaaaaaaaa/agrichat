@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgriSense AI - Đánh giá</title>
-    
-    <!-- Favicon -->
+
     <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
     <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
@@ -816,7 +815,6 @@
                 <span id="success-text"></span>
             </div>
 
-            <!-- Filter Bar -->
             <div class="filter-bar">
                 <span class="filter-label">Lọc theo:</span>
                 <button class="filter-btn" onclick="filterRatings(0)">
@@ -860,7 +858,6 @@
         </div>
     </main>
 
-    <!-- Rating Modal -->
     <div id="rating-modal" class="modal-overlay" onclick="if(event.target === this) closeRatingModal()">
         <div class="modal-content">
             <div class="modal-header">
@@ -919,7 +916,6 @@
         </div>
     </div>
 
-    <!-- Report Rating Modal -->
     <div id="report-rating-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -957,7 +953,6 @@
         </div>
     </div>
 
-    <!-- Edit Rating Modal -->
     <div id="edit-rating-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1089,7 +1084,7 @@
                             <div class="rating-user-email">${userEmail}</div>
                         </div>
                         <div class="rating-date">${new Date(rating.createdAt).toLocaleDateString('vi-VN')}</div>
-                        <!-- Post menu -->
+                        
                         <div class="relative" style="flex-shrink: 0; position: relative;">
                             <button onclick="togglePostMenu(event, ${rating.id}, 'rating')" class="post-menu-btn" title="Thêm tùy chọn">
                                 <i class="fas fa-ellipsis-v"></i>

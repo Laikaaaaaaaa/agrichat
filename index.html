@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  
-  <!-- WebView Optimization -->
+
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -12,32 +11,22 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   
   <title>AgriSense AI - Nông nghiệp thông minh</title>
-  
-  <!-- Favicon -->
+
   <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
   <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
   <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
   <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
-  
-  <!-- Tailwind CSS CDN (JIT compilation) -->
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   
-  <!-- Custom CSS Animations -->
-  <!-- Chart.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-  
-  <!-- Markdown-it for formatting -->
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
-  
-  <!-- Application scripts -->
-  <!-- DISABLED: Old chat.js that was overriding appendMessage -->
-  <!-- <script src="js/chat.js"></script> -->
 
-  <!-- Camera Module Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+
   <script type="module">
     import { CameraManager } from './js/cameraManager.js';
     
@@ -1414,47 +1403,7 @@
       }
     };
   </script>
-  
-  
-  <!-- Camera Permission Check - DISABLED -->
-  <!--
-  <script>
-    async function checkCameraPermission() {
-      try {
-        console.log('Checking camera permission...');
-        
-        // Check if browser supports getUserMedia
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          console.error('Browser does not support camera API');
-          return;
-        }
 
-        // Try to access camera immediately when page loads
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
-        });
-        
-        // If we got here, permission was granted
-        console.log('Camera permission granted!');
-        
-        // Stop the stream since we don't need it yet
-        stream.getTracks().forEach(track => track.stop());
-        
-      } catch (error) {
-        console.error('Camera permission error:', error);
-        if (error.name === 'NotAllowedError') {
-          alert('Vui lòng cấp quyền truy cập camera để sử dụng tính năng này.');
-        }
-      }
-    }
-
-    // Check camera permission when page loads
-    document.addEventListener('DOMContentLoaded', checkCameraPermission);
-  </script>
-  -->
   <style>
     :root {
       --transition-duration: 0.5s;
@@ -2776,8 +2725,7 @@
       }
     }
   </style>
-  
-  <!-- Add defensive initialization script -->
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // Initialize clock with optimized rendering - only update when seconds change
@@ -2834,7 +2782,7 @@
   </script>
 </head>
 <body class="bg-green-50 font-sans text-gray-700">
-  <!-- Forum Notification Banner -->
+  
   <div id="forum-notification" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-40 bg-green-600 text-white rounded-lg shadow-lg px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-4 animate-slide-down" style="display: none; max-width: 600px; width: 90%;">
     <div class="flex items-center gap-3 flex-1">
       <p class="text-sm md:text-base font-medium">Chia sẻ kinh nghiệm hoặc câu hỏi của bạn lên diễn đàn</p>
@@ -2849,72 +2797,67 @@
     </div>
   </div>
   <script>
-    // Show the forum notification every 10 minutes. If user closes it, store timestamp
+    /**
+     * Forum notification - Hiển thị một lần duy nhất (không lặp lại khi reload)
+     * Người dùng có thể đóng, và không hiển thị lại trong phiên làm việc này
+     */
     (function() {
       const notif = document.getElementById('forum-notification');
       const closeBtn = document.getElementById('close-forum-notification');
       if (!notif) return;
 
-      const SHOW_INTERVAL = 10 * 60 * 1000; // 10 minutes in ms
+      // Flag để theo dõi đã hiển thị hay chưa trong phiên này
+      const NOTIFICATION_SHOWN_FLAG = 'forumNotificationShown';
 
+      /**
+       * Hiển thị thông báo
+       */
       function showNotif() {
         try {
-          if (notif.style.display === 'flex') return; // already visible
+          if (notif.style.display === 'flex') return;
           notif.style.display = 'flex';
-          // ensure animation class exists
           notif.classList.add('animate-slide-down');
+          // Đánh dấu là đã hiển thị
+          sessionStorage.setItem(NOTIFICATION_SHOWN_FLAG, 'true');
         } catch (e) {
-          console.error('Error showing forum notification', e);
+          console.error('❌ Lỗi hiển thị thông báo diễn đàn:', e);
         }
       }
 
+      /**
+       * Ẩn thông báo
+       */
       function hideNotif() {
         try {
           notif.style.display = 'none';
           notif.classList.remove('animate-slide-down');
-          localStorage.setItem('forumNotificationClosedAt', String(Date.now()));
         } catch (e) {
-          console.error('Error hiding forum notification', e);
+          console.error('❌ Lỗi ẩn thông báo diễn đàn:', e);
         }
       }
 
+      // Gắn sự kiện đóng
       if (closeBtn) closeBtn.addEventListener('click', hideNotif);
 
-      // On load: show immediately if not closed within last interval
+      // Chỉ hiển thị một lần duy nhất (nếu chưa hiển thị)
       try {
-        const lastClosed = parseInt(localStorage.getItem('forumNotificationClosedAt') || '0', 10) || 0;
-        const now = Date.now();
-        if (now - lastClosed >= SHOW_INTERVAL) {
-          // small delay so page layout stabilizes
+        const hasShown = sessionStorage.getItem(NOTIFICATION_SHOWN_FLAG);
+        if (!hasShown) {
+          // Hiển thị sau một chút delay để trang ổn định
           setTimeout(showNotif, 800);
         }
       } catch (e) {
-        // fallback: show once after small delay
+        console.error('❌ Lỗi kiểm tra trạng thái thông báo:', e);
         setTimeout(showNotif, 800);
       }
-
-      // Periodic showing every 10 minutes
-      setInterval(() => {
-        try {
-          const lastClosed = parseInt(localStorage.getItem('forumNotificationClosedAt') || '0', 10) || 0;
-          const now = Date.now();
-          if (now - lastClosed >= SHOW_INTERVAL) {
-            showNotif();
-          }
-        } catch (e) {
-          console.error('Error in forum notification interval', e);
-          showNotif();
-        }
-      }, SHOW_INTERVAL);
     })();
   </script>
 
-  <!-- Header -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0 h-20 relative">
     <div class="h-full flex justify-between items-center px-4 md:px-6">
-      <!-- Brand with menu button -->
+      
       <div class="flex items-center gap-3">
-        <!-- Menu toggle button -->
+        
         <button id="menu-toggle" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 z-10" type="button" aria-controls="sidebar" aria-expanded="false" style="cursor: pointer;">
           <i class="fas fa-bars"></i>
         </button>
@@ -2931,11 +2874,10 @@
   </header>
 
   <div id="main-container" class="flex w-full" style="height: calc(100dvh - 80px); max-height: calc(100dvh - 80px);">
-    <!-- Sidebar -->
+    
   <aside id="sidebar" class="flex-none bg-white shadow-lg overflow-y-auto open closed">
       <div class="p-4 md:p-6 space-y-6 md:space-y-8">
-      
-      <!-- User Profile Section -->
+
       <div id="user-section" class="pb-4 border-b border-gray-200" style="opacity: 0; pointer-events: none; transition: opacity 0.3s;">
         <div id="user-avatar" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors" onclick="handleUserClick()">
           <div class="w-10 h-10 flex-shrink-0 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold overflow-hidden">
@@ -2948,11 +2890,10 @@
           <i class="fas fa-chevron-right text-gray-400 text-sm flex-shrink-0"></i>
         </div>
       </div>
-      
-      <!-- Bảng điều khiển -->
+
       <nav class="space-y-3 md:space-y-4">
         <h2 class="text-base md:text-lg font-semibold text-green-700 flex items-center gap-2">
-          <!-- Icon dashboard -->
+          
           <i class="fas fa-tachometer-alt text-green-700 text-sm md:text-lg"></i>
           Bảng điều khiển
         </h2>
@@ -2966,7 +2907,6 @@
         </ul>
       </nav>
 
-      <!-- Khí hậu & Thời tiết (HTML + JS - backend tích hợp, chỉ thay thế block này) -->
       <div class="space-y-2 md:space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-base md:text-lg font-semibold text-green-700 flex items-center gap-2">
@@ -2975,7 +2915,6 @@
           </h2>
         </div>
 
-        <!-- ⚠️ WEATHER ALERTS -->
         <div id="weather-alerts" class="hidden space-y-2"></div>
 
         <div id="weather-info" class="rounded-xl bg-gradient-to-br from-green-50 via-white to-blue-50 p-3 md:p-4 shadow-sm border border-green-100 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300" data-state="idle" onclick="openWeatherMap()" title="Click để xem bản đồ thời tiết chi tiết">
@@ -3007,8 +2946,7 @@
               <span id="stat-precip" class="text-gray-800 font-semibold">—</span>
             </div>
           </div>
-          
-          <!-- Thêm nút xem bản đồ chi tiết -->
+
           <div class="mt-3 pt-3 border-t border-green-200">
             <div class="flex items-center justify-center gap-2 text-green-600 hover:text-green-700 transition-colors">
               <i class="fas fa-map-marked-alt"></i>
@@ -3653,8 +3591,7 @@
         };
       })();
       </script>
-      
-      <!-- Forum Section -->
+
       <div class="mb-4 md:mb-5">
         <a href="forum" class="block w-full bg-green-50 border border-green-200 rounded-lg p-3 md:p-4 transition-colors hover:bg-green-100">
           <div class="flex items-center gap-3">
@@ -3669,7 +3606,6 @@
         </a>
       </div>
 
-      <!-- Ratings Section -->
       <div class="mb-4 md:mb-5">
         <a href="rate" class="block w-full bg-green-50 border border-green-200 rounded-lg p-3 md:p-4 transition-colors hover:bg-green-100">
           <div class="flex items-center gap-3">
@@ -3683,8 +3619,7 @@
           </div>
         </a>
       </div>
-      
-      <!-- Các bài báo -->
+
       <div class="space-y-2 md:space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-base md:text-lg font-semibold text-green-700 flex items-center gap-2">
@@ -3722,21 +3657,17 @@
       </div>
     </aside>
 
-    <!-- Main Chat Area -->
     <main id="chat-main" class="flex-1 bg-white shadow-lg rounded-2xl p-0 md:p-3 flex flex-col relative overflow-hidden">
-      
-      <!-- Chat Box -->
+
       <div id="chat-box" class="flex-1 overflow-auto space-y-3 md:space-y-4 p-3 md:p-6" style="min-height: 0;">
         <div class="bg-green-100 p-3 md:p-4 rounded-xl text-gray-800 text-sm md:text-base">
           <strong>AgriSense AI:</strong> Xin chào! Tôi là AgriSense AI – chuyên gia tư vấn nông nghiệp thông minh. 🌱
         </div>
-        <!-- Thêm khung tin nhắn ở đây -->
+        
       </div>
-      
-      
-      <!-- Input - Fixed at bottom -->
+
   <div class="bg-white p-3 md:pt-3 border-t border-gray-100 flex-shrink-0 space-y-2 relative chat-controls">
-        <!-- Image upload area -->
+        
         <div id="image-upload-area" class="hidden">
           <div class="flex items-center space-x-2 p-2 bg-green-50 rounded-lg border border-green-200">
             <img id="uploaded-image-preview" src="" alt="Preview" class="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg border">
@@ -3749,37 +3680,31 @@
             </button>
           </div>
         </div>
-        
-        <!-- Main input row -->
+
         <div class="flex items-stretch gap-2">
-          <!-- Camera/Image Button -->
+          
           <button id="camera-btn" type="button" class="flex-shrink-0 border-2 border-green-600 text-green-600 rounded-xl px-3 py-2.5 md:px-4 md:py-3 hover:border-green-700 hover:text-green-700 transition-colors active:scale-95 flex items-center justify-center">
-            <!-- Paperclip icon (desktop) -->
+            
             <i class="fas fa-paperclip text-lg hidden md:inline-block"></i>
-            <!-- Camera icon (mobile) -->
+            
             <i class="fas fa-camera text-lg md:hidden"></i>
           </button>
 
-          <!-- Image Inputs (hidden) -->
-          <!-- For gallery (no capture attribute) -->
           <input type="file" 
                  id="image-input-gallery" 
                  accept="image/*" 
                  class="hidden">
-          
-          <!-- For camera (with capture attribute - mobile only) -->
+
           <input type="file" 
                  id="image-input-camera" 
                  accept="image/*" 
                  capture="environment"
                  class="hidden">
 
-          <!-- Camera Options Menu -->
           <div id="camera-menu" class="hidden absolute left-3 bottom-full mb-2 bg-white border border-green-200 rounded-xl shadow-lg z-50 w-64">
             <div class="p-3">
               <div class="text-xs text-gray-500 mb-2 font-medium px-2">Chọn phương thức</div>
-              
-              <!-- Upload from Gallery Option -->
+
               <button id="upload-image-option" class="w-full text-left px-4 py-3 rounded-lg hover:bg-green-50 transition-colors text-sm flex items-center gap-3 mb-2">
                 <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                   <i class="fas fa-image text-green-600"></i>
@@ -3789,8 +3714,7 @@
                   <div class="text-xs text-gray-500">Tải ảnh có sẵn lên</div>
                 </div>
               </button>
-              
-              <!-- Take Photo Option (Mobile only - hidden by default, shown by JS) -->
+
               <button id="take-photo-option" class="hidden w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                   <i class="fas fa-camera text-blue-600"></i>
@@ -3802,8 +3726,7 @@
               </button>
             </div>
           </div>
-          
-          <!-- Text Input -->
+
           <div class="flex-1 min-w-0">
             <input
               id="message-input"
@@ -3813,8 +3736,7 @@
               class="w-full h-full border border-green-200 rounded-xl px-4 py-2.5 md:py-3 shadow-sm focus:ring-2 focus:ring-green-400 focus:border-green-500 text-base outline-none transition-all"
             />
           </div>
-          
-          <!-- Send button -->
+
           <button id="send-btn" class="flex-shrink-0 bg-green-500 text-white rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-md hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center">
             <i class="fas fa-paper-plane text-lg"></i>
           </button>
@@ -3824,11 +3746,10 @@
     </main>
   </div>
 
-  <!-- Camera UI -->
   <div id="camera-modal" class="hidden fixed inset-0 bg-black z-50">
-    <!-- Camera Container -->
+    
     <div class="camera-container">
-      <!-- Video Preview -->
+      
       <video id="camera-preview" 
         autoplay 
         playsinline 
@@ -3840,7 +3761,6 @@
         disablePictureInPicture>
       </video>
 
-      <!-- Camera Status -->
       <div id="camera-status" class="backdrop-blur-md">
         <div class="flex items-center gap-3">
           <div class="animate-spin rounded-full h-5 w-5 border-2 border-white hidden"></div>
@@ -3848,7 +3768,6 @@
         </div>
       </div>
 
-      <!-- Top Controls -->
       <div class="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
         <button id="close-camera" class="w-12 h-12 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 transition-all">
           <i class="fas fa-times text-xl"></i>
@@ -3859,7 +3778,6 @@
         </select>
       </div>
 
-      <!-- Bottom Controls -->
       <div class="absolute bottom-10 left-0 right-0 flex justify-center items-center gap-8 z-10">
         <button id="flash-toggle" class="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 transition-all">
           <i class="fas fa-bolt text-xl"></i>
@@ -4167,8 +4085,7 @@
       }
     });
     </script>
-    
-    <!-- User Authentication Script -->
+
     <script>
       // Global variable to track login state
       let isUserLoggedIn = false;
@@ -4246,7 +4163,6 @@
     </script>
 </body>
 
-<!-- Chat interaction script -->
 <script type="module">
   // API Helper Functions for Flask Backend
   const API_BASE_URL = '';  // Empty since we're on the same domain
@@ -6760,7 +6676,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         animation: modalSlideIn 0.3s ease-out;
       ">
-        <!-- Header -->
+        
         <div style="
           padding: 20px 25px 15px 25px;
           border-bottom: 1px solid #e0e0e0;
@@ -6792,8 +6708,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             </button>
           </div>
         </div>
-        
-        <!-- Image Section -->
+
         <div style="padding: 25px; text-align: center;">
           <div style="position: relative; display: inline-block; margin-bottom: 20px;">
             <img src="${imageUrl}" style="
@@ -6806,8 +6721,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             onmouseover="this.style.transform='scale(1.02)'" 
             onmouseout="this.style.transform='scale(1)'">
           </div>
-          
-          <!-- Info Section -->
+
           <div style="
             background: #f8f9fa;
             padding: 20px;
@@ -6836,8 +6750,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
               <p style="margin: 2px 0 0 0; color: #3498db; font-size: 12px; word-break: break-all;">${imageUrl}</p>
             </div>
           </div>
-          
-          <!-- Action Buttons -->
+
           <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
             <button class="download-btn" style="
               background: linear-gradient(135deg, #28a745, #20c997);

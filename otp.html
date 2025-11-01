@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   
   <title>Xác thực OTP - AgriSense AI</title>
-  
-  <!-- Favicon -->
+
   <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
-  
-  <!-- Tailwind CSS (Production Build) -->
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome -->
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   
   <style>
@@ -28,8 +26,7 @@
   </style>
 </head>
 <body class="bg-white">
-  
-  <!-- Header -->
+
   <header class="bg-green-100 border-b border-green-200 shadow-sm">
     <div class="h-20 flex items-center px-4 md:px-6 gap-3">
       <button onclick="window.history.back()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500" title="Quay lại">
@@ -39,18 +36,15 @@
     </div>
   </header>
 
-  <!-- Main Content -->
   <div class="max-w-md mx-auto px-4 py-8">
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
       <h2 class="text-2xl font-bold text-gray-800 mb-2">Xác thực OTP</h2>
       <p class="text-sm text-gray-600 mb-6">Nhập mã OTP đã được gửi đến email <span id="email-display" class="font-medium"></span></p>
-      
-      <!-- Alert Message -->
+
       <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
-      
-      <!-- OTP Form -->
+
       <form id="otp-form" class="space-y-4">
-        <!-- OTP Code -->
+        
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Mã OTP (6 số)</label>
           <input 
@@ -64,8 +58,7 @@
             placeholder="000000"
           />
         </div>
-        
-        <!-- New Password -->
+
         <div id="password-section">
           <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
           <div class="relative">
@@ -86,8 +79,7 @@
             </button>
           </div>
         </div>
-        
-        <!-- Confirm Password -->
+
         <div id="confirm-password-section">
           <label class="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
           <div class="relative">
@@ -107,8 +99,7 @@
             </button>
           </div>
         </div>
-        
-        <!-- Submit Button -->
+
         <button 
           type="submit" 
           class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
@@ -116,8 +107,7 @@
           Đặt lại mật khẩu
         </button>
       </form>
-      
-      <!-- Resend OTP -->
+
       <div class="text-center mt-4 pt-4 border-t border-gray-200">
         <button id="resend-otp" class="text-sm text-green-600 hover:text-green-700">
           Gửi lại mã OTP

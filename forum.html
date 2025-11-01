@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  
-  <!-- WebView Optimization -->
+
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -12,17 +11,15 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   
   <title>Diễn đàn Nông nghiệp - AgriSense AI</title>
-  
-  <!-- Favicon -->
+
   <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
   <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
   <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
   <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
-  
-  <!-- Tailwind CSS (Production Build) -->
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome -->
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   
   <style>
@@ -254,21 +251,20 @@
   </style>
 </head>
 <body class="bg-green-50 font-sans text-gray-700">
-  
-  <!-- Header - matching news.html style -->
+
   <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
     <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
       <div class="flex items-center gap-3">
-        <!-- Back button -->
+        
         <button onclick="goBack()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
           <i class="fas fa-arrow-left"></i>
         </button>
-        <!-- Logo -->
+        
         <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="h-12 md:h-14 w-auto object-contain">
       </div>
       <span class="text-xs md:text-sm text-gray-500 hidden md:block">Diễn đàn nông nghiệp cộng đồng</span>
       <div class="flex items-center gap-2 md:gap-4">
-        <!-- User Avatar -->
+        
         <div id="user-section" class="cursor-pointer" onclick="handleUserClick()">
           <div id="user-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold shadow-lg hover:shadow-xl transition-shadow">
             <i class="fas fa-user"></i>
@@ -278,23 +274,20 @@
     </div>
   </header>
 
-  <!-- Main Content -->
   <div class="min-h-screen bg-green-50">
     <div class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
-        
-        <!-- Left Sidebar - Hidden on mobile -->
+
         <div class="hidden lg:block lg:col-span-1">
           <div class="sticky top-20">
-            <!-- Search Box -->
+            
             <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
               <div class="relative">
                 <input type="text" id="search-input" placeholder="Tìm kiếm bài viết..." class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm" onkeyup="searchPosts(this.value)">
                 <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
               </div>
             </div>
-            
-            <!-- News Articles Section -->
+
             <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-bold text-gray-900 text-base">📰 Tin tức</h3>
@@ -333,20 +326,18 @@
                 </ul>
               </div>
             </div>
-            
-            <!-- Trending Topics -->
+
             <div class="bg-white rounded-xl shadow-sm p-4">
               <h3 class="font-bold text-gray-900 mb-3 text-base">🔥 Xu hướng</h3>
               <div id="trending-topics-container" class="space-y-2 text-sm">
-                <!-- Trending topics will be loaded dynamically -->
+                
               </div>
             </div>
           </div>
         </div>
-        <!-- Main Content - Takes full width on mobile, 3 cols on desktop -->
+        
         <div class="lg:col-span-3">
-    
-    <!-- Create Post Card -->
+
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-md p-3 sm:p-4 mb-4 sm:mb-6">
       <div class="flex gap-2 sm:gap-3">
         <div id="create-post-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
@@ -368,8 +359,7 @@
         </button>
       </div>
     </div>
-    
-    <!-- Filter Tabs -->
+
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm mb-4 sm:mb-6 p-1.5 sm:p-2 flex gap-1 sm:gap-2 overflow-x-auto">
       <button onclick="setFilter('latest'); loadPosts()" id="filter-latest" class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 bg-green-600 text-white rounded-lg font-medium text-xs sm:text-sm min-w-[80px] transition-colors">
         <i class="fas fa-fire mr-1 sm:mr-2"></i><span class="hidden xs:inline">Mới nhất</span><span class="xs:hidden">Mới</span>
@@ -381,16 +371,14 @@
         <i class="fas fa-question-circle mr-1 sm:mr-2"></i>Câu hỏi
       </button>
     </div>
-    
-    <!-- Posts List -->
+
     <div id="posts-container">
-      <!-- Loading spinner -->
+      
       <div class="flex justify-center py-8">
         <div class="loading-spinner"></div>
       </div>
     </div>
-    
-    <!-- Load More -->
+
     <div class="text-center py-4">
       <button class="px-4 sm:px-6 py-2 sm:py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full shadow-sm hover:shadow-md font-medium transition-all text-sm sm:text-base">
         Xem thêm bài viết
@@ -401,8 +389,7 @@
       </div>
     </div>
   </div>
-  
-  <!-- Likes Modal -->
+
   <div id="likes-modal" class="modal">
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full mx-3 sm:mx-4 max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
@@ -416,21 +403,19 @@
       </div>
     </div>
   </div>
-  
-  <!-- Create Post Modal -->
+
   <div id="create-post-modal" class="modal">
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-2xl w-full mx-3 sm:mx-4 max-h-[90vh] overflow-y-auto">
-      <!-- Modal Header -->
+      
       <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
         <h2 class="text-lg sm:text-xl font-bold text-gray-800">Tạo bài viết</h2>
         <button onclick="closeCreatePostModal()" class="text-gray-400 hover:text-gray-600">
           <i class="fas fa-times text-lg sm:text-xl"></i>
         </button>
       </div>
-      
-      <!-- Modal Body -->
+
       <div class="p-3 sm:p-4">
-        <!-- User Info -->
+        
         <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div id="modal-user-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
             <i class="fas fa-user text-sm sm:text-base"></i>
@@ -439,8 +424,7 @@
             <h3 id="modal-user-name" class="font-semibold text-gray-800 text-sm sm:text-base">Đang tải...</h3>
           </div>
         </div>
-        
-        <!-- Post Content (No Title) -->
+
         <div class="relative mb-3 sm:mb-4">
           <textarea 
             id="post-content" 
@@ -449,11 +433,9 @@
             class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:border-green-600 resize-none"
           ></textarea>
         </div>
-        
-        <!-- Poll Preview Container -->
+
         <div id="poll-preview-container"></div>
-        
-        <!-- Image Upload Preview -->
+
         <div id="image-preview-container" class="hidden mb-3 sm:mb-4">
           <div class="relative">
             <img id="image-preview" src="" alt="Preview" class="w-full rounded-lg max-h-48 sm:max-h-64 object-cover" />
@@ -462,8 +444,7 @@
             </button>
           </div>
         </div>
-        
-        <!-- Tags Input -->
+
         <div class="mb-3 sm:mb-4">
           <input 
             type="text" 
@@ -472,8 +453,7 @@
             class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-xs sm:text-sm"
           />
         </div>
-        
-        <!-- Bottom Action Bar -->
+
         <div class="flex gap-2 sm:gap-3">
           <button onclick="selectPostImage()" class="flex-1 py-2.5 sm:py-3 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
             <i class="fas fa-image"></i>
@@ -490,19 +470,17 @@
       </div>
     </div>
   </div>
-  
-  <!-- Report Post Modal -->
+
   <div id="report-modal" class="modal">
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full mx-3 sm:mx-4">
-      <!-- Modal Header -->
+      
       <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
         <h2 class="text-lg sm:text-xl font-bold text-gray-800">Báo cáo bài viết</h2>
         <button onclick="closeReportModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
           <i class="fas fa-times text-lg sm:text-xl"></i>
         </button>
       </div>
-      
-      <!-- Modal Body -->
+
       <div class="p-3 sm:p-4 space-y-3">
         <p class="text-sm text-gray-600">Vui lòng chọn lý do báo cáo:</p>
         
@@ -527,8 +505,7 @@
         
         <textarea id="report-details" placeholder="Chi tiết thêm (tùy chọn)..." rows="3" class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600 text-sm resize-none spellcheck-false" spellcheck="false"></textarea>
       </div>
-      
-      <!-- Modal Footer -->
+
       <div class="flex gap-2 p-3 sm:p-4 border-t border-gray-200">
         <button onclick="closeReportModal()" class="flex-1 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm">
           Hủy
@@ -539,21 +516,19 @@
       </div>
     </div>
   </div>
-  
-  <!-- Edit Post Modal -->
+
   <div id="edit-post-modal" class="modal">
     <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-2xl w-full mx-3 sm:mx-4 max-h-[90vh] overflow-y-auto">
-      <!-- Modal Header -->
+      
       <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
         <h2 class="text-lg sm:text-xl font-bold text-gray-800">Chỉnh sửa bài viết</h2>
         <button onclick="closeEditPostModal()" class="text-gray-400 hover:text-gray-600">
           <i class="fas fa-times text-lg sm:text-xl"></i>
         </button>
       </div>
-      
-      <!-- Modal Body -->
+
       <div class="p-3 sm:p-4">
-        <!-- User Info -->
+        
         <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div id="edit-modal-user-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
             <i class="fas fa-user text-sm sm:text-base"></i>
@@ -562,8 +537,7 @@
             <h3 id="edit-modal-user-name" class="font-semibold text-gray-800 text-sm sm:text-base">Đang tải...</h3>
           </div>
         </div>
-        
-        <!-- Post Content -->
+
         <div class="relative mb-3 sm:mb-4">
           <textarea 
             id="edit-post-content" 
@@ -572,8 +546,7 @@
             class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:border-green-600 resize-none"
           ></textarea>
         </div>
-        
-        <!-- Bottom Action Bar -->
+
         <div class="flex gap-2 sm:gap-3 justify-end">
           <button onclick="closeEditPostModal()" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors text-sm sm:text-base">
             Hủy
@@ -585,25 +558,22 @@
       </div>
     </div>
   </div>
-  
-  <!-- Hidden File Input -->
+
   <input type="file" id="post-image-input" accept="image/*" class="hidden" />
-  
-  <!-- Poll Modal -->
+
   <div id="poll-modal" class="modal hidden">
     <div class="flex items-center justify-center min-h-screen p-4">
       <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full">
-        <!-- Modal Header -->
+        
         <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
           <h2 class="text-lg sm:text-xl font-bold text-gray-800">Thêm cuộc thăm dò ý kiến</h2>
           <button onclick="closePollModal()" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times text-lg sm:text-xl"></i>
           </button>
         </div>
-        
-        <!-- Modal Body -->
+
         <div class="p-3 sm:p-4">
-          <!-- Poll Options (Main) -->
+          
           <div class="mb-4 sm:mb-5">
             <div id="poll-options-container" class="space-y-2.5">
               <div class="flex items-center gap-2">
@@ -632,8 +602,7 @@
               <span>Thêm lựa chọn</span>
             </button>
           </div>
-          
-          <!-- Poll Settings (Bottom Right) -->
+
           <div class="flex items-center justify-between">
             <div class="text-xs sm:text-sm text-gray-500">
               Bạn không thể tạo cuộc thăm dò ý kiến không chứa ít nhất hai lựa chọn trong bài viết.
@@ -642,16 +611,14 @@
               <i class="fas fa-cog text-gray-600 text-lg"></i>
             </button>
           </div>
-          
-          <!-- Poll Settings (Hidden by default) -->
+
           <div id="poll-settings" class="hidden mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <label class="flex items-center gap-2 mb-2">
               <input type="checkbox" id="poll-multiple" class="w-4 h-4">
               <span class="text-xs sm:text-sm text-gray-700">Cho phép chọn nhiều tùy chọn</span>
             </label>
           </div>
-          
-          <!-- Action Buttons -->
+
           <div class="flex gap-2 mt-4 sm:mt-5">
             <button onclick="closePollModal()" class="flex-1 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm sm:text-base">
               Hủy
@@ -665,8 +632,6 @@
     </div>
   </div>
 
-  <!-- Share Options Modal -->
-  
   <script>
     let isUserLoggedIn = false;
     let currentUser = null;
@@ -936,7 +901,7 @@
       
       return `
         <div class="post-card bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md p-3 sm:p-4 mb-3 sm:mb-4 fade-in-up" data-post-id="${post.id}">
-          <!-- Post Header -->
+          
           <div class="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
             <a href="/profile/${post.user_id}" class="hover:opacity-80 transition-opacity flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden">
               ${userAvatar}
@@ -949,7 +914,7 @@
                 <i class="far fa-clock mr-1"></i>${timeAgo}
               </p>
             </div>
-            <!-- Post menu -->
+            
             <div class="relative" style="flex-shrink: 0;">
               <button onclick="togglePostMenu(event, ${post.id})" class="post-menu-btn" title="Thêm tùy chọn">
                 <i class="fas fa-ellipsis-v"></i>
@@ -972,8 +937,7 @@
               </div>
             </div>
           </div>
-          
-          <!-- Post Content -->
+
           <div class="mb-2 sm:mb-3">
             ${titleHTML}
             <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${processContent(post.content)}</p>
@@ -982,8 +946,7 @@
           ${imageHTML}
           ${pollHTML}
           ${tagsHTML}
-          
-          <!-- Post Stats -->
+
           <div class="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 py-2 border-y border-gray-200 mb-2">
             <button onclick="showLikesList(${post.id})" class="hover:underline flex items-center gap-1">
               ${post.likes_count > 0 
@@ -994,8 +957,7 @@
               <i class="fas fa-comment"></i> <span>${post.comments_count || 0}</span> <span class="hidden sm:inline">bình luận</span>
             </button>
           </div>
-          
-          <!-- Post Actions -->
+
           <div class="flex gap-1 sm:gap-2">
             <button onclick="toggleLike(${post.id})" class="like-btn ${isLiked} flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
               <i class="${likeIconClass} fa-thumbs-up text-sm sm:text-base"></i>
@@ -1006,11 +968,10 @@
               <span class="font-medium text-xs sm:text-sm">Bình luận</span>
             </button>
           </div>
-          
-          <!-- Comments Section -->
+
           <div id="comments-${post.id}" class="comments-section hidden mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
             <div class="comments-list mb-3 space-y-2" id="comments-list-${post.id}">
-              <!-- Comments will be loaded here -->
+              
             </div>
             ${isUserLoggedIn ? `
               <div class="flex gap-2">
@@ -1967,9 +1928,7 @@
     }
 
     // Share modal functions
-    
 
-    
     // Close modal on background click
     document.getElementById('create-post-modal').addEventListener('click', function(e) {
       if (e.target === this) closeCreatePostModal();

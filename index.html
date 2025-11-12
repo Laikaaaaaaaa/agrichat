@@ -4431,9 +4431,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOMContentLoaded - Initializing event listeners...');
     
-    // 🔐 Check session when page loads
-    checkSessionAndRedirectChat();
-    
     // Re-query DOM elements now that the DOM is loaded
     chatBox = document.getElementById('chat-box');
     input = document.getElementById('message-input');

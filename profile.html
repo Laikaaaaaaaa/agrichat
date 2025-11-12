@@ -3135,9 +3135,7 @@
     
     // Load profile on page load
     document.addEventListener('DOMContentLoaded', function() {
-      // 🔐 Check session immediately when page loads
-      checkSessionAndRedirect();
-      
+      // Load profile data normally on first page load
       loadProfile();
       loadNotifications();
       
@@ -3152,10 +3150,11 @@
       setInterval(loadNotifications, 30000);
     });
     
-    // 🔐 Check session when user navigates back to this page (using browser back button)
+    // 🔐 Check session only when user navigates back to this page (using browser back button)
     window.addEventListener('pageshow', function(event) {
       if (event.persisted) {
-        // Page was restored from cache - check session
+        // Page was restored from cache - check session to detect logout
+        console.log('🔄 Pageshow event with persisted=true on profile.html, checking session...');
         checkSessionAndRedirect();
       }
     });

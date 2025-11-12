@@ -1014,25 +1014,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // ✅ Kiểm tra auth từ server (giống forum.html)
-        try {
-            console.log('🔐 Checking user session...');
-            const response = await fetch('/api/auth/profile');
-            const data = await response.json();
-            
-            console.log('Auth response:', data);
-            
-            if (data.success && data.user) {
-                console.log('✅ User đã xác thực:', data.user.email);
-                window.chatHistoryManager = new ChatHistoryManager();
-            } else {
-                console.warn('⚠️ Không tìm thấy user hoặc error:', data.message);
-                window.location.href = '/login';
-            }
-        } catch (error) {
-            console.error('❌ Lỗi kiểm tra auth:', error);
-            window.location.href = '/login';
-        }
+        // Load chat history normally on first page load
+        console.log('🔄 Loading chat history...');
+        window.chatHistoryManager = new ChatHistoryManager();
 
         // ===== Mobile Sidebar Event Listeners =====
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -1056,14 +1040,32 @@
         });
     });
 
-    // 🔐 Check session when user navigates back to this page (using browser back button)
+    // 🔐 Check session only when user navigates back to this page (using browser back button)
     window.addEventListener('pageshow', function(event) {
         if (event.persisted) {
-            // Page was restored from cache - check session
+            // Page was restored from cache - check session to detect logout
             console.log('🔄 Pageshow event with persisted=true on history.html, checking session...');
             checkSessionAndRedirect();
         }
     });
+    
+    // 🔐 Function to check if user is still logged in
+    async function checkSessionAndRedirect() {
+        try {
+            const response = await fetch('/api/auth/profile');
+            const data = await response.json();
+            
+            if (!data.success || !data.user) {
+                // Session expired or user logged out - redirect to login
+                console.log('⚠️ Session invalid, redirecting to login');
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            console.error('❌ Error checking session:', error);
+            // On error, assume session is invalid for security
+            window.location.href = '/login';
+        }
+    }
     </script>
 </body>
 </html>

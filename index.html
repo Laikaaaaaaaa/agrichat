@@ -1896,9 +1896,13 @@
         top:80px;
         left:0;
         bottom:0;
+        height: calc(100vh - 80px);
+        max-height: calc(100vh - 80px);
         transform:translateX(calc(-1 * var(--sidebar-w)));
         transition:transform 0.28s ease;
         z-index:4500; /* Mobile: sidebar trên backdrop */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
       #sidebar.open{ transform:translateX(0); }
       #sidebar.closed{ transform:translateX(calc(-1 * var(--sidebar-w))); }

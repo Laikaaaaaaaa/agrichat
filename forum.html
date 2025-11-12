@@ -947,33 +947,52 @@
           ${pollHTML}
           ${tagsHTML}
 
-          <div class="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 py-2 border-y border-gray-200 mb-2">
-            <button onclick="showLikesList(${post.id})" class="hover:underline flex items-center gap-1">
-              ${post.likes_count > 0 
-                ? `<i class="fas fa-thumbs-up text-green-600"></i> <span>${post.likes_count}</span> <span class="hidden sm:inline">thích</span>`
-                : '<span class="text-xs sm:text-sm">Chưa có lượt thích</span>'}
-            </button>
-            <button onclick="toggleComments(${post.id})" class="hover:underline flex items-center gap-1">
-              <i class="fas fa-comment"></i> <span>${post.comments_count || 0}</span> <span class="hidden sm:inline">bình luận</span>
-            </button>
-          </div>
-
-          <div class="flex gap-1 sm:gap-2">
-            <button onclick="toggleLike(${post.id})" class="like-btn ${isLiked} flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-              <i class="${likeIconClass} fa-thumbs-up text-sm sm:text-base"></i>
-              <span class="font-medium text-xs sm:text-sm">Thích</span>
-            </button>
-            <button onclick="toggleComments(${post.id})" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-              <i class="far fa-comment text-sm sm:text-base"></i>
-              <span class="font-medium text-xs sm:text-sm">Bình luận</span>
-            </button>
-          </div>
-
-          <div id="comments-${post.id}" class="comments-section hidden mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
-            <div class="comments-list mb-3 space-y-2" id="comments-list-${post.id}">
-              
+          <div class="px-2.5 sm:px-4 py-2 sm:py-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <button 
+                onclick="showLikesList(${post.id})" 
+                class="flex items-center gap-1 text-gray-600 hover:text-green-600 hover:underline transition-colors"
+              >
+                ${post.likes_count > 0 ? `
+                  <span class="flex items-center gap-1">
+                    <i class="fas fa-thumbs-up text-green-600 text-xs"></i>
+                    <span class="font-medium text-gray-700">${post.likes_count}</span>
+                  </span>
+                ` : '<span class="text-gray-500 text-xs">Chưa có lượt thích</span>'}
+              </button>
+              <button 
+                onclick="toggleComments(${post.id})" 
+                class="text-gray-600 hover:text-blue-600 hover:underline transition-colors"
+              >
+                ${post.comments_count > 0 
+                  ? `<span class="font-medium">${post.comments_count}</span> bình luận` 
+                  : 'Chưa có bình luận'}
+              </button>
             </div>
-            ${isUserLoggedIn ? `
+          </div>
+
+          <div class="px-2 pb-2 flex gap-1 border-t border-gray-100 pt-1">
+            <button 
+              onclick="toggleLike(${post.id})" 
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium like-btn-${post.id} ${isLiked}"
+              title="${isLiked ? 'Bỏ thích' : 'Thích bài viết'}"
+            >
+              <i class="${likeIconClass} fa-thumbs-up text-lg"></i>
+              <span class="text-sm">${isLiked ? 'Đã thích' : 'Thích'}</span>
+            </button>
+            <button 
+              onclick="toggleComments(${post.id})" 
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium"
+              title="Bình luận bài viết"
+            >
+              <i class="far fa-comment text-lg"></i>
+              <span class="text-sm">Bình luận</span>
+            </button>
+          </div>
+
+          <div id="comments-${post.id}" class="comments-section hidden border-t border-gray-100 bg-gray-50">
+            
+            <div class="p-3 sm:p-4 border-b border-gray-200">
               <div class="flex gap-2">
                 <input 
                   type="text" 
@@ -986,11 +1005,12 @@
                   <i class="fas fa-paper-plane text-sm"></i>
                 </button>
               </div>
-            ` : `
-              <p class="text-center text-gray-500 text-xs sm:text-sm">
-                <a href="/login" class="text-green-600 hover:underline">Đăng nhập</a> để bình luận
-              </p>
-            `}
+            </div>
+
+            <div class="comments-list space-y-3 p-3 sm:p-4" id="comments-list-${post.id}">
+              
+            </div>
+          </div>
           </div>
         </div>
       `;

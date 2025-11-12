@@ -102,6 +102,32 @@ def init_db():
         )
     ''')
     
+    # Forum comment likes table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forum_comment_likes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(comment_id, user_id),
+            FOREIGN KEY (comment_id) REFERENCES forum_comments (id),
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Forum comment replies table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forum_comment_replies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            comment_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (comment_id) REFERENCES forum_comments (id),
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
     # User photos table (profile photos, cover photos, uploaded photos)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_photos (

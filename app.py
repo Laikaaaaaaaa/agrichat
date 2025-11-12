@@ -5649,12 +5649,15 @@ def get_forum_comments(post_id):
                 u.name as user_name,
                 u.email as user_email,
                 u.avatar_url as user_avatar,
-                u.username_slug as username_slug
+                u.username_slug as username_slug,
+                (SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = c.id) as likes_count,
+                (SELECT COUNT(*) FROM forum_comment_replies WHERE comment_id = c.id) as replies_count,
+                CASE WHEN EXISTS(SELECT 1 FROM forum_comment_likes WHERE comment_id = c.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked
             FROM forum_comments c
             LEFT JOIN users u ON c.user_id = u.id
             WHERE c.post_id = ?
             ORDER BY c.created_at ASC
-        ''', (post_id,))
+        ''', (session.get('user_id', -1), post_id))
         
         comments = []
         for row in cursor.fetchall():
@@ -5671,7 +5674,10 @@ def get_forum_comments(post_id):
                 'user_name': row[4],
                 'user_email': row[5],
                 'user_avatar': row[6],
-                'username_slug': row[7]
+                'username_slug': row[7],
+                'likes_count': row[8],
+                'replies_count': row[9],
+                'user_liked': bool(row[10])
             })
         
         conn.close()
@@ -5773,6 +5779,193 @@ def delete_forum_comment(post_id, comment_id):
         })
     except Exception as e:
         logging.error(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/comments/<int:comment_id>/like', methods=['POST'])
+def like_forum_comment(comment_id):
+    """Like a comment"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if comment exists
+        cursor.execute('SELECT user_id FROM forum_comments WHERE id = ?', (comment_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
+        
+        # Check if already liked
+        cursor.execute('SELECT id FROM forum_comment_likes WHERE comment_id = ? AND user_id = ?', 
+                      (comment_id, session['user_id']))
+        
+        if cursor.fetchone():
+            # Already liked, unlike it
+            cursor.execute('DELETE FROM forum_comment_likes WHERE comment_id = ? AND user_id = ?',
+                          (comment_id, session['user_id']))
+            liked = False
+        else:
+            # Not liked, like it
+            cursor.execute('INSERT INTO forum_comment_likes (comment_id, user_id, created_at) VALUES (?, ?, datetime("now"))',
+                          (comment_id, session['user_id']))
+            liked = True
+        
+        # Get updated like count
+        cursor.execute('SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = ?', (comment_id,))
+        likes_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'liked': liked,
+            'likes_count': likes_count
+        })
+    except Exception as e:
+        logging.error(f"Error liking comment: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/comments/<int:comment_id>/replies', methods=['GET'])
+def get_comment_replies(comment_id):
+    """Get replies for a comment"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                r.id,
+                r.user_id,
+                r.content,
+                r.created_at,
+                u.name as user_name,
+                u.email as user_email,
+                u.avatar_url as user_avatar,
+                u.username_slug as username_slug,
+                (SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = r.id) as likes_count,
+                CASE WHEN EXISTS(SELECT 1 FROM forum_comment_likes WHERE comment_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked
+            FROM forum_comment_replies r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.comment_id = ?
+            ORDER BY r.created_at ASC
+        ''', (session.get('user_id', -1), comment_id))
+        
+        replies = []
+        for row in cursor.fetchall():
+            created_at = row[3]
+            if created_at and len(created_at) == 19:
+                created_at = f"{created_at}Z"
+            
+            replies.append({
+                'id': row[0],
+                'user_id': row[1],
+                'content': row[2],
+                'created_at': created_at,
+                'user_name': row[4],
+                'user_email': row[5],
+                'user_avatar': row[6],
+                'username_slug': row[7],
+                'likes_count': row[8],
+                'user_liked': bool(row[9])
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'replies': replies})
+    except Exception as e:
+        logging.error(f"Error getting replies: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/comments/<int:comment_id>/replies', methods=['POST'])
+def create_comment_reply(comment_id):
+    """Create a reply to a comment"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
+        
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if comment exists
+        cursor.execute('SELECT user_id FROM forum_comments WHERE id = ?', (comment_id,))
+        comment = cursor.fetchone()
+        if not comment:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
+        
+        cursor.execute('''
+            INSERT INTO forum_comment_replies (comment_id, user_id, content, created_at)
+            VALUES (?, ?, ?, datetime("now"))
+        ''', (comment_id, session['user_id'], content))
+        
+        reply_id = cursor.lastrowid
+        
+        # Create notification if replying to someone else's comment
+        if comment[0] != session['user_id']:
+            cursor.execute('''
+                INSERT INTO notifications (recipient_id, sender_id, type, comment_id, content, created_at)
+                VALUES (?, ?, 'comment_reply', ?, ?, datetime('now'))
+            ''', (comment[0], session['user_id'], comment_id, content))
+        
+        # Get updated reply count
+        cursor.execute('SELECT COUNT(*) FROM forum_comment_replies WHERE comment_id = ?', (comment_id,))
+        replies_count = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'reply_id': reply_id,
+            'replies_count': replies_count
+        })
+    except Exception as e:
+        logging.error(f"Error creating reply: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/comments/<int:comment_id>/replies/<int:reply_id>', methods=['DELETE'])
+def delete_comment_reply(comment_id, reply_id):
+    """Delete a reply to a comment"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if reply exists and user owns it
+        cursor.execute('SELECT user_id FROM forum_comment_replies WHERE id = ?', (reply_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Trả lời không tồn tại'}), 404
+        
+        if row[0] != session['user_id']:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Bạn không có quyền xóa trả lời này'}), 403
+        
+        cursor.execute('DELETE FROM forum_comment_replies WHERE id = ?', (reply_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Error deleting reply: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

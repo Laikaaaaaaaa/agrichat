@@ -1672,9 +1672,12 @@
       
       const profileLink = comment.username_slug || comment.user_id;
       const timeAgo = getTimeAgo(comment.created_at);
+      const likesCount = comment.likes_count || 0;
+      const repliesCount = comment.replies_count || 0;
+      const isLiked = comment.user_liked ? 'text-red-600 fas' : 'far';
       
       return `
-        <div class="flex gap-2 mb-2">
+        <div class="flex gap-2 mb-3" id="comment-${comment.id}">
           <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
             ${userAvatar}
           </a>
@@ -1683,11 +1686,39 @@
               <a href="/profile/${profileLink}" class="font-semibold text-xs sm:text-sm text-gray-800 hover:underline block">${escapeHtml(userName)}</a>
               <p class="text-gray-700 text-sm sm:text-base break-words">${escapeHtml(comment.content)}</p>
             </div>
-            <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4">
+            <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4 flex-wrap">
               <span>${timeAgo}</span>
+              <button onclick="toggleCommentLike(${comment.id}, this)" class="hover:text-red-600 like-comment-btn-${comment.id}">
+                <i class="${isLiked} fa-heart"></i>
+                <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+              </button>
+              <button onclick="toggleCommentReplyBox(${comment.id})" class="hover:text-blue-600">
+                Trả lời
+              </button>
               ${currentUser && currentUser.id === comment.user_id ? `
                 <button onclick="deleteComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
               ` : ''}
+            </div>
+            
+            <!-- Reply box (initially hidden) -->
+            <div id="reply-box-${comment.id}" class="hidden mt-2 ml-2 sm:ml-4">
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  id="reply-input-${comment.id}"
+                  placeholder="Viết trả lời..." 
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                  onkeypress="if(event.key==='Enter') submitCommentReply(${comment.id}, ${postId})"
+                />
+                <button onclick="submitCommentReply(${comment.id}, ${postId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Replies list (initially hidden) -->
+            <div id="replies-${comment.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2">
+              <p class="text-gray-500 text-xs">Đang tải...</p>
             </div>
           </div>
         </div>
@@ -1721,6 +1752,186 @@
         }
       } catch (error) {
         console.error('Error submitting comment:', error);
+      }
+    }
+    
+    // Toggle comment like
+    async function toggleCommentLike(commentId, button) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để thích bình luận');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-comment-btn-${commentId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-heart text-red-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-heart"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking comment:', error);
+      }
+    }
+    
+    // Toggle comment reply box
+    function toggleCommentReplyBox(commentId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để trả lời');
+        return;
+      }
+      
+      const replyBox = document.getElementById(`reply-box-${commentId}`);
+      replyBox.classList.toggle('hidden');
+      
+      if (!replyBox.classList.contains('hidden')) {
+        document.getElementById(`reply-input-${commentId}`).focus();
+      }
+    }
+    
+    // Submit comment reply
+    async function submitCommentReply(commentId, postId) {
+      const input = document.getElementById(`reply-input-${commentId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          document.getElementById(`reply-box-${commentId}`).classList.add('hidden');
+          loadCommentReplies(commentId);
+        } else {
+          alert(data.message || 'Lỗi khi gửi trả lời');
+        }
+      } catch (error) {
+        console.error('Error submitting reply:', error);
+      }
+    }
+    
+    // Load comment replies
+    async function loadCommentReplies(commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const repliesList = document.getElementById(`replies-${commentId}`);
+          
+          if (data.replies.length === 0) {
+            repliesList.innerHTML = '<p class="text-gray-500 text-xs">Chưa có trả lời</p>';
+            repliesList.classList.add('hidden');
+          } else {
+            repliesList.innerHTML = data.replies.map(reply => createReplyHTML(reply, commentId)).join('');
+            repliesList.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading replies:', error);
+      }
+    }
+    
+    // Create reply HTML
+    function createReplyHTML(reply, commentId) {
+      const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+      const userAvatar = reply.user_avatar
+        ? `<img src="${reply.user_avatar}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover" />`
+        : `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+      
+      const profileLink = reply.username_slug || reply.user_id;
+      const timeAgo = getTimeAgo(reply.created_at);
+      const likesCount = reply.likes_count || 0;
+      const isLiked = reply.user_liked ? 'text-red-600 fas' : 'far';
+      
+      return `
+        <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
+          <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+            ${userAvatar}
+          </a>
+          <div class="flex-1 min-w-0">
+            <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+              <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline">${escapeHtml(userName)}</a>
+              <p class="text-gray-700 break-words">${escapeHtml(reply.content)}</p>
+            </div>
+            <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1">
+              <span>${timeAgo}</span>
+              <button onclick="toggleReplyLike(${reply.id})" class="hover:text-red-600 like-reply-btn-${reply.id}">
+                <i class="${isLiked} fa-heart"></i>
+                <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+              </button>
+              ${currentUser && currentUser.id === reply.user_id ? `
+                <button onclick="deleteReply(${reply.id})" class="hover:text-red-600">Xóa</button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Toggle reply like
+    async function toggleReplyLike(replyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-reply-btn-${replyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-heart text-red-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-heart"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking reply:', error);
+      }
+    }
+    
+    // Delete reply
+    async function deleteReply(replyId) {
+      if (!confirm('Bạn có chắc muốn xóa trả lời này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/replies/${replyId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Reload the page or remove the reply element
+          location.reload();
+        } else {
+          alert(data.message || 'Lỗi khi xóa trả lời');
+        }
+      } catch (error) {
+        console.error('Error deleting reply:', error);
       }
     }
     

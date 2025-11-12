@@ -343,6 +343,25 @@ def hash_password(password):
     """Hash password using SHA256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
+def validate_password_strength(password):
+    """
+    🔐 SECURITY: Validate password strength
+    Returns: (is_valid, message)
+    """
+    # Minimum length
+    if len(password) < 6:
+        return False, "Mật khẩu phải có ít nhất 6 ký tự"
+    
+    # Check for at least one letter
+    if not any(c.isalpha() for c in password):
+        return False, "Mật khẩu phải chứa ít nhất một chữ cái"
+    
+    # Check for at least one digit
+    if not any(c.isdigit() for c in password):
+        return False, "Mật khẩu phải chứa ít nhất một số"
+    
+    return True, "Mật khẩu hợp lệ"
+
 def create_username_slug(name, email, user_id=None):
     """
     Create a unique username slug from name/email
@@ -476,6 +495,11 @@ AgriSense AI Team
 def register_user_init(email, password, name=None):
     """Initialize registration - validate and send OTP"""
     try:
+        # 🔐 SECURITY: Validate password strength
+        is_valid, message = validate_password_strength(password)
+        if not is_valid:
+            return {'success': False, 'message': message}
+        
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         

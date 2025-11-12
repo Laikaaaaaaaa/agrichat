@@ -1,181 +1,108 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <!-- Meta Tags -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="description" content="Đăng nhập vào AgriSense AI - Hệ thống tư vấn nông nghiệp thông minh" />
-  <meta name="theme-color" content="#16a34a" />
   
   <title>Đăng nhập - AgriSense AI</title>
 
-  <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
 
-  <!-- CSS Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   
-  <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   
-  <!-- Inline Styles -->
   <style>
-    :root {
-      --color-primary: #16a34a;
-      --color-primary-dark: #15803d;
-      --color-primary-light: #4ade80;
-      --color-gray-light: #f3f4f6;
-      --color-gray-border: #e5e7eb;
-      --transition-fast: 0.2s ease;
-      --transition-normal: 0.3s ease;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
       min-height: 100vh;
       background-color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
     }
     
-    /* Input Focus Styling */
     input:focus {
       outline: none;
-      border-color: var(--color-primary);
+      border-color: #16a34a;
       box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
-      transition: all var(--transition-fast);
-    }
-
-    /* Button Base Styles */
-    button {
-      transition: all var(--transition-fast);
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    /* Form Validation */
-    input:invalid:not(:placeholder-shown) {
-      border-color: #dc2626;
-    }
-
-    input:valid:not(:placeholder-shown) {
-      border-color: var(--color-primary);
     }
   </style>
 </head>
 <body class="bg-white">
 
-  <!-- Header -->
   <header class="bg-green-100 border-b border-green-200 shadow-sm">
     <div class="h-20 flex items-center px-4 md:px-6 gap-3">
-      <!-- Back Button -->
-      <button 
-        onclick="window.history.back()" 
-        class="text-white bg-green-600 hover:bg-green-700 active:bg-green-800 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500" 
-        title="Quay lại"
-        aria-label="Nút quay lại"
-      >
+      <button onclick="window.history.back()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500" title="Quay lại">
         <i class="fas fa-arrow-left"></i>
       </button>
-      
-      <!-- Logo -->
-      <img 
-        src="/static/logo/logo.png" 
-        alt="AgriSense AI Logo" 
-        class="h-12 md:h-14 w-auto object-contain"
-      >
+      <img src="/static/logo/logo.png" alt="AgriSense AI" class="h-12 md:h-14 w-auto object-contain">
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="max-w-md mx-auto px-4 py-8">
-    <!-- Login Card -->
+  <div class="max-w-md mx-auto px-4 py-8">
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6">Đăng nhập</h1>
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Đăng nhập</h2>
 
-      <!-- Alert Message -->
-      <div 
-        id="alert-message" 
-        class="hidden mb-4 p-3 rounded text-sm transition-all duration-200" 
-        role="alert"
-        aria-live="assertive"
-      ></div>
+      <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
 
-      <!-- Login Form -->
-      <form id="login-form" class="space-y-4" method="POST">
+      <!-- 🔐 Security notice -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-xs text-blue-700">
+        <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+        <strong>🔒 Bảo mật cao nhất:</strong> Chỉ bạn mới có thể truy cập chat của mình với mật khẩu đúng
+      </div>
+
+      <form id="login-form" class="space-y-4">
         
-        <!-- Email Field -->
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input 
             type="email" 
             id="email" 
             name="email" 
             required 
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600 transition-colors"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600"
             placeholder="example@email.com"
-            aria-label="Địa chỉ email"
           />
         </div>
 
-        <!-- Password Field -->
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-            Mật khẩu
-          </label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
           <div class="relative">
             <input 
               type="password" 
               id="password" 
               name="password" 
               required 
-              class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600 pr-10 transition-colors"
+              class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600 pr-10"
               placeholder="••••••••"
-              aria-label="Mật khẩu"
             />
-            <!-- Password Toggle Button -->
             <button 
               type="button" 
               id="toggle-password"
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-              aria-label="Hiển thị/ẩn mật khẩu"
-              title="Nhấp để hiển thị/ẩn mật khẩu"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
             >
               <i class="fas fa-eye text-sm"></i>
             </button>
           </div>
+          <!-- 🔐 Security warning -->
+          <p class="text-xs text-gray-500 mt-1">
+            <i class="fas fa-lock text-green-600"></i> Mật khẩu sẽ được mã hóa và bảo vệ an toàn
+          </p>
         </div>
 
-        <!-- Forgot Password Link -->
         <div class="text-right">
-          <a 
-            href="/forgot_password" 
-            class="text-sm text-green-600 hover:text-green-700 transition-colors"
-          >
+          <a href="/forgot_password" class="text-sm text-green-600 hover:text-green-700">
             Quên mật khẩu?
           </a>
         </div>
 
-        <!-- Submit Button -->
         <button 
           type="submit" 
-          class="w-full py-2 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded font-medium transition-colors"
+          class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
         >
           Đăng nhập
         </button>
       </form>
 
-      <!-- Divider -->
       <div class="relative my-4">
         <div class="absolute inset-0 flex items-center">
           <div class="w-full border-t border-gray-300"></div>
@@ -185,7 +112,6 @@
         </div>
       </div>
 
-      <!-- Google Sign-In -->
       <div class="flex justify-center">
         <div id="g_id_onload"
              data-client_id="101632487017-bvc6csfrngsmvh4o8urkhrrtp92qvsok.apps.googleusercontent.com"
@@ -203,29 +129,21 @@
         </div>
       </div>
 
-      <!-- Register Link -->
       <div class="text-center mt-4 pt-4 border-t border-gray-200">
         <p class="text-sm text-gray-600">
           Chưa có tài khoản? 
-          <a 
-            href="/register" 
-            class="text-green-600 hover:text-green-700 font-medium transition-colors"
-          >
+          <a href="/register" class="text-green-600 hover:text-green-700 font-medium">
             Đăng ký ngay
           </a>
         </p>
       </div>
     </div>
-  </main>
+  </div>
   
-  <!-- JavaScript -->
   <script>
-    /**
-     * Handle Google Sign-In response
-     * @param {Object} response - Google credential response
-     */
+    // Handle Google Sign-In
     function handleCredentialResponse(response) {
-      // Send Google token to backend for authentication
+      // Send Google token to backend - No OTP required for Google login
       fetch('/api/auth/google-login', {
         method: 'POST',
         credentials: 'include',
@@ -246,16 +164,12 @@
         }
       })
       .catch(error => {
-        console.error('Google Sign-In Error:', error);
         showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
       });
     }
     
-    /**
-     * Toggle password visibility
-     */
-    document.getElementById('toggle-password').addEventListener('click', function(e) {
-      e.preventDefault();
+    // Toggle password visibility
+    document.getElementById('toggle-password').addEventListener('click', function() {
       const passwordInput = document.getElementById('password');
       const icon = this.querySelector('i');
       
@@ -270,24 +184,17 @@
       }
     });
     
-    /**
-     * Display alert message with appropriate styling
-     * @param {string} message - Alert message content
-     * @param {string} type - Alert type: 'error', 'success', or 'info'
-     */
+    // Show alert message
     function showAlert(message, type = 'error') {
       const alertDiv = document.getElementById('alert-message');
-      const bgColorClass = {
-        'error': 'bg-red-50 text-red-700 border border-red-200',
-        'success': 'bg-green-50 text-green-700 border border-green-200',
-        'info': 'bg-blue-50 text-blue-700 border border-blue-200'
-      };
-      
-      alertDiv.className = `mb-4 p-3 rounded text-sm ${bgColorClass[type] || bgColorClass['info']}`;
+      alertDiv.className = `mb-4 p-3 rounded text-sm ${
+        type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 
+        type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+        'bg-blue-50 text-blue-700 border border-blue-200'
+      }`;
       alertDiv.textContent = message;
       alertDiv.classList.remove('hidden');
       
-      // Auto-hide success messages after 3 seconds
       if (type === 'success') {
         setTimeout(() => {
           alertDiv.classList.add('hidden');
@@ -295,26 +202,18 @@
       }
     }
     
-    /**
-     * Handle login form submission
-     */
+    // Handle login form submission
     document.getElementById('login-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      const email = document.getElementById('email').value.trim();
+      const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      
-      // Validation
-      if (!email || !password) {
-        showAlert('Vui lòng nhập email và mật khẩu', 'error');
-        return;
-      }
       
       // Disable button during request
       const submitBtn = this.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+      submitBtn.innerHTML = 'Đang xử lý...';
       
       try {
         // Step 1: Verify credentials and send OTP
@@ -340,16 +239,13 @@
           submitBtn.innerHTML = originalText;
         }
       } catch (error) {
-        console.error('Login Error:', error);
         showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
       }
     });
     
-    /**
-     * Check for URL parameters and display any alert messages
-     */
+    // Check if there's a message in URL params
     const urlParams = new URLSearchParams(window.location.search);
     const message = urlParams.get('message');
     const messageType = urlParams.get('type') || 'info';

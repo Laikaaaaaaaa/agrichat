@@ -15,6 +15,8 @@ from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, make_response, redirect
+from functools import wraps
+from cryptography.fernet import Fernet
 from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh mới
 from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
@@ -44,6 +46,103 @@ logging.basicConfig(
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HTML_FILE = os.path.join(HERE, 'index.html')
+
+# ============================================================================
+# 🔐 SECURITY: Rate Limiting for Brute Force Protection
+# ============================================================================
+
+# Global rate limiting tracker: {ip_address: {endpoint: [timestamps]}}
+rate_limit_tracker = {}
+
+def check_rate_limit(endpoint, max_attempts=10, time_window=300):
+    """
+    Rate limiting decorator to prevent brute force attacks
+    max_attempts: số request tối đa trong time_window
+    time_window: khoảng thời gian (giây)
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            ip_address = request.remote_addr or '0.0.0.0'
+            current_time = time.time()
+            
+            # Initialize tracking for this IP if not exists
+            if ip_address not in rate_limit_tracker:
+                rate_limit_tracker[ip_address] = {}
+            
+            # Initialize endpoint tracking if not exists
+            if endpoint not in rate_limit_tracker[ip_address]:
+                rate_limit_tracker[ip_address][endpoint] = []
+            
+            # Get request timestamps for this endpoint
+            timestamps = rate_limit_tracker[ip_address][endpoint]
+            
+            # Remove old timestamps outside the time window
+            timestamps = [ts for ts in timestamps if current_time - ts < time_window]
+            rate_limit_tracker[ip_address][endpoint] = timestamps
+            
+            # Check if exceeds max attempts
+            if len(timestamps) >= max_attempts:
+                logging.warning(f"⚠️ Rate limit exceeded for {ip_address} on {endpoint}")
+                return jsonify({
+                    'success': False,
+                    'message': f'Quá nhiều lần thử. Vui lòng chờ {time_window} giây.'
+                }), 429  # Too Many Requests
+            
+            # Add current timestamp
+            timestamps.append(current_time)
+            rate_limit_tracker[ip_address][endpoint] = timestamps
+            
+            # Execute the function
+            return f(*args, **kwargs)
+        
+        return decorated_function
+    return decorator
+
+# ============================================================================
+# 🔐 SECURITY: Chat Message Encryption
+# ============================================================================
+
+class ChatMessageEncryption:
+    """Encrypt/decrypt chat messages for privacy"""
+    
+    def __init__(self, user_id):
+        """Initialize cipher with user-specific key"""
+        self.user_id = user_id
+        # Generate deterministic key based on user_id + secret
+        key_material = f"{user_id}:{os.getenv('SECRET_KEY', 'agrisense-ai-secret-key-2024')}".encode()
+        # Use the first 32 bytes for Fernet key
+        import hashlib
+        hash_key = hashlib.sha256(key_material).digest()
+        self.cipher_key = base64.urlsafe_b64encode(hash_key)
+        try:
+            self.cipher = Fernet(self.cipher_key)
+        except Exception as e:
+            logging.warning(f"⚠️ Encryption init failed: {e}")
+            self.cipher = None
+    
+    def encrypt(self, message: str) -> str:
+        """Encrypt message (returns base64 string)"""
+        if not self.cipher:
+            return message  # Fallback if encryption fails
+        try:
+            encrypted = self.cipher.encrypt(message.encode())
+            return base64.b64encode(encrypted).decode()
+        except Exception as e:
+            logging.error(f"❌ Encryption failed: {e}")
+            return message
+    
+    def decrypt(self, encrypted_message: str) -> str:
+        """Decrypt message"""
+        if not self.cipher:
+            return encrypted_message  # Fallback if decryption fails
+        try:
+            encrypted_bytes = base64.b64decode(encrypted_message)
+            decrypted = self.cipher.decrypt(encrypted_bytes)
+            return decrypted.decode()
+        except Exception as e:
+            logging.error(f"❌ Decryption failed: {e}")
+            return encrypted_message
 
 # ============================================================================
 # RSS PARSING HELPER FUNCTIONS - Support for major newspapers with content extraction
@@ -235,11 +334,14 @@ app = Flask(__name__,
             static_url_path='/static')
 
 # Configure session for authentication
-app.secret_key = os.getenv('SECRET_KEY', 'agrisense-ai-secret-key-2024')
+# 🔐 SECURITY: Strict session configuration
+app.secret_key = os.getenv('SECRET_KEY', 'agrisense-ai-secret-key-2024')  # Change this in production!
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7 days
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False  # Set True in production with HTTPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'  # Prevent CSRF attacks - stricter than Lax
+app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only (for production)
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to session cookie
+app.config['SESSION_COOKIE_NAME'] = 'agrisense_secure_session'  # Custom secure session name
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Refresh session on each request for security
 
 class Api:
     def __init__(self):
@@ -4531,14 +4633,22 @@ def api_register_complete():
 
 
 @app.route('/api/auth/login-init', methods=['POST'])
+@check_rate_limit('login_init', max_attempts=5, time_window=300)  # 5 attempts per 5 minutes
 def api_login_init():
     """API khởi tạo đăng nhập thủ công - gửi OTP"""
     data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
     
     if not email or not password:
+        logging.warning(f"⚠️ Login attempt with missing credentials from {request.remote_addr}")
         return jsonify({'success': False, 'message': 'Email và mật khẩu là bắt buộc'})
+    
+    # 🔐 SECURITY: Validate email format
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_regex, email):
+        logging.warning(f"⚠️ Invalid email format from {request.remote_addr}: {email}")
+        return jsonify({'success': False, 'message': 'Định dạng email không hợp lệ'})
     
     result = auth.login_user_init(email, password)
     
@@ -4550,12 +4660,14 @@ def api_login_init():
 
 
 @app.route('/api/auth/login-complete', methods=['POST'])
+@check_rate_limit('login_otp', max_attempts=5, time_window=300)  # 5 OTP attempts per 5 minutes
 def api_login_complete():
     """API hoàn tất đăng nhập sau khi xác thực OTP"""
     data = request.get_json()
     otp_code = data.get('otp_code')
     
     if not otp_code:
+        logging.warning(f"⚠️ OTP verification attempt with missing code from {request.remote_addr}")
         return jsonify({'success': False, 'message': 'Mã OTP là bắt buộc'})
     
     # Get email from session
@@ -4975,8 +5087,20 @@ def client_log():
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    """API endpoint for chat"""
+    """API endpoint for chat - Requires authentication"""
+    # 🔐 SECURITY: Check if user is authenticated
+    if 'user_id' not in session:
+        logging.warning("⚠️ Unauthorized chat attempt - No session user_id")
+        return jsonify({
+            "response": "❌ Vui lòng đăng nhập trước khi sử dụng chat", 
+            "success": False,
+            "error": "Unauthorized"
+        }), 401
+    
     try:
+        user_id = session['user_id']
+        logging.info(f"🔐 Chat API called by user {user_id}")
+        
         data = request.json
         message = data.get('message', '')
         image_data = data.get('image_data')
@@ -5051,7 +5175,17 @@ def chat():
                 response = str(response)
 
         logging.info(f"✅ Sending response: {response[:100]}...")
-        return jsonify({"response": response, "success": True, "type": "text"})
+        
+        # 🔐 SECURITY: Prepare encrypted response
+        encryption = ChatMessageEncryption(user_id)
+        encrypted_response = encryption.encrypt(response)
+        
+        return jsonify({
+            "response": response,  # Send plain for display
+            "encrypted": encrypted_response,  # Send encrypted for storage
+            "success": True, 
+            "type": "text"
+        })
     except Exception as e:
         logging.error(f"❌ Lỗi chat API: {e}")
         import traceback

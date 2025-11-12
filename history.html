@@ -12,6 +12,7 @@
     <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -732,8 +733,13 @@
                         // Hiển thị HTML content trực tiếp (cho image galleries)
                         contentHtml += message.content;
                     } else {
-                        // Hiển thị text content thông thường
-                        contentHtml += `<div style="white-space: pre-line;">${message.content}</div>`;
+                        // Hiển thị text content thông thường, với markdown rendering cho bot messages
+                        if (isBot && window.markdownit) {
+                            const md = window.markdownit({ breaks: true, html: false });
+                            contentHtml += `<div style="white-space: pre-line;">${md.render(message.content)}</div>`;
+                        } else {
+                            contentHtml += `<div style="white-space: pre-line;">${message.content}</div>`;
+                        }
                     }
                 }
                 
@@ -1018,7 +1024,7 @@
             
             if (data.success && data.user) {
                 console.log('✅ User đã xác thực:', data.user.email);
-                new ChatHistoryManager();
+                window.chatHistoryManager = new ChatHistoryManager();
             } else {
                 console.warn('⚠️ Không tìm thấy user hoặc error:', data.message);
                 window.location.href = '/login';
@@ -1048,6 +1054,15 @@
                 closeSidebar();
             }
         });
+    });
+
+    // 🔐 Check session when user navigates back to this page (using browser back button)
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            // Page was restored from cache - check session
+            console.log('🔄 Pageshow event with persisted=true on history.html, checking session...');
+            checkSessionAndRedirect();
+        }
     });
     </script>
 </body>

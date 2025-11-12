@@ -2669,15 +2669,15 @@
                 commentsList.innerHTML = commentsData.comments.map(comment => {
                   const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
                   const userAvatar = comment.user_avatar
-                    ? `<img src="${comment.user_avatar}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />`
-                    : `<div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+                    ? `<img src="${comment.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+                    : `<div class="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
                   
                   const profileLink = comment.username_slug || comment.user_id;
                   const timeAgo = getTimeAgo(comment.created_at);
                   
                   return `
                     <div class="flex gap-2 mb-2">
-                      <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                      <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden inline-flex">
                         ${userAvatar}
                       </a>
                       <div class="flex-1 min-w-0">
@@ -2742,15 +2742,15 @@
                   commentsList.innerHTML = commentsData.comments.map(comment => {
                     const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
                     const userAvatar = comment.user_avatar
-                      ? `<img src="${comment.user_avatar}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />`
-                      : `<div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+                      ? `<img src="${comment.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+                      : `<div class="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
                     
                     const profileLink = comment.username_slug || comment.user_id;
                     const timeAgo = getTimeAgo(comment.created_at);
                     
                     return `
                       <div class="flex gap-2 mb-2">
-                        <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                        <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden inline-flex">
                           ${userAvatar}
                         </a>
                         <div class="flex-1 min-w-0">
@@ -3135,6 +3135,9 @@
     
     // Load profile on page load
     document.addEventListener('DOMContentLoaded', function() {
+      // 🔐 Check session immediately when page loads
+      checkSessionAndRedirect();
+      
       loadProfile();
       loadNotifications();
       
@@ -3148,6 +3151,32 @@
       // Refresh notifications every 30 seconds
       setInterval(loadNotifications, 30000);
     });
+    
+    // 🔐 Check session when user navigates back to this page (using browser back button)
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) {
+        // Page was restored from cache - check session
+        checkSessionAndRedirect();
+      }
+    });
+    
+    // 🔐 Function to check if user is still logged in
+    async function checkSessionAndRedirect() {
+      try {
+        const response = await fetch('/api/auth/profile');
+        const data = await response.json();
+        
+        if (!data.success || !data.user) {
+          // Session expired or user logged out - redirect to login
+          console.log('⚠️ Session invalid, redirecting to login');
+          window.location.href = '/login';
+        }
+      } catch (error) {
+        console.error('❌ Error checking session:', error);
+        // On error, assume session is invalid for security
+        window.location.href = '/login';
+      }
+    }
     
     // Switch tabs
     function switchTab(tabName, event) {
@@ -3393,13 +3422,13 @@
                 const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
                 const userAvatar = comment.user_avatar
                   ? `<img src="${comment.user_avatar}" class="w-full h-full rounded-full object-cover" />`
-                  : `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                  : `<div class="w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
                       ${userName.charAt(0).toUpperCase()}
                     </div>`;
                 
                 return `
                   <div class="flex items-start gap-3">
-                    <a href="/profile/${comment.username_slug || comment.user_id}" class="flex-shrink-0">
+                    <a href="/profile/${comment.username_slug || comment.user_id}" class="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden inline-flex">
                       ${userAvatar}
                     </a>
                     <div class="flex-1">

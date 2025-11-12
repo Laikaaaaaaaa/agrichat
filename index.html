@@ -3500,9 +3500,50 @@
           return clone;
         }
 
-        // Start
-        // If user wants to manually re-fetch later, they can call getWeatherInfo() from console
-        getWeatherInfo();
+        // 🔐 Auto-request geolocation permission when page loads
+        async function requestGeolocationOnLoad() {
+          console.log('📍 Requesting geolocation permission on page load...');
+          if (!('geolocation' in navigator)) {
+            console.log('❌ Geolocation not supported, starting weather with IP fallback');
+            getWeatherInfo();
+            return;
+          }
+          
+          try {
+            // Request geolocation silently (no modal yet, just start the request)
+            const position = await new Promise((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  console.log('✅ Geolocation granted on load');
+                  resolve(pos);
+                },
+                (error) => {
+                  console.warn('⚠️ Geolocation request result:', error.code);
+                  // code 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+                  reject(error);
+                },
+                {
+                  timeout: 20000,  // 20 seconds for GPS
+                  enableHighAccuracy: true,
+                  maximumAge: 0
+                }
+              );
+            });
+            
+            if (position?.coords) {
+              console.log('✅ Position acquired, updating weather with precise location');
+              localStorage.setItem('agrisense_weather_source', 'geolocation');
+            }
+          } catch (error) {
+            console.warn('ℹ️ Geolocation request did not complete immediately, will use fallback');
+          }
+          
+          // Always proceed to fetch weather (either with geolocation or IP fallback)
+          getWeatherInfo();
+        }
+
+        // Start weather on page load with automatic geolocation request
+        requestGeolocationOnLoad();
 
         // expose for debugging
         window._weatherWidget = { getWeatherInfo, renderWeather, renderError };
@@ -4389,6 +4430,9 @@
   // Attach event listeners and initialize element references safely
   document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOMContentLoaded - Initializing event listeners...');
+    
+    // 🔐 Check session when page loads
+    checkSessionAndRedirectChat();
     
     // Re-query DOM elements now that the DOM is loaded
     chatBox = document.getElementById('chat-box');
@@ -7431,13 +7475,15 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     scheduleWeatherWatchdog(weatherEl);
 
     // PRIORITY 1: Try browser geolocation FIRST (most accurate - GPS/WiFi)
-    const GEOLOCATION_TIMEOUT_MS = 8000;
+    // ⏱️ IMPORTANT: Set timeout to 20 seconds (GPS needs time on mobile devices)
+    const GEOLOCATION_TIMEOUT_MS = 20000;
     if ('geolocation' in navigator) {
       try {
         console.log('📍 Requesting browser geolocation (most accurate)...');
+        console.log('⏱️ Waiting up to 20 seconds for GPS signal...');
         const position = await getBrowserGeolocation({
           timeout: GEOLOCATION_TIMEOUT_MS,
-          enableHighAccuracy: true,  // Use GPS if available
+          enableHighAccuracy: true,  // Use GPS if available (requires more time)
           maximumAge: 2 * 60 * 1000  // Cache for 2 minutes only
         });
 
@@ -7446,7 +7492,8 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
           console.log('✅ Browser geolocation detected:', {
             latitude,
             longitude,
-            accuracy: `${Math.round(accuracy)}m`
+            accuracy: `${Math.round(accuracy)}m`,
+            source: accuracy < 100 ? '🛰️ GPS (very accurate)' : '📍 WiFi/Network (less accurate)'
           });
 
           const geoSuccess = await getWeatherInfoClientFallback(weatherEl, {
@@ -7459,11 +7506,25 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
 
           if (geoSuccess) {
             console.log('✅ Weather data loaded via precise geolocation');
+            // Mark that we got location via geolocation
+            localStorage.setItem('agrisense_weather_source', 'geolocation');
             return;
           }
         }
       } catch (geoError) {
-        console.warn('⚠️ Geolocation unavailable or denied:', geoError.message);
+        console.warn('⚠️ Geolocation error:', geoError.message);
+        console.log('❌ Error code:', geoError.code);
+        console.log('   1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT');
+        
+        if (geoError.code === 1) {
+          console.warn('🚫 User denied geolocation permission');
+          // Store that user denied permission
+          localStorage.setItem('agrisense_geo_denied', 'true');
+        } else if (geoError.code === 3) {
+          console.warn('⏱️ Geolocation timeout - GPS signal not acquired in 20 seconds');
+        } else {
+          console.warn('📍 Geolocation unavailable:', geoError.message);
+        }
         console.log('🔄 Falling back to IP-based location...');
       }
     } else {
@@ -8473,5 +8534,33 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       sessionStorage.setItem('forumNotificationShown', 'true');
     }
   });
+
+  // 🔐 Check session when user navigates back to this page (using browser back button)
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      // Page was restored from cache - check session
+      console.log('🔄 Pageshow event with persisted=true on index.html, checking session...');
+      checkSessionAndRedirectChat();
+    }
+  });
+
+  // 🔐 Function to check if user is still logged in
+  async function checkSessionAndRedirectChat() {
+    try {
+      const response = await fetch('/api/auth/profile');
+      const data = await response.json();
+      
+      if (!data.success || !data.user) {
+        // Session expired or user logged out - redirect to login
+        console.log('⚠️ Session invalid on index.html, redirecting to login');
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('❌ Error checking session:', error);
+      // On error, assume session is invalid for security
+      window.location.href = '/login';
+    }
+  }
+
 </script>
 </html>

@@ -333,22 +333,41 @@
       constructor() {
         this.currentConversation = null;
         this.conversations = [];
+        
+        // ✅ ĐÚNG THỨ TỰ: Load conversations trước!
         this.loadConversations();
-        // Check if continuing from history page
+        
+        // ✅ RỒI MỚI kiểm tra continue
         this.checkContinueConversation();
-        this.restoreFromURL(); // Ưu tiên URL trước
+        
+        // ✅ CUỐI CÙNG khôi phục từ URL
+        this.restoreFromURL();
       }
       
       checkContinueConversation() {
-        // Check if continuing a conversation from history.html
+        // ✅ Kiểm tra nếu đang tiếp tục cuộc hội thoại từ history page
         const conversationIdToContinue = localStorage.getItem('agrisense_continue_conversation_id');
         if (conversationIdToContinue) {
-          // Remove the flag
-          localStorage.removeItem('agrisense_continue_conversation_id');
-          // Set URL to load this conversation
-          const newUrl = `${window.location.pathname}?c=${conversationIdToContinue}`;
-          window.history.replaceState({ conversationId: conversationIdToContinue }, '', newUrl);
-          console.log('🔄 Continuing conversation:', conversationIdToContinue);
+          console.log('🔄 Found conversation to continue:', conversationIdToContinue);
+          console.log('📋 Looking in', this.conversations.length, 'conversations');
+          
+          // ✅ TÌM cuộc hội thoại trong danh sách đã load
+          const found = this.conversations.find(conv => conv.id === conversationIdToContinue);
+          if (found) {
+            console.log('✅ Found conversation! Restoring...', found.title);
+            this.currentConversation = found;
+            
+            // ✅ XÓA flag SAU khi tìm thấy
+            localStorage.removeItem('agrisense_continue_conversation_id');
+            
+            // ✅ Cập nhật URL
+            const newUrl = `${window.location.pathname}?c=${conversationIdToContinue}`;
+            window.history.replaceState({ conversationId: conversationIdToContinue }, '', newUrl);
+          } else {
+            console.warn('❌ Conversation NOT found! Available IDs:', this.conversations.map(c => c.id));
+            // ✅ XÓA flag vì conversation không tồn tại
+            localStorage.removeItem('agrisense_continue_conversation_id');
+          }
         }
       }
 
@@ -2797,63 +2816,59 @@
     </div>
   </div>
   <script>
-    // Show the forum notification every 10 minutes. If user closes it, store timestamp
+    /**
+     * Forum notification - Hiển thị một lần duy nhất (không lặp lại khi reload)
+     * Người dùng có thể đóng, và không hiển thị lại trong phiên làm việc này
+     */
     (function() {
       const notif = document.getElementById('forum-notification');
       const closeBtn = document.getElementById('close-forum-notification');
       if (!notif) return;
 
-      const SHOW_INTERVAL = 10 * 60 * 1000; // 10 minutes in ms
+      // Flag để theo dõi đã hiển thị hay chưa trong phiên này
+      const NOTIFICATION_SHOWN_FLAG = 'forumNotificationShown';
 
+      /**
+       * Hiển thị thông báo
+       */
       function showNotif() {
         try {
-          if (notif.style.display === 'flex') return; // already visible
+          if (notif.style.display === 'flex') return;
           notif.style.display = 'flex';
-          // ensure animation class exists
           notif.classList.add('animate-slide-down');
+          // Đánh dấu là đã hiển thị
+          sessionStorage.setItem(NOTIFICATION_SHOWN_FLAG, 'true');
         } catch (e) {
-          console.error('Error showing forum notification', e);
+          console.error('❌ Lỗi hiển thị thông báo diễn đàn:', e);
         }
       }
 
+      /**
+       * Ẩn thông báo
+       */
       function hideNotif() {
         try {
           notif.style.display = 'none';
           notif.classList.remove('animate-slide-down');
-          localStorage.setItem('forumNotificationClosedAt', String(Date.now()));
         } catch (e) {
-          console.error('Error hiding forum notification', e);
+          console.error('❌ Lỗi ẩn thông báo diễn đàn:', e);
         }
       }
 
+      // Gắn sự kiện đóng
       if (closeBtn) closeBtn.addEventListener('click', hideNotif);
 
-      // On load: show immediately if not closed within last interval
+      // Chỉ hiển thị một lần duy nhất (nếu chưa hiển thị)
       try {
-        const lastClosed = parseInt(localStorage.getItem('forumNotificationClosedAt') || '0', 10) || 0;
-        const now = Date.now();
-        if (now - lastClosed >= SHOW_INTERVAL) {
-          // small delay so page layout stabilizes
+        const hasShown = sessionStorage.getItem(NOTIFICATION_SHOWN_FLAG);
+        if (!hasShown) {
+          // Hiển thị sau một chút delay để trang ổn định
           setTimeout(showNotif, 800);
         }
       } catch (e) {
-        // fallback: show once after small delay
+        console.error('❌ Lỗi kiểm tra trạng thái thông báo:', e);
         setTimeout(showNotif, 800);
       }
-
-      // Periodic showing every 10 minutes
-      setInterval(() => {
-        try {
-          const lastClosed = parseInt(localStorage.getItem('forumNotificationClosedAt') || '0', 10) || 0;
-          const now = Date.now();
-          if (now - lastClosed >= SHOW_INTERVAL) {
-            showNotif();
-          }
-        } catch (e) {
-          console.error('Error in forum notification interval', e);
-          showNotif();
-        }
-      }, SHOW_INTERVAL);
     })();
   </script>
 
@@ -7934,6 +7949,62 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       }
     }
   };
+  
+  // ⏰ AUTO-REFRESH: Update weather every 5 minutes
+  window.weatherRefreshInterval = setInterval(async function() {
+    console.log('🔄 Auto-refreshing weather data...');
+    const weatherEl = document.getElementById('weather-info');
+    if (weatherEl && weatherEl.dataset.state !== 'loading') {
+      // Re-run the main weather initialization to get fresh data
+      clearWeatherCache();
+      // Trigger weather update using the same logic as initial load
+      if ('geolocation' in navigator) {
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve(pos),
+              (err) => reject(err),
+              { timeout: 5000, enableHighAccuracy: false, maximumAge: 0 }
+            );
+          });
+          if (position?.coords) {
+            const { latitude, longitude } = position.coords;
+            const response = await fetch(`/api/weather?lat=${latitude}&lon=${longitude}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                // Update weather display
+                const mainEl = document.getElementById('weather-main');
+                const subEl = document.getElementById('weather-sub');
+                if (mainEl) mainEl.textContent = `${data.description || 'Thời tiết'} — ${data.location_name || 'Vị trí của bạn'}, ${data.location_country || 'VN'}`;
+                if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('stat-temp').textContent = data.temperature ? `${data.temperature}°C` : '—';
+                document.getElementById('stat-hum').textContent = data.humidity ? `${data.humidity}%` : '—';
+                document.getElementById('stat-wind').textContent = data.wind_speed ? `${data.wind_speed} km/h` : '—';
+                document.getElementById('stat-precip').textContent = data.precipitation ? `${data.precipitation} mm` : '—';
+                console.log('✅ Weather updated successfully');
+              }
+            }
+          }
+        } catch (e) {
+          console.log('ℹ️ Fallback to IP-based weather update...');
+          // Fallback to IP-based update
+          const ipWeather = await getWeatherByIP();
+          if (ipWeather) {
+            const mainEl = document.getElementById('weather-main');
+            const subEl = document.getElementById('weather-sub');
+            if (mainEl) mainEl.textContent = `${ipWeather.condition} — ${ipWeather.location_name}, ${ipWeather.location_country}`;
+            if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()}`;
+            document.getElementById('stat-temp').textContent = ipWeather.temp ? `${ipWeather.temp}°C` : '—';
+            document.getElementById('stat-hum').textContent = ipWeather.humidity ? `${ipWeather.humidity}%` : '—';
+            document.getElementById('stat-wind').textContent = ipWeather.wind_kph ? `${ipWeather.wind_kph} km/h` : '—';
+            document.getElementById('stat-precip').textContent = ipWeather.precip_mm ? `${ipWeather.precip_mm} mm` : '—';
+            console.log('✅ Weather updated via IP fallback');
+          }
+        }
+      }
+    }
+  }, 5 * 60 * 1000); // Every 5 minutes
   
   // Old weather initialization removed - new weather widget is self-initializing
   

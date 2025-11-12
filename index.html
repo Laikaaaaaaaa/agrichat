@@ -3509,37 +3509,61 @@
             return;
           }
           
-          try {
-            // Request geolocation silently (no modal yet, just start the request)
-            const position = await new Promise((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  console.log('✅ Geolocation granted on load');
-                  resolve(pos);
-                },
-                (error) => {
-                  console.warn('⚠️ Geolocation request result:', error.code);
-                  // code 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
-                  reject(error);
-                },
-                {
-                  timeout: 20000,  // 20 seconds for GPS
-                  enableHighAccuracy: true,
-                  maximumAge: 0
-                }
-              );
-            });
-            
-            if (position?.coords) {
-              console.log('✅ Position acquired, updating weather with precise location');
-              localStorage.setItem('agrisense_weather_source', 'geolocation');
-            }
-          } catch (error) {
-            console.warn('ℹ️ Geolocation request did not complete immediately, will use fallback');
-          }
+          // Request geolocation and WAIT for result (don't timeout immediately)
+          let geoAcquired = false;
           
-          // Always proceed to fetch weather (either with geolocation or IP fallback)
-          getWeatherInfo();
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              // SUCCESS: User allowed geolocation
+              if (position?.coords) {
+                console.log('✅ Geolocation granted! Position acquired:', {
+                  lat: position.coords.latitude,
+                  lon: position.coords.longitude,
+                  accuracy: Math.round(position.coords.accuracy) + 'm'
+                });
+                localStorage.setItem('agrisense_weather_source', 'geolocation');
+                geoAcquired = true;
+                
+                // Get weather with precise coordinates
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                
+                // Call getWeatherInfo which will use these coordinates
+                getWeatherInfo();
+              }
+            },
+            (error) => {
+              // ERROR: User denied or timeout
+              console.warn('⚠️ Geolocation error code:', error.code);
+              console.log('   1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT');
+              
+              if (error.code === 1) {
+                console.log('🚫 User denied geolocation permission');
+                localStorage.setItem('agrisense_geo_denied', 'true');
+              } else if (error.code === 3) {
+                console.log('⏱️ Geolocation timeout - no GPS signal');
+              } else {
+                console.log('📍 Geolocation error:', error.message);
+              }
+              
+              // Fallback to IP-based weather
+              console.log('🔄 Falling back to IP-based location...');
+              getWeatherInfo();
+            },
+            {
+              timeout: 30000,  // 30 seconds - give user time to see and respond to permission dialog
+              enableHighAccuracy: true,
+              maximumAge: 0
+            }
+          );
+          
+          // Set a safety timeout - if no response after 35 seconds, force weather update
+          setTimeout(() => {
+            if (!geoAcquired && document.getElementById('weather-info')?.dataset?.state !== 'success') {
+              console.log('⏱️ Safety timeout: No geolocation response, forcing weather update');
+              getWeatherInfo();
+            }
+          }, 35000);
         }
 
         // Start weather on page load with automatic geolocation request
@@ -7472,16 +7496,15 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     scheduleWeatherWatchdog(weatherEl);
 
     // PRIORITY 1: Try browser geolocation FIRST (most accurate - GPS/WiFi)
-    // ⏱️ IMPORTANT: Set timeout to 20 seconds (GPS needs time on mobile devices)
-    const GEOLOCATION_TIMEOUT_MS = 20000;
+    // Use cached position if available (user already granted permission)
+    const GEOLOCATION_TIMEOUT_MS = 15000;
     if ('geolocation' in navigator) {
       try {
         console.log('📍 Requesting browser geolocation (most accurate)...');
-        console.log('⏱️ Waiting up to 20 seconds for GPS signal...');
         const position = await getBrowserGeolocation({
           timeout: GEOLOCATION_TIMEOUT_MS,
-          enableHighAccuracy: true,  // Use GPS if available (requires more time)
-          maximumAge: 2 * 60 * 1000  // Cache for 2 minutes only
+          enableHighAccuracy: true,
+          maximumAge: 5 * 60 * 1000  // Accept cached position up to 5 minutes old
         });
 
         if (position?.coords) {
@@ -7518,7 +7541,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
           // Store that user denied permission
           localStorage.setItem('agrisense_geo_denied', 'true');
         } else if (geoError.code === 3) {
-          console.warn('⏱️ Geolocation timeout - GPS signal not acquired in 20 seconds');
+          console.warn('⏱️ Geolocation timeout - GPS signal not acquired');
         } else {
           console.warn('📍 Geolocation unavailable:', geoError.message);
         }

@@ -2737,6 +2737,7 @@
                   const profileLink = comment.username_slug || comment.user_id;
                   const timeAgo = getTimeAgo(comment.created_at);
                   const likesCount = comment.likes_count || 0;
+                  const repliesCount = comment.replies_count || 0;
                   const isLiked = comment.user_liked ? 'text-blue-600 fas' : 'far';
                   
                   return `
@@ -2758,6 +2759,11 @@
                           <button onclick="toggleProfileCommentReplyBox(${comment.id})" class="hover:text-blue-600">
                             Trả lời
                           </button>
+                          ${repliesCount > 0 ? `
+                            <button onclick="toggleViewReplies(${comment.id}, ${postId})" class="hover:text-blue-600 font-medium" id="view-replies-btn-${comment.id}">
+                              <i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi
+                            </button>
+                          ` : ''}
                           ${currentUserId && currentUserId === comment.user_id ? `
                             <button onclick="deleteProfileComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
                           ` : ''}
@@ -2981,6 +2987,35 @@
       }
     }
     
+    // Toggle view replies button (Facebook-style)
+    async function toggleViewReplies(commentId, postId) {
+      const repliesContainer = document.getElementById(`replies-container-${commentId}`);
+      const repliesList = document.getElementById(`replies-${commentId}`);
+      const viewBtn = document.getElementById(`view-replies-btn-${commentId}`);
+      
+      // If already showing, hide them
+      if (!repliesContainer.classList.contains('hidden')) {
+        repliesContainer.classList.add('hidden');
+        if (viewBtn) {
+          const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+          viewBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi`;
+        }
+        return;
+      }
+      
+      // Show container and load replies if not loaded yet
+      repliesContainer.classList.remove('hidden');
+      if (viewBtn) {
+        const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+        viewBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Ẩn ${repliesCount} phản hồi`;
+      }
+      
+      // Load replies if not loaded yet
+      if (!repliesList.hasChildNodes() || repliesList.innerHTML.trim() === '') {
+        await loadProfileCommentReplies(commentId);
+      }
+    }
+    
     // Submit profile comment reply with mentioned user tracking
     async function submitProfileCommentReply(commentId, postId) {
       const input = document.getElementById(`reply-input-${commentId}`);
@@ -3125,6 +3160,7 @@
       const profileLink = reply.username_slug || reply.user_id;
       const timeAgo = getTimeAgo(reply.created_at);
       const likesCount = reply.likes_count || 0;
+      const nestedRepliesCount = reply.nested_replies_count || 0;
       const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
       
       // Determine if this reply is a response to another user
@@ -3151,6 +3187,11 @@
                 <button onclick="toggleProfileReplyBox(${reply.id})" class="hover:text-blue-600">
                   Trả lời
                 </button>
+                ${nestedRepliesCount > 0 ? `
+                  <button onclick="toggleViewNestedReplies(${reply.id}, ${commentId})" class="hover:text-blue-600 font-medium" id="view-nested-replies-btn-${reply.id}">
+                    <i class="fas fa-chevron-down"></i> Xem ${nestedRepliesCount} phản hồi
+                  </button>
+                ` : ''}
                 ${currentUserId && currentUserId === reply.user_id ? `
                   <button onclick="deleteProfileReply(${reply.id})" class="hover:text-red-600">Xóa</button>
                 ` : ''}
@@ -3241,6 +3282,35 @@
       }
     }
     
+    // Toggle view nested replies button (Facebook-style for level 2 replies)
+    async function toggleViewNestedReplies(replyId, commentId) {
+      const childRepliesContainer = document.getElementById(`child-replies-${replyId}`);
+      const childRepliesList = document.getElementById(`child-replies-list-${replyId}`);
+      const viewBtn = document.getElementById(`view-nested-replies-btn-${replyId}`);
+      
+      // If already showing, hide them
+      if (!childRepliesContainer.classList.contains('hidden')) {
+        childRepliesContainer.classList.add('hidden');
+        if (viewBtn) {
+          const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+          viewBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi`;
+        }
+        return;
+      }
+      
+      // Show container and load replies if not loaded yet
+      childRepliesContainer.classList.remove('hidden');
+      if (viewBtn) {
+        const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+        viewBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Ẩn ${repliesCount} phản hồi`;
+      }
+      
+      // Load replies if not loaded yet
+      if (!childRepliesList.hasChildNodes() || childRepliesList.innerHTML.trim() === '') {
+        await loadProfileChildReplies(replyId, commentId);
+      }
+    }
+    
     // Submit reply to a reply (child reply)
     async function submitProfileChildReply(parentReplyId, commentId) {
       const input = document.getElementById(`reply-input-${parentReplyId}`);
@@ -3327,7 +3397,7 @@
               const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
               
               return `
-                <div class="relative" id="nested-reply-${reply.id}">
+                <div class="relative" id="nested-reply-${reply.id}" data-parent-reply-id="${parentReplyId}" data-comment-id="${commentId}">
                   <div class="flex gap-1.5 bg-gray-50 rounded-lg p-1.5 text-xs">
                     <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
                       <div class="w-4 h-4 rounded-full overflow-hidden">
@@ -3556,6 +3626,15 @@
       try {
         // Get nested reply's user info
         const nestedReplyEl = document.getElementById(`nested-reply-${nestedReplyId}`);
+        
+        // Use data attributes as source of truth for parent and comment IDs
+        if (nestedReplyEl) {
+          const storedParentReplyId = nestedReplyEl.getAttribute('data-parent-reply-id');
+          const storedCommentId = nestedReplyEl.getAttribute('data-comment-id');
+          if (storedParentReplyId) parentReplyId = parseInt(storedParentReplyId);
+          if (storedCommentId) commentId = parseInt(storedCommentId);
+        }
+        
         let repliedToUserId = null;
         let repliedToUserName = null;
         

@@ -5891,7 +5891,8 @@ def get_comment_replies(comment_id):
                     (SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = r.id) as likes_count,
                     CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
                     r.replied_to_user_name,
-                    r.parent_reply_id
+                    r.parent_reply_id,
+                    (SELECT COUNT(*) FROM forum_comment_replies WHERE parent_reply_id = r.id) as nested_replies_count
                 FROM forum_comment_replies r
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.comment_id = ? AND r.parent_reply_id IS NULL
@@ -5912,7 +5913,8 @@ def get_comment_replies(comment_id):
                     u.username_slug as username_slug,
                     (SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = r.id) as likes_count,
                     CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
-                    r.parent_reply_id
+                    r.parent_reply_id,
+                    (SELECT COUNT(*) FROM forum_comment_replies WHERE parent_reply_id = r.id) as nested_replies_count
                 FROM forum_comment_replies r
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.comment_id = ? AND r.parent_reply_id IS NULL
@@ -5928,6 +5930,7 @@ def get_comment_replies(comment_id):
             
             replied_to_user_name = row[10] if has_replied_to and len(row) > 10 else None
             parent_reply_id = row[11] if has_replied_to and len(row) > 11 else (row[10] if not has_replied_to and len(row) > 10 else None)
+            nested_replies_count = row[12] if has_replied_to and len(row) > 12 else (row[11] if not has_replied_to and len(row) > 11 else 0)
             
             replies.append({
                 'id': row[0],
@@ -5941,7 +5944,8 @@ def get_comment_replies(comment_id):
                 'likes_count': row[8],
                 'user_liked': bool(row[9]),
                 'replied_to_user_name': replied_to_user_name,
-                'parent_reply_id': parent_reply_id
+                'parent_reply_id': parent_reply_id,
+                'nested_replies_count': nested_replies_count
             })
         
         conn.close()

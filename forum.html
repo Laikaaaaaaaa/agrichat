@@ -2275,7 +2275,7 @@
               const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
               
               return `
-                <div class="relative" id="nested-reply-${reply.id}">
+                <div class="relative" id="nested-reply-${reply.id}" data-parent-reply-id="${parentReplyId}" data-comment-id="${commentId}">
                   <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
                     <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
                       ${userAvatar}
@@ -2379,7 +2379,7 @@
             const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
             
             return `
-              <div class="relative" id="nested-reply-${reply.id}">
+              <div class="relative" id="nested-reply-${reply.id}" data-parent-reply-id="${parentReplyId}" data-comment-id="${commentId}">
                 <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
                   <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
                     ${userAvatar}
@@ -2523,6 +2523,15 @@
       try {
         // Get nested reply's user info
         const nestedReplyEl = document.getElementById(`nested-reply-${nestedReplyId}`);
+        
+        // Use data attributes as source of truth for parent and comment IDs
+        if (nestedReplyEl) {
+          const storedParentReplyId = nestedReplyEl.getAttribute('data-parent-reply-id');
+          const storedCommentId = nestedReplyEl.getAttribute('data-comment-id');
+          if (storedParentReplyId) parentReplyId = parseInt(storedParentReplyId);
+          if (storedCommentId) commentId = parseInt(storedCommentId);
+        }
+        
         let repliedToUserId = null;
         let repliedToUserName = null;
         

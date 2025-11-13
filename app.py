@@ -5881,8 +5881,8 @@ def get_comment_replies(comment_id):
                     u.email as user_email,
                     u.avatar_url as user_avatar,
                     u.username_slug as username_slug,
-                    (SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = r.id) as likes_count,
-                    CASE WHEN EXISTS(SELECT 1 FROM forum_comment_likes WHERE comment_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
+                    (SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = r.id) as likes_count,
+                    CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
                     r.replied_to_user_name
                 FROM forum_comment_replies r
                 LEFT JOIN users u ON r.user_id = u.id
@@ -5901,8 +5901,8 @@ def get_comment_replies(comment_id):
                     u.email as user_email,
                     u.avatar_url as user_avatar,
                     u.username_slug as username_slug,
-                    (SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = r.id) as likes_count,
-                    CASE WHEN EXISTS(SELECT 1 FROM forum_comment_likes WHERE comment_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked
+                    (SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = r.id) as likes_count,
+                    CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked
                 FROM forum_comment_replies r
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.comment_id = ?
@@ -5941,7 +5941,7 @@ def get_comment_replies(comment_id):
 
 @app.route('/api/forum/comments/<int:comment_id>/replies', methods=['POST'])
 def create_comment_reply(comment_id):
-    """Create a reply to a comment"""
+    """Create a reply to a comment (or a nested reply to a reply)"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
     
@@ -5950,6 +5950,7 @@ def create_comment_reply(comment_id):
         content = data.get('content', '').strip()
         replied_to_user_id = data.get('replied_to_user_id')  # Optional: the user being replied to
         replied_to_user_name = data.get('replied_to_user_name')  # Optional: name of user being replied to
+        parent_reply_id = data.get('parent_reply_id')  # Optional: for nested replies
         
         if not content:
             return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
@@ -5964,6 +5965,14 @@ def create_comment_reply(comment_id):
             conn.close()
             return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
         
+        # If this is a nested reply, check if parent reply exists
+        if parent_reply_id:
+            cursor.execute('SELECT user_id FROM forum_comment_replies WHERE id = ?', (parent_reply_id,))
+            parent_reply = cursor.fetchone()
+            if not parent_reply:
+                conn.close()
+                return jsonify({'success': False, 'message': 'Trả lời cha không tồn tại'}), 404
+        
         # If replied_to_user_id not provided, use the comment author
         if not replied_to_user_id:
             replied_to_user_id = comment[0]
@@ -5975,15 +5984,15 @@ def create_comment_reply(comment_id):
             if user_row:
                 replied_to_user_name = user_row[0]
         
-        # Check if table has replied_to_user_id column, if not just insert normally
+        # Check if table has new columns, if not just insert normally
         try:
             cursor.execute('''
-                INSERT INTO forum_comment_replies (comment_id, user_id, content, replied_to_user_id, replied_to_user_name, created_at)
-                VALUES (?, ?, ?, ?, ?, datetime("now"))
-            ''', (comment_id, session['user_id'], content, replied_to_user_id, replied_to_user_name))
+                INSERT INTO forum_comment_replies (comment_id, user_id, content, replied_to_user_id, replied_to_user_name, parent_reply_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, datetime("now"))
+            ''', (comment_id, session['user_id'], content, replied_to_user_id, replied_to_user_name, parent_reply_id))
         except Exception as e:
-            # If column doesn't exist, fall back to simple insert
-            logging.warning(f"Could not insert replied_to fields: {e}. Using basic insert.")
+            # If columns don't exist, fall back to simple insert
+            logging.warning(f"Could not insert all fields: {e}. Using basic insert.")
             cursor.execute('''
                 INSERT INTO forum_comment_replies (comment_id, user_id, content, created_at)
                 VALUES (?, ?, ?, datetime("now"))
@@ -6045,6 +6054,70 @@ def delete_comment_reply(comment_id, reply_id):
         return jsonify({'success': True})
     except Exception as e:
         logging.error(f"Error deleting reply: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/forum/comments/<int:comment_id>/replies/<int:reply_id>/nested', methods=['GET'])
+def get_nested_replies(comment_id, reply_id):
+    """Get nested replies to a reply"""
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if parent_reply_id column exists
+        cursor.execute("PRAGMA table_info(forum_comment_replies)")
+        columns = [col[1] for col in cursor.fetchall()]
+        has_parent_reply = 'parent_reply_id' in columns
+        
+        if not has_parent_reply:
+            conn.close()
+            return jsonify({'success': True, 'replies': []})
+        
+        # Get nested replies (replies that have this reply as parent)
+        cursor.execute('''
+            SELECT 
+                r.id,
+                r.user_id,
+                r.content,
+                r.created_at,
+                u.name as user_name,
+                u.email as user_email,
+                u.avatar_url as user_avatar,
+                u.username_slug as username_slug,
+                (SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = r.id) as likes_count,
+                CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
+                r.replied_to_user_name
+            FROM forum_comment_replies r
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.parent_reply_id = ?
+            ORDER BY r.created_at ASC
+        ''', (session.get('user_id', -1), reply_id))
+        
+        replies = []
+        for row in cursor.fetchall():
+            created_at = row[3]
+            if created_at and len(created_at) == 19:
+                created_at = f"{created_at}Z"
+            
+            replies.append({
+                'id': row[0],
+                'user_id': row[1],
+                'content': row[2],
+                'created_at': created_at,
+                'user_name': row[4],
+                'user_email': row[5],
+                'user_avatar': row[6],
+                'username_slug': row[7],
+                'likes_count': row[8],
+                'user_liked': bool(row[9]),
+                'replied_to_user_name': row[10]
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'replies': replies})
+    except Exception as e:
+        logging.error(f"Error getting nested replies: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

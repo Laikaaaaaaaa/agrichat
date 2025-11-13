@@ -2689,8 +2689,8 @@
                         </div>
                         <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4 flex-wrap">
                           <span>${timeAgo}</span>
-                          <button onclick="toggleProfileCommentLike(${comment.id}, this)" class="hover:text-red-600 like-comment-btn-${comment.id}">
-                            <i class="${isLiked} fa-heart"></i>
+                          <button onclick="toggleProfileCommentLike(${comment.id}, this)" class="hover:text-blue-600 like-comment-btn-${comment.id}">
+                            <i class="${isLiked} fa-thumbs-up"></i>
                             <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
                           </button>
                           <button onclick="toggleProfileCommentReplyBox(${comment.id})" class="hover:text-blue-600">
@@ -2862,9 +2862,9 @@
         if (data.success) {
           const likeBtn = document.querySelector(`.like-comment-btn-${commentId}`);
           if (data.liked) {
-            likeBtn.innerHTML = `<i class="fas fa-heart text-red-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
           } else {
-            likeBtn.innerHTML = `<i class="far fa-heart"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
           }
         }
       } catch (error) {
@@ -3032,13 +3032,36 @@
             </div>
             <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
               <span>${timeAgo}</span>
-              <button onclick="toggleProfileReplyLike(${reply.id})" class="hover:text-red-600 like-reply-btn-${reply.id}">
-                <i class="${isLiked} fa-heart"></i>
+              <button onclick="toggleProfileReplyLike(${reply.id})" class="hover:text-blue-600 like-reply-btn-${reply.id}">
+                <i class="${isLiked} fa-thumbs-up"></i>
                 <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+              </button>
+              <button onclick="toggleProfileNestedReplyBox(${reply.id})" class="hover:text-blue-600">
+                Trả lời
               </button>
               ${currentUserId && currentUserId === reply.user_id ? `
                 <button onclick="deleteProfileReply(${reply.id})" class="hover:text-red-600">Xóa</button>
               ` : ''}
+            </div>
+            
+            <!-- Nested reply box (initially hidden) -->
+            <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-4">
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  id="nested-reply-input-${reply.id}"
+                  placeholder="Viết trả lời..." 
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                  onkeypress="if(event.key==='Enter') submitProfileNestedReply(${reply.id})"
+                />
+                <button onclick="submitProfileNestedReply(${reply.id})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Nested replies list (initially hidden) -->
+            <div id="nested-replies-${reply.id}" class="hidden mt-2 ml-6 space-y-2">
             </div>
           </div>
         </div>
@@ -3063,9 +3086,9 @@
         if (data.success) {
           const likeBtn = document.querySelector(`.like-reply-btn-${replyId}`);
           if (data.liked) {
-            likeBtn.innerHTML = `<i class="fas fa-heart text-red-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
           } else {
-            likeBtn.innerHTML = `<i class="far fa-heart"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
           }
         }
       } catch (error) {
@@ -3091,6 +3114,184 @@
         }
       } catch (error) {
         console.error('Error deleting reply:', error);
+      }
+    }
+    
+    // Toggle nested reply box
+    function toggleProfileNestedReplyBox(replyId) {
+      if (!currentUserId) {
+        alert('Vui lòng đăng nhập để trả lời');
+        return;
+      }
+      
+      const replyBox = document.getElementById(`nested-reply-box-${replyId}`);
+      replyBox.classList.toggle('hidden');
+      
+      if (!replyBox.classList.contains('hidden')) {
+        document.getElementById(`nested-reply-input-${replyId}`).focus();
+      }
+    }
+    
+    // Submit nested reply
+    async function submitProfileNestedReply(parentReplyId) {
+      const input = document.getElementById(`nested-reply-input-${parentReplyId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        // Find the comment ID from the parent reply
+        let commentId = null;
+        const nestedReplyBox = document.getElementById(`nested-reply-box-${parentReplyId}`);
+        const parentEl = nestedReplyBox.closest('[id^="replies-"]');
+        
+        if (parentEl) {
+          const idMatch = parentEl.id.match(/replies-(\d+)/);
+          if (idMatch) {
+            commentId = parseInt(idMatch[1]);
+          }
+        }
+        
+        if (!commentId) return;
+        
+        // Get parent reply's user info
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            content,
+            parent_reply_id: parentReplyId,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          document.getElementById(`nested-reply-box-${parentReplyId}`).classList.add('hidden');
+          loadProfileNestedReplies(parentReplyId, commentId);
+        } else {
+          alert(data.message || 'Lỗi khi gửi trả lời');
+        }
+      } catch (error) {
+        console.error('Error submitting nested reply:', error);
+      }
+    }
+    
+    // Load nested replies
+    async function loadProfileNestedReplies(parentReplyId, commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${parentReplyId}/nested`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const nestedRepliesList = document.getElementById(`nested-replies-${parentReplyId}`);
+          
+          if (data.replies.length === 0) {
+            nestedRepliesList.innerHTML = '';
+            nestedRepliesList.classList.add('hidden');
+          } else {
+            let repliesHTML = data.replies.map(reply => createProfileNestedReplyHTML(reply, parentReplyId, commentId)).join('');
+            nestedRepliesList.innerHTML = repliesHTML;
+            nestedRepliesList.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading nested replies:', error);
+      }
+    }
+    
+    // Create nested reply HTML
+    function createProfileNestedReplyHTML(reply, parentReplyId, commentId) {
+      const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+      const userAvatar = reply.user_avatar
+        ? `<img src="${reply.user_avatar}" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover" />`
+        : `<div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+      
+      const profileLink = reply.username_slug || reply.user_id;
+      const timeAgo = getTimeAgo(reply.created_at);
+      const likesCount = reply.likes_count || 0;
+      const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+      
+      const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+      
+      return `
+        <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+          <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+            ${userAvatar}
+          </a>
+          <div class="flex-1 min-w-0">
+            <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+              <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
+              ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
+              <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+            </div>
+            <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+              <span>${timeAgo}</span>
+              <button onclick="toggleProfileNestedReplyLike(${reply.id})" class="hover:text-blue-600 like-nested-reply-btn-${reply.id}">
+                <i class="${isLiked} fa-thumbs-up"></i>
+                <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+              </button>
+              ${currentUserId && currentUserId === reply.user_id ? `
+                <button onclick="deleteProfileNestedReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Toggle nested reply like
+    async function toggleProfileNestedReplyLike(nestedReplyId) {
+      if (!currentUserId) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${nestedReplyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-nested-reply-btn-${nestedReplyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking nested reply:', error);
+      }
+    }
+    
+    // Delete nested reply
+    async function deleteProfileNestedReply(nestedReplyId, commentId) {
+      if (!confirm('Bạn có chắc muốn xóa trả lời này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${nestedReplyId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.message || 'Lỗi khi xóa trả lời');
+        }
+      } catch (error) {
+        console.error('Error deleting nested reply:', error);
       }
     }
     

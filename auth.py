@@ -124,9 +124,11 @@ def init_db():
             content TEXT NOT NULL,
             replied_to_user_id INTEGER,
             replied_to_user_name TEXT,
+            parent_reply_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (comment_id) REFERENCES forum_comments (id),
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (parent_reply_id) REFERENCES forum_comment_replies (id)
         )
     ''')
     

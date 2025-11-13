@@ -2058,7 +2058,7 @@
           repliesList.innerHTML = repliesHTML;
           document.getElementById(`replies-container-${commentId}`).classList.remove('hidden');
           
-          // Load child replies for all replies
+          // Load child replies for ALL replies
           data.replies.forEach(reply => {
             if (!reply.parent_reply_id) {
               loadChildReplies(reply.id, commentId);

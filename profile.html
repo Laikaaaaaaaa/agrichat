@@ -2702,27 +2702,30 @@
                           ` : ''}
                         </div>
                         
-                        <!-- Reply box -->
-                        <div id="reply-box-${comment.id}" class="hidden mt-2 ml-2 sm:ml-4">
-                          <div class="flex gap-2">
-                            <input 
-                              type="text" 
-                              id="reply-input-${comment.id}"
-                              placeholder="Viết trả lời..." 
-                              spellcheck="false"
-                              class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
-                              onkeypress="if(event.key==='Enter') submitProfileCommentReply(${comment.id}, ${postId})"
-                            />
-                            <button onclick="submitProfileCommentReply(${comment.id}, ${postId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
-                              <i class="fas fa-paper-plane"></i>
-                            </button>
+                        <!-- Replies container with connector line from avatar -->
+                        <div id="replies-container-${comment.id}" class="hidden mt-2 relative" style="margin-left: 0.75rem;">
+                          <!-- Reply box for this comment -->
+                          <div id="reply-box-${comment.id}" class="hidden mb-2 ml-2 sm:ml-4">
+                            <div class="flex gap-2">
+                              <input 
+                                type="text" 
+                                id="reply-input-${comment.id}"
+                                placeholder="Viết trả lời..." 
+                                spellcheck="false"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                                onkeypress="if(event.key==='Enter') submitProfileCommentReply(${comment.id}, ${postId})"
+                              />
+                              <button onclick="submitProfileCommentReply(${comment.id}, ${postId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                                <i class="fas fa-paper-plane"></i>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                        
-                        <!-- Replies list with connector line -->
-                        <div id="replies-container-${comment.id}" class="relative hidden mt-2 ml-2 sm:ml-4 border-l-2 border-gray-300 pl-2 sm:pl-4">
-                          <!-- Replies list -->
-                          <div id="replies-${comment.id}" class="space-y-2">
+                          
+                          <!-- Connector line and replies -->
+                          <div class="border-l-2 border-gray-300 pl-2 sm:pl-4">
+                            <!-- Replies list -->
+                            <div id="replies-${comment.id}" class="space-y-2">
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -3209,26 +3212,52 @@
               const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
               
               return `
-                <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
-                  <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
-                    ${userAvatar}
-                  </a>
-                  <div class="flex-1 min-w-0">
-                    <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
-                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
-                      ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
-                      <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+                <div class="relative" id="nested-reply-${reply.id}">
+                  <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+                    <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                      ${userAvatar}
+                    </a>
+                    <div class="flex-1 min-w-0">
+                      <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                        <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
+                        ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
+                        <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+                      </div>
+                      <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                        <span>${timeAgo}</span>
+                        <button onclick="toggleProfileChildReplyLike(${reply.id})" class="hover:text-blue-600 like-child-reply-btn-${reply.id}">
+                          <i class="${isLiked} fa-thumbs-up"></i>
+                          <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                        </button>
+                        <button onclick="toggleProfileNestedReplyBox(${reply.id})" class="hover:text-blue-600">
+                          Trả lời
+                        </button>
+                        ${currentUserId && currentUserId === reply.user_id ? `
+                          <button onclick="deleteProfileChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                        ` : ''}
+                      </div>
+                      
+                      <!-- Nested reply box (cháu) -->
+                      <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
+                        <div class="flex gap-2">
+                          <input 
+                            type="text" 
+                            id="nested-reply-input-${reply.id}"
+                            placeholder="Viết trả lời..." 
+                            spellcheck="false"
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                            onkeypress="if(event.key==='Enter') submitProfileNestedReply(${reply.id}, ${parentReplyId}, ${commentId})"
+                          />
+                          <button onclick="submitProfileNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                            <i class="fas fa-paper-plane"></i>
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
-                      <span>${timeAgo}</span>
-                      <button onclick="toggleProfileChildReplyLike(${reply.id})" class="hover:text-blue-600 like-child-reply-btn-${reply.id}">
-                        <i class="${isLiked} fa-thumbs-up"></i>
-                        <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
-                      </button>
-                      ${currentUserId && currentUserId === reply.user_id ? `
-                        <button onclick="deleteProfileChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
-                      ` : ''}
-                    </div>
+                  </div>
+                  <!-- Container for nested-nested replies (cháu) -->
+                  <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-4">
+                    <div id="nested-child-replies-list-${reply.id}"></div>
                   </div>
                 </div>
               `;
@@ -3271,8 +3300,196 @@
       }
     }
     
-    // Delete child reply
-    async function deleteProfileChildReply(replyId, commentId) {
+    // Toggle like on child reply
+    async function toggleProfileChildReplyLike(replyId) {
+      if (!currentUserId) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-child-reply-btn-${replyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking child reply:', error);
+      }
+    }
+    
+    // Toggle nested reply box (cháu)
+    function toggleProfileNestedReplyBox(nestedReplyId) {
+      if (!currentUserId) {
+        alert('Vui lòng đăng nhập để trả lời');
+        return;
+      }
+      
+      const replyBox = document.getElementById(`nested-reply-box-${nestedReplyId}`);
+      replyBox.classList.toggle('hidden');
+      
+      if (!replyBox.classList.contains('hidden')) {
+        document.getElementById(`nested-reply-input-${nestedReplyId}`).focus();
+      }
+    }
+    
+    // Submit nested reply (cháu)
+    async function submitProfileNestedReply(nestedReplyId, parentReplyId, commentId) {
+      const input = document.getElementById(`nested-reply-input-${nestedReplyId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        // Get nested reply's user info
+        const nestedReplyEl = document.getElementById(`nested-reply-${nestedReplyId}`);
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        if (nestedReplyEl) {
+          const profileLink = nestedReplyEl.querySelector('a[href^="/profile"]');
+          if (profileLink) {
+            repliedToUserName = nestedReplyEl.querySelector('.font-semibold')?.textContent;
+            const href = profileLink.getAttribute('href');
+            const match = href.match(/\/profile\/(\d+)/);
+            if (match) {
+              repliedToUserId = parseInt(match[1]);
+            }
+          }
+        }
+        
+        // Submit as reply with parent_reply_id pointing to the child reply
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            content,
+            parent_reply_id: nestedReplyId,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          document.getElementById(`nested-reply-box-${nestedReplyId}`).classList.add('hidden');
+          
+          // Load nested-nested replies
+          loadProfileNestedChildReplies(nestedReplyId, commentId);
+          
+          // Update parent replies list
+          loadProfileCommentReplies(commentId);
+        } else {
+          alert(data.message || 'Lỗi khi gửi trả lời');
+        }
+      } catch (error) {
+        console.error('Error submitting nested reply:', error);
+      }
+    }
+    
+    // Load nested-nested replies (cháu)
+    async function loadProfileNestedChildReplies(parentNestedReplyId, commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${parentNestedReplyId}/nested`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const nestedChildRepliesList = document.getElementById(`nested-child-replies-list-${parentNestedReplyId}`);
+          const nestedChildRepliesContainer = document.getElementById(`nested-child-replies-${parentNestedReplyId}`);
+          
+          if (data.replies.length === 0) {
+            nestedChildRepliesList.innerHTML = '';
+            nestedChildRepliesContainer.classList.add('hidden');
+          } else {
+            let repliesHTML = data.replies.map(reply => {
+              const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+              const userAvatar = reply.user_avatar
+                ? `<img src="${reply.user_avatar}" class="w-3 h-3 sm:w-4 sm:h-4 rounded-full object-cover" />`
+                : `<div class="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+              
+              const profileLink = reply.username_slug || reply.user_id;
+              const timeAgo = getTimeAgo(reply.created_at);
+              const likesCount = reply.likes_count || 0;
+              const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+              const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+              
+              return `
+                <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+                  <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                    ${userAvatar}
+                  </a>
+                  <div class="flex-1 min-w-0">
+                    <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
+                      ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
+                      <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+                    </div>
+                    <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                      <span>${timeAgo}</span>
+                      <button onclick="toggleProfileNestedChildReplyLike(${reply.id})" class="hover:text-blue-600 like-nested-child-reply-btn-${reply.id}">
+                        <i class="${isLiked} fa-thumbs-up"></i>
+                        <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                      </button>
+                      ${currentUserId && currentUserId === reply.user_id ? `
+                        <button onclick="deleteProfileNestedChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            
+            nestedChildRepliesList.innerHTML = repliesHTML;
+            nestedChildRepliesContainer.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading nested child replies:', error);
+      }
+    }
+    
+    // Toggle like on nested-child reply (cháu)
+    async function toggleProfileNestedChildReplyLike(replyId) {
+      if (!currentUserId) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-nested-child-reply-btn-${replyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking nested child reply:', error);
+      }
+    }
+    
+    // Delete nested-child reply (cháu)
+    async function deleteProfileNestedChildReply(replyId, commentId) {
       if (!confirm('Bạn có chắc muốn xóa trả lời này?')) return;
       
       try {
@@ -3288,10 +3505,9 @@
           alert(data.message || 'Lỗi khi xóa trả lời');
         }
       } catch (error) {
-        console.error('Error deleting child reply:', error);
+        console.error('Error deleting nested child reply:', error);
       }
     }
-    
     
     // Toggle nested reply box
     

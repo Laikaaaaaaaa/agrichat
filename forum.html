@@ -1718,9 +1718,16 @@
               </div>
             </div>
             
-            <!-- Replies list (initially hidden) -->
-            <div id="replies-${comment.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2">
-              <p class="text-gray-500 text-xs">Đang tải...</p>
+            <!-- Replies list with connector line (initially hidden) -->
+            <div id="replies-container-${comment.id}" class="relative hidden mt-2">
+              <!-- Connector line from parent avatar -->
+              <svg id="connector-svg-${comment.id}" class="absolute left-3 sm:left-4 top-0 pointer-events-none" style="width: 2px; height: 100%;">
+                <line x1="1" y1="0" x2="1" y2="100%" stroke="#e5e7eb" stroke-width="2"/>
+              </svg>
+              <!-- Replies list -->
+              <div id="replies-${comment.id}" class="ml-2 sm:ml-4 space-y-2">
+                <p class="text-gray-500 text-xs">Đang tải...</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1863,11 +1870,12 @@
         const data = await response.json();
         
         if (data.success) {
+          const repliesContainer = document.getElementById(`replies-container-${commentId}`);
           const repliesList = document.getElementById(`replies-${commentId}`);
           
           if (data.replies.length === 0) {
             repliesList.innerHTML = '<p class="text-gray-500 text-xs">Chưa có trả lời</p>';
-            repliesList.classList.add('hidden');
+            repliesContainer.classList.add('hidden');
           } else {
             // Show maximum 10 replies initially
             const MAX_REPLIES = 10;
@@ -1890,7 +1898,15 @@
             }
             
             repliesList.innerHTML = repliesHTML;
-            repliesList.classList.remove('hidden');
+            repliesContainer.classList.remove('hidden');
+            
+            // Load child replies for each reply
+            displayedReplies.forEach(reply => {
+              // Check if this reply has parent_reply_id (it's a child reply itself - skip)
+              if (!reply.parent_reply_id) {
+                loadChildReplies(reply.id, commentId);
+              }
+            });
           }
         }
       } catch (error) {
@@ -1908,7 +1924,14 @@
           const repliesList = document.getElementById(`replies-${commentId}`);
           let repliesHTML = data.replies.map(reply => createReplyHTML(reply, commentId)).join('');
           repliesList.innerHTML = repliesHTML;
-          repliesList.classList.remove('hidden');
+          document.getElementById(`replies-container-${commentId}`).classList.remove('hidden');
+          
+          // Load child replies for all replies
+          data.replies.forEach(reply => {
+            if (!reply.parent_reply_id) {
+              loadChildReplies(reply.id, commentId);
+            }
+          });
         }
       } catch (error) {
         console.error('Error loading more replies:', error);
@@ -1925,32 +1948,62 @@
       const profileLink = reply.username_slug || reply.user_id;
       const timeAgo = getTimeAgo(reply.created_at);
       const likesCount = reply.likes_count || 0;
-      const isLiked = reply.user_liked ? 'text-red-600 fas' : 'far';
+      const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
       
       // Show info if this reply is a response to another user
       const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
       
       return `
-        <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm relative ml-4 pl-2 border-l-2 border-blue-300">
-          <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
-            ${userAvatar}
-          </a>
-          <div class="flex-1 min-w-0">
-            <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
-              <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline">${escapeHtml(userName)}</a>
-              ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
-              <p class="text-gray-700 break-words">${escapeHtml(reply.content)}</p>
+        <div class="relative" id="reply-${reply.id}">
+          <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
+            <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+              ${userAvatar}
+            </a>
+            <div class="flex-1 min-w-0">
+              <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline">${escapeHtml(userName)}</a>
+                ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
+                <p class="text-gray-700 break-words">${escapeHtml(reply.content)}</p>
+              </div>
+              <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                <span>${timeAgo}</span>
+                <button onclick="toggleReplyLike(${reply.id})" class="hover:text-blue-600 like-reply-btn-${reply.id}">
+                  <i class="${isLiked} fa-thumbs-up"></i>
+                  <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                </button>
+                <button onclick="toggleReplyBox(${reply.id})" class="hover:text-blue-600">
+                  Trả lời
+                </button>
+                ${currentUser && currentUser.id === reply.user_id ? `
+                  <button onclick="deleteReply(${reply.id})" class="hover:text-red-600">Xóa</button>
+                ` : ''}
+              </div>
+              
+              <!-- Reply box to reply to this reply -->
+              <div id="reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
+                <div class="flex gap-2">
+                  <input 
+                    type="text" 
+                    id="reply-input-${reply.id}"
+                    placeholder="Viết trả lời..." 
+                    spellcheck="false"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                    onkeypress="if(event.key==='Enter') submitChildReply(${reply.id}, ${commentId})"
+                  />
+                  <button onclick="submitChildReply(${reply.id}, ${commentId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
-              <span>${timeAgo}</span>
-              <button onclick="toggleReplyLike(${reply.id})" class="hover:text-blue-600 like-reply-btn-${reply.id}">
-                <i class="${isLiked} fa-thumbs-up"></i>
-                <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
-              </button>
-              ${currentUser && currentUser.id === reply.user_id ? `
-                <button onclick="deleteReply(${reply.id})" class="hover:text-red-600">Xóa</button>
-              ` : ''}
-            </div>
+          </div>
+          <!-- Container for child replies -->
+          <div id="child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2 relative">
+            <!-- Connector line from this reply to child replies -->
+            <svg class="absolute left-2 sm:left-3 top-0 pointer-events-none" style="width: 2px; height: 100%;">
+              <line x1="1" y1="0" x2="1" y2="100%" stroke="#e5e7eb" stroke-width="2"/>
+            </svg>
+            <div id="child-replies-list-${reply.id}"></div>
           </div>
         </div>
       `;
@@ -2003,6 +2056,187 @@
         }
       } catch (error) {
         console.error('Error deleting reply:', error);
+      }
+    }
+    
+    // Toggle reply box to reply to a reply
+    function toggleReplyBox(replyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để trả lời');
+        return;
+      }
+      
+      const replyBox = document.getElementById(`reply-box-${replyId}`);
+      replyBox.classList.toggle('hidden');
+      
+      if (!replyBox.classList.contains('hidden')) {
+        document.getElementById(`reply-input-${replyId}`).focus();
+      }
+    }
+    
+    // Submit reply to a reply (child reply)
+    async function submitChildReply(parentReplyId, commentId) {
+      const input = document.getElementById(`reply-input-${parentReplyId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        // Get parent reply's user info
+        const parentReplyEl = document.getElementById(`reply-${parentReplyId}`);
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        if (parentReplyEl) {
+          const profileLink = parentReplyEl.querySelector('a[href^="/profile"]');
+          if (profileLink) {
+            repliedToUserName = parentReplyEl.querySelector('.font-semibold')?.textContent;
+            const href = profileLink.getAttribute('href');
+            const match = href.match(/\/profile\/(\d+)/);
+            if (match) {
+              repliedToUserId = parseInt(match[1]);
+            }
+          }
+        }
+        
+        // Submit as reply to the comment with parent_reply_id
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            content,
+            parent_reply_id: parentReplyId,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          document.getElementById(`reply-box-${parentReplyId}`).classList.add('hidden');
+          
+          // Load child replies
+          loadChildReplies(parentReplyId, commentId);
+          
+          // Update parent replies list
+          loadCommentReplies(commentId);
+        } else {
+          alert(data.message || 'Lỗi khi gửi trả lời');
+        }
+      } catch (error) {
+        console.error('Error submitting child reply:', error);
+      }
+    }
+    
+    // Load child replies (replies to a reply)
+    async function loadChildReplies(parentReplyId, commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${parentReplyId}/nested`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const childRepliesList = document.getElementById(`child-replies-list-${parentReplyId}`);
+          const childRepliesContainer = document.getElementById(`child-replies-${parentReplyId}`);
+          
+          if (data.replies.length === 0) {
+            childRepliesList.innerHTML = '';
+            childRepliesContainer.classList.add('hidden');
+          } else {
+            let repliesHTML = data.replies.map(reply => {
+              const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+              const userAvatar = reply.user_avatar
+                ? `<img src="${reply.user_avatar}" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover" />`
+                : `<div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+              
+              const profileLink = reply.username_slug || reply.user_id;
+              const timeAgo = getTimeAgo(reply.created_at);
+              const likesCount = reply.likes_count || 0;
+              const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+              const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+              
+              return `
+                <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+                  <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                    ${userAvatar}
+                  </a>
+                  <div class="flex-1 min-w-0">
+                    <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
+                      ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
+                      <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+                    </div>
+                    <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                      <span>${timeAgo}</span>
+                      <button onclick="toggleChildReplyLike(${reply.id})" class="hover:text-blue-600 like-child-reply-btn-${reply.id}">
+                        <i class="${isLiked} fa-thumbs-up"></i>
+                        <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                      </button>
+                      ${currentUser && currentUser.id === reply.user_id ? `
+                        <button onclick="deleteChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            
+            childRepliesList.innerHTML = repliesHTML;
+            childRepliesContainer.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading child replies:', error);
+      }
+    }
+    
+    // Toggle like on child reply
+    async function toggleChildReplyLike(replyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-child-reply-btn-${replyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking child reply:', error);
+      }
+    }
+    
+    // Delete child reply
+    async function deleteChildReply(replyId, commentId) {
+      if (!confirm('Bạn có chắc muốn xóa trả lời này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${replyId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.message || 'Lỗi khi xóa trả lời');
+        }
+      } catch (error) {
+        console.error('Error deleting child reply:', error);
       }
     }
     

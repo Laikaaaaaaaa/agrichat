@@ -262,61 +262,65 @@
       }
     }
 
-    /* Simple Facebook-style connector lines */
+    /* Facebook-style connector lines with curves */
     .replies-container {
       position: relative;
-      margin-left: 2.5rem;
-      padding-top: 0.5rem;
+      margin-left: 2.25rem; /* 36px */
+      padding-left: 1.25rem; /* 20px */
     }
 
-    /* Main vertical line */
+    /* The vertical line that connects all replies */
     .replies-container::before {
       content: '';
       position: absolute;
-      left: -1.5rem;
       top: 0;
+      left: 0;
       bottom: 0;
       width: 1px;
-      background-color: #e5e7eb;
+      background-color: #d1d5db; /* gray-300 */
     }
 
-    /* Horizontal line for each reply */
+    /* The L-shaped connector for each direct reply */
     .replies-container > div > div[id^="reply-"]::before {
       content: '';
       position: absolute;
-      left: -1.5rem;
-      top: 1.5rem;
-      width: 1.5rem;
-      height: 1px;
-      background-color: #e5e7eb;
+      top: 1.25rem; /* 20px, vertically centered with avatar */
+      left: -1.25rem; /* Connects to the vertical line */
+      width: 1.25rem; /* Horizontal length */
+      height: 1.25rem; /* Vertical height to create the curve */
+      border-bottom: 1px solid #d1d5db;
+      border-left: 1px solid #d1d5db;
+      border-bottom-left-radius: 0.75rem; /* The curve */
     }
 
-    /* Child replies (nested) connector */
+    /* Child replies (nested) connector styling */
     div[id^="child-replies-"] {
       position: relative;
-      margin-left: 2rem;
-      padding-top: 0.5rem;
+      margin-left: 2.25rem; /* 36px */
+      padding-left: 1.25rem; /* 20px */
     }
 
     div[id^="child-replies-"]::before {
       content: '';
       position: absolute;
-      left: -1rem;
       top: 0;
+      left: 0;
       bottom: 0;
       width: 1px;
-      background-color: #f3f4f6;
+      background-color: #d1d5db;
     }
 
-    /* Horizontal line for nested reply */
+    /* L-shaped connector for each nested reply */
     div[id^="nested-reply-"]::before {
       content: '';
       position: absolute;
-      left: -1rem;
-      top: 1.5rem;
-      width: 1rem;
-      height: 1px;
-      background-color: #f3f4f6;
+      top: 1rem; /* Adjust for smaller avatar */
+      left: -1.25rem;
+      width: 1.25rem;
+      height: 1rem;
+      border-bottom: 1px solid #d1d5db;
+      border-left: 1px solid #d1d5db;
+      border-bottom-left-radius: 0.75rem;
     }
   </style>
 </head>
@@ -3304,7 +3308,13 @@
             childRepliesList.innerHTML = '';
             childRepliesContainer.classList.add('hidden');
           } else {
-            let repliesHTML = data.replies.map(reply => {
+            // Show maximum 5 child replies initially
+            const MAX_CHILD_REPLIES = 5;
+            const allReplies = data.replies;
+            const displayedReplies = allReplies.slice(0, MAX_CHILD_REPLIES);
+            const hasMore = allReplies.length > MAX_CHILD_REPLIES;
+            
+            let repliesHTML = displayedReplies.map(reply => {
               const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
               const userAvatar = reply.user_avatar
                 ? `<img src="${reply.user_avatar}" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover" />`
@@ -3370,17 +3380,116 @@
               `;
             }).join('');
             
+            // Add "View more" button if needed
+            if (hasMore) {
+              const moreCount = allReplies.length - MAX_CHILD_REPLIES;
+              repliesHTML += `
+                <div class="flex justify-center mt-1">
+                  <button onclick="toggleMoreChildReplies(${parentReplyId}, ${commentId})" class="px-3 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium">
+                    Xem thêm ${moreCount} phản hồi
+                  </button>
+                </div>
+              `;
+            }
+            
             childRepliesList.innerHTML = repliesHTML;
             childRepliesContainer.classList.remove('hidden');
             
             // Load nested-nested replies (cháu) for each child reply
-            data.replies.forEach(reply => {
+            displayedReplies.forEach(reply => {
               loadProfileNestedChildReplies(reply.id, commentId);
             });
           }
         }
       } catch (error) {
         console.error('Error loading child replies:', error);
+      }
+    }
+    
+    // Toggle show more child replies
+    async function toggleMoreChildReplies(parentReplyId, commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${parentReplyId}/nested`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const childRepliesList = document.getElementById(`child-replies-list-${parentReplyId}`);
+          
+          let repliesHTML = data.replies.map(reply => {
+            const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+            const userAvatar = reply.user_avatar
+              ? `<img src="${reply.user_avatar}" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover" />`
+              : `<div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+            
+            const profileLink = reply.username_slug || reply.user_id;
+            const timeAgo = getTimeAgo(reply.created_at);
+            const likesCount = reply.likes_count || 0;
+            const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+            const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+            
+            return `
+              <div class="relative" id="nested-reply-${reply.id}">
+                <div class="flex gap-1.5 bg-gray-50 rounded-lg p-1.5 text-xs">
+                  <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                    <div class="w-4 h-4 rounded-full overflow-hidden">
+                      ${userAvatar}
+                    </div>
+                  </a>
+                  <div class="flex-1 min-w-0">
+                    <div class="bg-white rounded-lg px-1.5 py-0.5 inline-block max-w-full">
+                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
+                      ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
+                      <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+                    </div>
+                    <div class="flex gap-2 text-xs text-gray-500 mt-0.5 ml-0.5 flex-wrap">
+                      <span>${timeAgo}</span>
+                      <button onclick="toggleProfileChildReplyLike(${reply.id})" class="hover:text-blue-600 like-child-reply-btn-${reply.id}">
+                        <i class="${isLiked} fa-thumbs-up"></i>
+                        <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                      </button>
+                      <button onclick="toggleProfileNestedReplyBox(${reply.id})" class="hover:text-blue-600">
+                        Trả lời
+                      </button>
+                      ${currentUserId && currentUserId === reply.user_id ? `
+                        <button onclick="deleteProfileChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                      ` : ''}
+                    </div>
+                    
+                    <!-- Nested reply box (cháu) -->
+                    <div id="nested-reply-box-${reply.id}" class="hidden mt-1.5 ml-1.5 sm:ml-3">
+                      <div class="flex gap-1.5">
+                        <input 
+                          type="text" 
+                          id="nested-reply-input-${reply.id}"
+                          placeholder="Viết trả lời..." 
+                          spellcheck="false"
+                          class="flex-1 px-2 py-1 border border-gray-300 rounded-full text-xs focus:outline-none focus:border-green-600"
+                          onkeypress="if(event.key==='Enter') submitProfileNestedReply(${reply.id}, ${parentReplyId}, ${commentId})"
+                        />
+                        <button onclick="submitProfileNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-2 py-0.5 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                          <i class="fas fa-paper-plane"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Container for nested-nested replies (cháu) -->
+                <div id="nested-child-replies-${reply.id}" class="hidden mt-1.5 ml-1.5 sm:ml-3 space-y-1 border-l-2 border-gray-300 pl-1.5 sm:pl-3">
+                  <div id="nested-child-replies-list-${reply.id}"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+          
+          childRepliesList.innerHTML = repliesHTML;
+          
+          // Load nested-nested replies (cháu) for all child replies
+          data.replies.forEach(reply => {
+            loadProfileNestedChildReplies(reply.id, commentId);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading more child replies:', error);
       }
     }
     

@@ -998,6 +998,7 @@
                   type="text" 
                   id="comment-input-${post.id}"
                   placeholder="Viết bình luận..." 
+                  spellcheck="false"
                   class="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-green-600 text-sm sm:text-base"
                   onkeypress="if(event.key==='Enter') submitComment(${post.id})"
                 />
@@ -1707,6 +1708,7 @@
                   type="text" 
                   id="reply-input-${comment.id}"
                   placeholder="Viết trả lời..." 
+                  spellcheck="false"
                   class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
                   onkeypress="if(event.key==='Enter') submitCommentReply(${comment.id}, ${postId})"
                 />
@@ -1960,6 +1962,7 @@
                   type="text" 
                   id="nested-reply-input-${reply.id}"
                   placeholder="Viết trả lời..." 
+                  spellcheck="false"
                   class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
                   onkeypress="if(event.key==='Enter') submitNestedReply(${reply.id}, ${reply.comment_id})"
                 />

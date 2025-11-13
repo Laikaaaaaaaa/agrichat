@@ -2288,6 +2288,7 @@
                   type="text" 
                   id="comment-input-${post.id}"
                   placeholder="Viết bình luận..." 
+                  spellcheck="false"
                   class="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-green-600 text-sm sm:text-base"
                   onkeypress="if(event.key==='Enter') submitForumComment(${post.id})"
                 />
@@ -2659,7 +2660,7 @@
           // Reload comments
           const commentsSection = document.getElementById(`comments-${postId}`);
           if (!commentsSection.classList.contains('hidden')) {
-            // Reload the comments list
+            // Just reload the comments list without hiding section
             try {
               const commentsResponse = await fetch(`/api/forum/posts/${postId}/comments`);
               const commentsData = await commentsResponse.json();
@@ -2675,7 +2676,7 @@
                   const profileLink = comment.username_slug || comment.user_id;
                   const timeAgo = getTimeAgo(comment.created_at);
                   const likesCount = comment.likes_count || 0;
-                  const isLiked = comment.user_liked ? 'text-red-600 fas' : 'far';
+                  const isLiked = comment.user_liked ? 'text-blue-600 fas' : 'far';
                   
                   return `
                     <div class="flex gap-2 mb-3" id="comment-${comment.id}">
@@ -2708,6 +2709,7 @@
                               type="text" 
                               id="reply-input-${comment.id}"
                               placeholder="Viết trả lời..." 
+                              spellcheck="false"
                               class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
                               onkeypress="if(event.key==='Enter') submitProfileCommentReply(${comment.id}, ${postId})"
                             />
@@ -2729,9 +2731,6 @@
               console.error('Error reloading comments:', error);
             }
           }
-          
-          // Reload posts to update comment count
-          setTimeout(() => loadUserPosts(currentUserId), 500);
         } else {
           showAlert(data.message || 'Lỗi khi gửi bình luận', 'error');
         }
@@ -2777,7 +2776,7 @@
                     const profileLink = comment.username_slug || comment.user_id;
                     const timeAgo = getTimeAgo(comment.created_at);
                     const likesCount = comment.likes_count || 0;
-                    const isLiked = comment.user_liked ? 'text-red-600 fas' : 'far';
+                    const isLiked = comment.user_liked ? 'text-blue-600 fas' : 'far';
                     
                     return `
                       <div class="flex gap-2 mb-3" id="comment-${comment.id}">
@@ -2791,8 +2790,8 @@
                           </div>
                           <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4 flex-wrap">
                             <span>${timeAgo}</span>
-                            <button onclick="toggleProfileCommentLike(${comment.id}, this)" class="hover:text-red-600 like-comment-btn-${comment.id}">
-                              <i class="${isLiked} fa-heart"></i>
+                            <button onclick="toggleProfileCommentLike(${comment.id}, this)" class="hover:text-blue-600 like-comment-btn-${comment.id}">
+                              <i class="${isLiked} fa-thumbs-up"></i>
                               <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
                             </button>
                             <button onclick="toggleProfileCommentReplyBox(${comment.id})" class="hover:text-blue-600">
@@ -2810,6 +2809,7 @@
                                 type="text" 
                                 id="reply-input-${comment.id}"
                                 placeholder="Viết trả lời..." 
+                                spellcheck="false"
                                 class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
                                 onkeypress="if(event.key==='Enter') submitProfileCommentReply(${comment.id}, ${postId})"
                               />
@@ -3014,7 +3014,7 @@
       const profileLink = reply.username_slug || reply.user_id;
       const timeAgo = getTimeAgo(reply.created_at);
       const likesCount = reply.likes_count || 0;
-      const isLiked = reply.user_liked ? 'text-red-600 fas' : 'far';
+      const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
       
       // Determine if this reply is a response to another user
       const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
@@ -3051,6 +3051,7 @@
                   type="text" 
                   id="nested-reply-input-${reply.id}"
                   placeholder="Viết trả lời..." 
+                  spellcheck="false"
                   class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
                   onkeypress="if(event.key==='Enter') submitProfileNestedReply(${reply.id})"
                 />

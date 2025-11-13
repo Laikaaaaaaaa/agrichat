@@ -262,38 +262,73 @@
       }
     }
 
-    /* Curved connector lines for replies */
+    /* Facebook-style curved connector lines for replies */
     .replies-container {
       position: relative;
-      padding-left: 0;
+      padding-left: 2rem;
       margin-left: 0;
     }
 
+    /* Main vertical line from parent avatar */
     .replies-container::before {
       content: '';
       position: absolute;
-      left: 10px;
-      top: -20px;
-      width: 1px;
-      height: 20px;
+      left: 16px;
+      top: -32px;
+      bottom: 0;
+      width: 2px;
       background-color: #d1d5db;
     }
 
-    .replies-container::after {
+    /* Horizontal curves connecting to each reply */
+    .replies-container > .border-l-2 > div[id^="reply-"] {
+      position: relative;
+    }
+
+    .replies-container > .border-l-2 > div[id^="reply-"]::before {
       content: '';
       position: absolute;
-      left: 10px;
-      top: 0;
-      width: 12px;
-      height: 1px;
+      left: -30px;
+      top: 16px;
+      width: 28px;
+      height: 2px;
+      background-color: #d1d5db;
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* Curved connector for nested replies */
+    div[id^="child-replies-"] {
+      position: relative;
+      margin-left: 16px;
+      padding-left: 1rem;
+    }
+
+    div[id^="child-replies-"]::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: -8px;
+      bottom: 0;
+      width: 2px;
       background-color: #d1d5db;
     }
 
-    /* Straight connector for child replies */
+    div[id^="child-replies-"] > div > div[id^="nested-reply-"]::before {
+      content: '';
+      position: absolute;
+      left: -18px;
+      top: 12px;
+      width: 16px;
+      height: 2px;
+      background-color: #d1d5db;
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* Remove default border styling */
     .border-l-2.border-gray-300 {
-      border-color: #d1d5db;
-      margin-left: 10px;
-      padding-left: 0.75rem;
+      border-color: transparent;
+      padding-left: 0;
+      margin-left: 0;
     }
   </style>
 </head>
@@ -2737,7 +2772,7 @@
                         </div>
                         
                         <!-- Replies container with connector line from avatar -->
-                        <div id="replies-container-${comment.id}" class="hidden mt-2 relative replies-container" style="margin-left: 10px;">
+                        <div id="replies-container-${comment.id}" class="hidden mt-2 relative replies-container">
                           <!-- Reply box for this comment -->
                           <div id="reply-box-${comment.id}" class="hidden mb-2 ml-2 sm:ml-4">
                             <div class="flex gap-2">
@@ -2922,10 +2957,14 @@
       const repliesContainer = document.getElementById(`replies-container-${commentId}`);
       const replyBox = document.getElementById(`reply-box-${commentId}`);
       
-      // Show replies container if it's hidden
+      // Show replies container if it's hidden AND hasn't been loaded yet
       if (repliesContainer.classList.contains('hidden')) {
         repliesContainer.classList.remove('hidden');
-        loadProfileCommentReplies(commentId);
+        // Only load if replies list is empty (first time)
+        const repliesList = document.getElementById(`replies-${commentId}`);
+        if (!repliesList.hasChildNodes() || repliesList.innerHTML.trim() === '') {
+          loadProfileCommentReplies(commentId);
+        }
       }
       
       replyBox.classList.toggle('hidden');
@@ -3084,7 +3123,7 @@
       const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
       
       return `
-        <div class="relative" id="reply-${reply.id}">
+        <div class="relative" id="reply-${reply.id}" data-comment-id="${commentId}">
           <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
             <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
               ${userAvatar}
@@ -3173,10 +3212,18 @@
       const childRepliesContainer = document.getElementById(`child-replies-${replyId}`);
       const replyBox = document.getElementById(`reply-box-${replyId}`);
       
-      // Show child replies container if it's hidden
+      // Get commentId from parent reply element
+      const replyElement = document.getElementById(`reply-${replyId}`);
+      const commentId = replyElement ? replyElement.getAttribute('data-comment-id') : null;
+      
+      // Show child replies container if it's hidden AND hasn't been loaded yet
       if (childRepliesContainer && childRepliesContainer.classList.contains('hidden')) {
         childRepliesContainer.classList.remove('hidden');
-        loadProfileChildReplies(replyId);
+        // Only load if replies list is empty (first time) AND we have commentId
+        const childRepliesList = document.getElementById(`child-replies-list-${replyId}`);
+        if (commentId && (!childRepliesList.hasChildNodes() || childRepliesList.innerHTML.trim() === '')) {
+          loadProfileChildReplies(replyId, commentId);
+        }
       }
       
       replyBox.classList.toggle('hidden');

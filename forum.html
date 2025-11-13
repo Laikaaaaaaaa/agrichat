@@ -1809,20 +1809,16 @@
                 </div>
               </div>
               
-              <!-- Connector line and replies -->
-              <div class="border-l-2 border-gray-300 pl-2 sm:pl-4">
-                <!-- Replies list -->
-                <div id="replies-${comment.id}" class="space-y-2">
-                  <p class="text-gray-500 text-xs">Đang tải...</p>
-                </div>
-              </div>
+            
+            <!-- Replies list -->
+            <div id="replies-${comment.id}" class="space-y-2">
+              <p class="text-gray-500 text-xs">Đang tải...</p>
             </div>
           </div>
         </div>
+      </div>
       `;
-    }
-    
-    // Submit comment
+    }    // Submit comment
     async function submitComment(postId) {
       const input = document.getElementById(`comment-input-${postId}`);
       const content = input.value.trim();
@@ -2387,16 +2383,14 @@
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <!-- Container for nested-nested replies (cháu) -->
-                  <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-3">
-                    <div id="nested-child-replies-list-${reply.id}"></div>
-                  </div>
                 </div>
-              `;
-            }).join('');
-            
-            // Add "View more" button if needed
+                <!-- Container for nested-nested replies (cháu) -->
+                <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3 space-y-2">
+                  <div id="nested-child-replies-list-${reply.id}"></div>
+                </div>
+              </div>
+            `;
+          }).join('');            // Add "View more" button if needed
             if (hasMore) {
               const moreCount = allReplies.length - MAX_CHILD_REPLIES;
               repliesHTML += `

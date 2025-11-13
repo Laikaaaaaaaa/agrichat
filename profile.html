@@ -262,55 +262,71 @@
       }
     }
 
-    /* Facebook-style connector lines */
+    /* Facebook-style connector lines with curves */
     .replies-container {
       position: relative;
-      margin-left: 2rem;
+      margin-left: 2.5rem;
+      padding-top: 0.5rem;
     }
 
-    /* Vertical line from parent comment avatar down through all replies */
+    /* Main vertical line from parent avatar */
     .replies-container::before {
       content: '';
       position: absolute;
-      left: -16px;
-      top: -24px;
-      bottom: 12px;
+      left: -1.5rem;
+      top: -1.5rem;
+      bottom: 0;
       width: 2px;
-      background-color: #cbd5e0;
+      background-color: #d1d5db;
     }
 
-    /* Individual reply horizontal connector */
+    /* Each reply's horizontal connector with curve */
     .replies-container > div > div[id^="reply-"] {
       position: relative;
-      margin-left: 0;
     }
 
     .replies-container > div > div[id^="reply-"]::before {
       content: '';
       position: absolute;
-      left: -16px;
-      top: 20px;
-      width: 14px;
+      left: -1.5rem;
+      top: 1.25rem;
+      width: 1.25rem;
       height: 2px;
-      background-color: #cbd5e0;
+      background-color: #d1d5db;
+      border-radius: 0 2px 2px 0;
     }
 
-    /* Nested replies (child) connector */
+    /* Curve at the connection point */
+    .replies-container > div > div[id^="reply-"]::after {
+      content: '';
+      position: absolute;
+      left: -1.5rem;
+      top: 0.75rem;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-left: 2px solid #d1d5db;
+      border-bottom: 2px solid #d1d5db;
+      border-bottom-left-radius: 0.5rem;
+    }
+
+    /* Child replies (nested) connector */
     div[id^="child-replies-"] {
       position: relative;
-      margin-left: 1.5rem;
+      margin-left: 2rem;
+      padding-top: 0.5rem;
     }
 
     div[id^="child-replies-"]::before {
       content: '';
       position: absolute;
-      left: -12px;
-      top: 0;
+      left: -1rem;
+      top: -0.5rem;
       bottom: 0;
       width: 2px;
-      background-color: #cbd5e0;
+      background-color: #d1d5db;
     }
 
+    /* Nested reply connectors */
     div[id^="nested-reply-"] {
       position: relative;
     }
@@ -318,11 +334,24 @@
     div[id^="nested-reply-"]::before {
       content: '';
       position: absolute;
-      left: -12px;
-      top: 16px;
-      width: 10px;
+      left: -1rem;
+      top: 1rem;
+      width: 0.75rem;
       height: 2px;
-      background-color: #cbd5e0;
+      background-color: #d1d5db;
+      border-radius: 0 2px 2px 0;
+    }
+
+    div[id^="nested-reply-"]::after {
+      content: '';
+      position: absolute;
+      left: -1rem;
+      top: 0.5rem;
+      width: 0.375rem;
+      height: 0.375rem;
+      border-left: 2px solid #d1d5db;
+      border-bottom: 2px solid #d1d5db;
+      border-bottom-left-radius: 0.375rem;
     }
   </style>
 </head>
@@ -2957,11 +2986,16 @@
         repliesContainer.classList.remove('hidden');
         // Only load if replies list is empty (first time)
         if (!repliesList.hasChildNodes() || repliesList.innerHTML.trim() === '') {
-          loadProfileCommentReplies(commentId);
+          loadProfileCommentReplies(commentId).then(() => {
+            // After loading, show the reply box
+            replyBox.classList.remove('hidden');
+            document.getElementById(`reply-input-${commentId}`).focus();
+          });
+          return; // Exit early, will handle show after load
         }
       }
       
-      // Always show the reply box when clicking "Trả lời"
+      // Toggle the reply box
       if (replyBox.classList.contains('hidden')) {
         replyBox.classList.remove('hidden');
         document.getElementById(`reply-input-${commentId}`).focus();
@@ -3499,24 +3533,24 @@
               const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
               
               return `
-                <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+                <div class="flex gap-1 bg-gray-50 rounded-lg p-1 text-xs">
                   <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
                     ${userAvatar}
                   </a>
                   <div class="flex-1 min-w-0">
-                    <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                    <div class="bg-white rounded-lg px-1.5 py-0.5 inline-block max-w-full">
                       <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
                       ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
                       <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
                     </div>
-                    <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
-                      <span>${timeAgo}</span>
-                      <button onclick="toggleProfileNestedChildReplyLike(${reply.id})" class="hover:text-blue-600 like-nested-child-reply-btn-${reply.id}">
+                    <div class="flex gap-1.5 text-xs text-gray-500 mt-0.5 ml-0.5 flex-wrap">
+                      <span class="text-[10px]">${timeAgo}</span>
+                      <button onclick="toggleProfileNestedChildReplyLike(${reply.id})" class="hover:text-blue-600 like-nested-child-reply-btn-${reply.id} text-[10px]">
                         <i class="${isLiked} fa-thumbs-up"></i>
                         <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
                       </button>
                       ${currentUserId && currentUserId === reply.user_id ? `
-                        <button onclick="deleteProfileNestedChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                        <button onclick="deleteProfileNestedChildReply(${reply.id}, ${commentId})" class="hover:text-red-600 text-[10px]">Xóa</button>
                       ` : ''}
                     </div>
                   </div>

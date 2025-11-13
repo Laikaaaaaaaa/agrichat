@@ -3571,13 +3571,13 @@
           }
         }
         
-        // Submit as reply with parent_reply_id pointing to the child reply
+        // Submit as reply with parent_reply_id pointing to the parent reply (keep same level)
         const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             content,
-            parent_reply_id: nestedReplyId,
+            parent_reply_id: parentReplyId,
             replied_to_user_id: repliedToUserId,
             replied_to_user_name: repliedToUserName
           })
@@ -3589,12 +3589,8 @@
           input.value = '';
           document.getElementById(`nested-reply-box-${nestedReplyId}`).classList.add('hidden');
           
-          // Show nested-child-replies container and load nested-nested replies
-          const container = document.getElementById(`nested-child-replies-${nestedReplyId}`);
-          if (container) {
-            container.classList.remove('hidden');
-          }
-          loadProfileNestedChildReplies(nestedReplyId, commentId);
+          // Reload all child replies of the parent reply to show the new reply
+          loadProfileChildReplies(parentReplyId, commentId);
         } else {
           alert(data.message || 'Lỗi khi gửi trả lời');
         }

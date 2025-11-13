@@ -1018,8 +1018,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                         "visibility_km": self._safe_float(current.get("vis_km")),
                         "last_updated": current.get("last_updated"),
                         "icon": icon,
-                        "source": "weatherapi",
-                        "location_name": city_name,
+                        "source": "weatherapi-coords",
+                        "location_name": city_name,  # Vietnamese city name from Google Geocoding
                         "location_region": None,
                         "location_country": country_name,
                         "tz_id": location.get("tz_id"),
@@ -1062,8 +1062,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                     "cloud": self._safe_float(current.get("cloud_cover")),
                     "is_day": current.get("is_day"),
                     "last_updated": current.get("time"),
-                    "source": "open-meteo",
-                    "location_name": city_name,
+                    "source": "open-meteo-coords",
+                    "location_name": city_name,  # Vietnamese city name from Google Geocoding
                     "location_country": country_name,
                     "timezone": data.get("timezone")
                 }
@@ -1074,6 +1074,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             "success": False,
             "city": city_name,
             "country": country_name,
+            "location_name": city_name,  # Add location_name even for errors
+            "location_country": country_name,
             "message": "Không thể lấy dữ liệu thời tiết"
         }
 

@@ -262,28 +262,38 @@
       }
     }
 
-    /* Curved connector line for replies */
+    /* Curved connector lines for replies */
     .replies-container {
       position: relative;
-      padding-left: 0.75rem;
+      padding-left: 0;
+      margin-left: 0;
     }
 
     .replies-container::before {
       content: '';
       position: absolute;
-      left: 0;
-      top: -12px;
-      width: 12px;
-      height: 12px;
-      border: 2px solid #d1d5db;
-      border-top: none;
-      border-left: none;
-      border-radius: 0 0 0 12px;
+      left: 10px;
+      top: -20px;
+      width: 1px;
+      height: 20px;
+      background-color: #d1d5db;
     }
 
-    /* Straight connector for nested replies */
-    .replies-container .border-l-2 {
+    .replies-container::after {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      width: 12px;
+      height: 1px;
+      background-color: #d1d5db;
+    }
+
+    /* Straight connector for child replies */
+    .border-l-2.border-gray-300 {
       border-color: #d1d5db;
+      margin-left: 10px;
+      padding-left: 0.75rem;
     }
   </style>
 </head>
@@ -2727,7 +2737,7 @@
                         </div>
                         
                         <!-- Replies container with connector line from avatar -->
-                        <div id="replies-container-${comment.id}" class="hidden mt-2 relative replies-container" style="margin-left: 0.75rem;">
+                        <div id="replies-container-${comment.id}" class="hidden mt-2 relative replies-container" style="margin-left: 10px;">
                           <!-- Reply box for this comment -->
                           <div id="reply-box-${comment.id}" class="hidden mb-2 ml-2 sm:ml-4">
                             <div class="flex gap-2">
@@ -2909,7 +2919,15 @@
         return;
       }
       
+      const repliesContainer = document.getElementById(`replies-container-${commentId}`);
       const replyBox = document.getElementById(`reply-box-${commentId}`);
+      
+      // Show replies container if it's hidden
+      if (repliesContainer.classList.contains('hidden')) {
+        repliesContainer.classList.remove('hidden');
+        loadProfileCommentReplies(commentId);
+      }
+      
       replyBox.classList.toggle('hidden');
       
       if (!replyBox.classList.contains('hidden')) {
@@ -3152,7 +3170,15 @@
         return;
       }
       
+      const childRepliesContainer = document.getElementById(`child-replies-${replyId}`);
       const replyBox = document.getElementById(`reply-box-${replyId}`);
+      
+      // Show child replies container if it's hidden
+      if (childRepliesContainer && childRepliesContainer.classList.contains('hidden')) {
+        childRepliesContainer.classList.remove('hidden');
+        loadProfileChildReplies(replyId);
+      }
+      
       replyBox.classList.toggle('hidden');
       
       if (!replyBox.classList.contains('hidden')) {
@@ -3205,9 +3231,6 @@
           
           // Load child replies
           loadProfileChildReplies(parentReplyId, commentId);
-          
-          // Update parent replies list to refresh timestamps
-          loadProfileCommentReplies(commentId);
         } else {
           alert(data.message || 'Lỗi khi gửi trả lời');
         }
@@ -3398,9 +3421,6 @@
           
           // Load nested-nested replies
           loadProfileNestedChildReplies(nestedReplyId, commentId);
-          
-          // Update parent replies list
-          loadProfileCommentReplies(commentId);
         } else {
           alert(data.message || 'Lỗi khi gửi trả lời');
         }

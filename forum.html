@@ -1933,8 +1933,8 @@
         viewBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Ẩn ${repliesCount} phản hồi`;
       }
       
-      // Load replies if not loaded yet
-      if (!repliesList.hasChildNodes() || repliesList.innerHTML.trim() === '') {
+      // Load replies if not loaded yet (check if it's the loading placeholder)
+      if (!repliesList.hasChildNodes() || repliesList.innerHTML.includes('Đang tải')) {
         await loadCommentReplies(commentId);
       }
     }

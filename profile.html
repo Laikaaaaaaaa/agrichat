@@ -2852,6 +2852,7 @@
                     const profileLink = comment.username_slug || comment.user_id;
                     const timeAgo = getTimeAgo(comment.created_at);
                     const likesCount = comment.likes_count || 0;
+                    const repliesCount = comment.replies_count || 0;
                     const isLiked = comment.user_liked ? 'text-blue-600 fas' : 'far';
                     
                     return `
@@ -2873,30 +2874,38 @@
                             <button onclick="toggleProfileCommentReplyBox(${comment.id})" class="hover:text-blue-600">
                               Trả lời
                             </button>
+                            ${repliesCount > 0 ? `
+                              <button onclick="toggleViewReplies(${comment.id}, ${postId})" class="hover:text-blue-600 font-medium" id="view-replies-btn-${comment.id}">
+                                <i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi
+                              </button>
+                            ` : ''}
                             ${currentUserId && currentUserId === comment.user_id ? `
                               <button onclick="deleteProfileComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
                             ` : ''}
                           </div>
                           
-                          <!-- Reply box -->
-                          <div id="reply-box-${comment.id}" class="hidden mt-2 ml-2 sm:ml-4">
-                            <div class="flex gap-2">
-                              <input 
-                                type="text" 
-                                id="reply-input-${comment.id}"
-                                placeholder="Viết trả lời..." 
-                                spellcheck="false"
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
-                                onkeypress="if(event.key==='Enter') submitProfileCommentReply(${comment.id}, ${postId})"
-                              />
-                              <button onclick="submitProfileCommentReply(${comment.id}, ${postId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
-                                <i class="fas fa-paper-plane"></i>
-                              </button>
+                          <!-- Replies container with connector line from avatar -->
+                          <div id="replies-container-${comment.id}" class="hidden mt-2 relative replies-container">
+                            <!-- Reply box for this comment -->
+                            <div id="reply-box-${comment.id}" class="hidden mb-2 ml-2 sm:ml-4">
+                              <div class="flex gap-2">
+                                <input 
+                                  type="text" 
+                                  id="reply-input-${comment.id}"
+                                  placeholder="Viết trả lời..." 
+                                  spellcheck="false"
+                                  class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                                  onkeypress="if(event.key==='Enter') submitProfileCommentReply(${comment.id}, ${postId})"
+                                />
+                                <button onclick="submitProfileCommentReply(${comment.id}, ${postId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                                  <i class="fas fa-paper-plane"></i>
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <!-- Replies list -->
-                          <div id="replies-${comment.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2">
+                            
+                            <!-- Replies list -->
+                            <div id="replies-${comment.id}" class="space-y-2">
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -4457,6 +4466,11 @@
                         <button onclick="toggleProfileCommentReplyBox(${comment.id})" class="hover:text-blue-600">
                           Trả lời
                         </button>
+                        ${comment.replies_count > 0 ? `
+                          <button onclick="toggleViewReplies(${comment.id}, ${postId})" class="hover:text-blue-600 font-medium" id="view-replies-btn-${comment.id}">
+                            <i class="fas fa-chevron-down"></i> Xem ${comment.replies_count} phản hồi
+                          </button>
+                        ` : ''}
                         ${currentUserId && currentUserId === comment.user_id ? `
                           <button onclick="deleteProfileComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
                         ` : ''}

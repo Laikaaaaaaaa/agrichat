@@ -6492,7 +6492,7 @@ def get_photo_comments(photo_id):
             SELECT 
                 c.id, c.content, c.created_at,
                 u.id as user_id, u.name, u.email, u.avatar_url, u.username_slug,
-                (SELECT COUNT(*) FROM photo_comment_replies r WHERE r.comment_id = c.id) as replies_count,
+                0 as replies_count,
                 (SELECT COUNT(*) FROM photo_comment_likes l WHERE l.comment_id = c.id) as likes_count,
                 CASE WHEN ? IS NOT NULL THEN 
                     (SELECT COUNT(*) FROM photo_comment_likes l WHERE l.comment_id = c.id AND l.user_id = ?)

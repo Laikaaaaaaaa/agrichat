@@ -5784,7 +5784,7 @@ def delete_forum_comment(post_id, comment_id):
 
 @app.route('/api/forum/comments/<int:comment_id>/like', methods=['POST'])
 def like_forum_comment(comment_id):
-    """Like a comment"""
+    """Like a comment or reply"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Vui lòng đăng nhập'}), 401
     
@@ -5792,30 +5792,57 @@ def like_forum_comment(comment_id):
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        # Check if comment exists
-        cursor.execute('SELECT user_id FROM forum_comments WHERE id = ?', (comment_id,))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
+        # Check if this is a reply_id being passed as comment_id
+        # First check if it's a valid reply
+        cursor.execute('SELECT id FROM forum_comment_replies WHERE id = ?', (comment_id,))
+        reply_row = cursor.fetchone()
         
-        # Check if already liked
-        cursor.execute('SELECT id FROM forum_comment_likes WHERE comment_id = ? AND user_id = ?', 
-                      (comment_id, session['user_id']))
-        
-        if cursor.fetchone():
-            # Already liked, unlike it
-            cursor.execute('DELETE FROM forum_comment_likes WHERE comment_id = ? AND user_id = ?',
+        if reply_row:
+            # This is a reply, like the reply
+            # Check if already liked
+            cursor.execute('SELECT id FROM forum_reply_likes WHERE reply_id = ? AND user_id = ?', 
                           (comment_id, session['user_id']))
-            liked = False
+            
+            if cursor.fetchone():
+                # Already liked, unlike it
+                cursor.execute('DELETE FROM forum_reply_likes WHERE reply_id = ? AND user_id = ?',
+                              (comment_id, session['user_id']))
+                liked = False
+            else:
+                # Not liked, like it
+                cursor.execute('INSERT INTO forum_reply_likes (reply_id, user_id, created_at) VALUES (?, ?, datetime("now"))',
+                              (comment_id, session['user_id']))
+                liked = True
+            
+            # Get updated like count
+            cursor.execute('SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = ?', (comment_id,))
+            likes_count = cursor.fetchone()[0]
         else:
-            # Not liked, like it
-            cursor.execute('INSERT INTO forum_comment_likes (comment_id, user_id, created_at) VALUES (?, ?, datetime("now"))',
+            # This is a comment, like the comment
+            # Check if comment exists
+            cursor.execute('SELECT user_id FROM forum_comments WHERE id = ?', (comment_id,))
+            if not cursor.fetchone():
+                conn.close()
+                return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
+            
+            # Check if already liked
+            cursor.execute('SELECT id FROM forum_comment_likes WHERE comment_id = ? AND user_id = ?', 
                           (comment_id, session['user_id']))
-            liked = True
-        
-        # Get updated like count
-        cursor.execute('SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = ?', (comment_id,))
-        likes_count = cursor.fetchone()[0]
+            
+            if cursor.fetchone():
+                # Already liked, unlike it
+                cursor.execute('DELETE FROM forum_comment_likes WHERE comment_id = ? AND user_id = ?',
+                              (comment_id, session['user_id']))
+                liked = False
+            else:
+                # Not liked, like it
+                cursor.execute('INSERT INTO forum_comment_likes (comment_id, user_id, created_at) VALUES (?, ?, datetime("now"))',
+                              (comment_id, session['user_id']))
+                liked = True
+            
+            # Get updated like count
+            cursor.execute('SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = ?', (comment_id,))
+            likes_count = cursor.fetchone()[0]
         
         conn.commit()
         conn.close()
@@ -5826,7 +5853,7 @@ def like_forum_comment(comment_id):
             'likes_count': likes_count
         })
     except Exception as e:
-        logging.error(f"Error liking comment: {e}")
+        logging.error(f"Error liking comment/reply: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -5837,29 +5864,58 @@ def get_comment_replies(comment_id):
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            SELECT 
-                r.id,
-                r.user_id,
-                r.content,
-                r.created_at,
-                u.name as user_name,
-                u.email as user_email,
-                u.avatar_url as user_avatar,
-                u.username_slug as username_slug,
-                (SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = r.id) as likes_count,
-                CASE WHEN EXISTS(SELECT 1 FROM forum_comment_likes WHERE comment_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked
-            FROM forum_comment_replies r
-            LEFT JOIN users u ON r.user_id = u.id
-            WHERE r.comment_id = ?
-            ORDER BY r.created_at ASC
-        ''', (session.get('user_id', -1), comment_id))
+        # Check if replied_to_user_name column exists
+        cursor.execute("PRAGMA table_info(forum_comment_replies)")
+        columns = [col[1] for col in cursor.fetchall()]
+        has_replied_to = 'replied_to_user_name' in columns
+        
+        if has_replied_to:
+            # Query with replied_to_user_name field
+            cursor.execute('''
+                SELECT 
+                    r.id,
+                    r.user_id,
+                    r.content,
+                    r.created_at,
+                    u.name as user_name,
+                    u.email as user_email,
+                    u.avatar_url as user_avatar,
+                    u.username_slug as username_slug,
+                    (SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = r.id) as likes_count,
+                    CASE WHEN EXISTS(SELECT 1 FROM forum_comment_likes WHERE comment_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
+                    r.replied_to_user_name
+                FROM forum_comment_replies r
+                LEFT JOIN users u ON r.user_id = u.id
+                WHERE r.comment_id = ?
+                ORDER BY r.created_at ASC
+            ''', (session.get('user_id', -1), comment_id))
+        else:
+            # Query without replied_to_user_name field (fallback for older DB)
+            cursor.execute('''
+                SELECT 
+                    r.id,
+                    r.user_id,
+                    r.content,
+                    r.created_at,
+                    u.name as user_name,
+                    u.email as user_email,
+                    u.avatar_url as user_avatar,
+                    u.username_slug as username_slug,
+                    (SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = r.id) as likes_count,
+                    CASE WHEN EXISTS(SELECT 1 FROM forum_comment_likes WHERE comment_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked
+                FROM forum_comment_replies r
+                LEFT JOIN users u ON r.user_id = u.id
+                WHERE r.comment_id = ?
+                ORDER BY r.created_at ASC
+            ''', (session.get('user_id', -1), comment_id))
         
         replies = []
         for row in cursor.fetchall():
             created_at = row[3]
             if created_at and len(created_at) == 19:
                 created_at = f"{created_at}Z"
+            
+            replied_to_user_name = row[10] if has_replied_to and len(row) > 10 else None
             
             replies.append({
                 'id': row[0],
@@ -5871,7 +5927,8 @@ def get_comment_replies(comment_id):
                 'user_avatar': row[6],
                 'username_slug': row[7],
                 'likes_count': row[8],
-                'user_liked': bool(row[9])
+                'user_liked': bool(row[9]),
+                'replied_to_user_name': replied_to_user_name
             })
         
         conn.close()
@@ -5891,6 +5948,8 @@ def create_comment_reply(comment_id):
     try:
         data = request.get_json()
         content = data.get('content', '').strip()
+        replied_to_user_id = data.get('replied_to_user_id')  # Optional: the user being replied to
+        replied_to_user_name = data.get('replied_to_user_name')  # Optional: name of user being replied to
         
         if not content:
             return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
@@ -5905,10 +5964,30 @@ def create_comment_reply(comment_id):
             conn.close()
             return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
         
-        cursor.execute('''
-            INSERT INTO forum_comment_replies (comment_id, user_id, content, created_at)
-            VALUES (?, ?, ?, datetime("now"))
-        ''', (comment_id, session['user_id'], content))
+        # If replied_to_user_id not provided, use the comment author
+        if not replied_to_user_id:
+            replied_to_user_id = comment[0]
+        
+        # Get the name of the user being replied to if not provided
+        if replied_to_user_id and not replied_to_user_name:
+            cursor.execute('SELECT name FROM users WHERE id = ?', (replied_to_user_id,))
+            user_row = cursor.fetchone()
+            if user_row:
+                replied_to_user_name = user_row[0]
+        
+        # Check if table has replied_to_user_id column, if not just insert normally
+        try:
+            cursor.execute('''
+                INSERT INTO forum_comment_replies (comment_id, user_id, content, replied_to_user_id, replied_to_user_name, created_at)
+                VALUES (?, ?, ?, ?, ?, datetime("now"))
+            ''', (comment_id, session['user_id'], content, replied_to_user_id, replied_to_user_name))
+        except Exception as e:
+            # If column doesn't exist, fall back to simple insert
+            logging.warning(f"Could not insert replied_to fields: {e}. Using basic insert.")
+            cursor.execute('''
+                INSERT INTO forum_comment_replies (comment_id, user_id, content, created_at)
+                VALUES (?, ?, ?, datetime("now"))
+            ''', (comment_id, session['user_id'], content))
         
         reply_id = cursor.lastrowid
         

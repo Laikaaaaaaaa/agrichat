@@ -2887,7 +2887,7 @@
       }
     }
     
-    // Submit profile comment reply
+    // Submit profile comment reply with mentioned user tracking
     async function submitProfileCommentReply(commentId, postId) {
       const input = document.getElementById(`reply-input-${commentId}`);
       const content = input.value.trim();
@@ -2895,10 +2895,33 @@
       if (!content) return;
       
       try {
+        // Get the parent comment's user ID (the person being replied to)
+        const parentCommentEl = document.getElementById(`comment-${commentId}`);
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        if (parentCommentEl) {
+          // Extract user ID from the profile link in the parent comment
+          const profileLink = parentCommentEl.querySelector('a[href^="/profile"]');
+          if (profileLink) {
+            const href = profileLink.getAttribute('href');
+            repliedToUserName = parentCommentEl.querySelector('.font-semibold')?.textContent;
+            // Try to extract user ID from href
+            const match = href.match(/\/profile\/(\d+)/);
+            if (match) {
+              repliedToUserId = parseInt(match[1]);
+            }
+          }
+        }
+        
         const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content })
+          body: JSON.stringify({ 
+            content,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
         });
         
         const data = await response.json();
@@ -2915,8 +2938,8 @@
       }
     }
     
-    // Load profile comment replies
-    async function loadProfileCommentReplies(commentId) {
+    // Load profile comment replies with pagination
+    async function loadProfileCommentReplies(commentId, loadMore = false) {
       try {
         const response = await fetch(`/api/forum/comments/${commentId}/replies`);
         const data = await response.json();
@@ -2928,7 +2951,31 @@
             repliesList.innerHTML = '<p class="text-gray-500 text-xs">Chưa có trả lời</p>';
             repliesList.classList.add('hidden');
           } else {
-            repliesList.innerHTML = data.replies.map(reply => createProfileReplyHTML(reply, commentId)).join('');
+            // Show maximum 10 replies initially
+            const MAX_REPLIES = 10;
+            const allReplies = data.replies;
+            const displayedReplies = allReplies.slice(0, MAX_REPLIES);
+            const hasMore = allReplies.length > MAX_REPLIES;
+            
+            // Get parent comment's user name (from first reply or passed down)
+            const parentComment = document.getElementById(`comment-${commentId}`);
+            const parentUserName = parentComment ? parentComment.querySelector('.font-semibold')?.textContent : null;
+            
+            let repliesHTML = displayedReplies.map(reply => createProfileReplyHTML(reply, commentId, parentUserName)).join('');
+            
+            // Add "View more" button if needed
+            if (hasMore) {
+              const moreCount = allReplies.length - MAX_REPLIES;
+              repliesHTML += `
+                <div class="flex justify-center mt-2">
+                  <button onclick="toggleMoreReplies(${commentId}, ${allReplies.length})" class="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium">
+                    Xem thêm ${moreCount} phản hồi
+                  </button>
+                </div>
+              `;
+            }
+            
+            repliesList.innerHTML = repliesHTML;
             repliesList.classList.remove('hidden');
           }
         }
@@ -2937,8 +2984,28 @@
       }
     }
     
+    // Toggle show more replies
+    async function toggleMoreReplies(commentId, totalReplies) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const repliesList = document.getElementById(`replies-${commentId}`);
+          const parentComment = document.getElementById(`comment-${commentId}`);
+          const parentUserName = parentComment ? parentComment.querySelector('.font-semibold')?.textContent : null;
+          
+          let repliesHTML = data.replies.map(reply => createProfileReplyHTML(reply, commentId, parentUserName)).join('');
+          repliesList.innerHTML = repliesHTML;
+          repliesList.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error loading more replies:', error);
+      }
+    }
+    
     // Create profile reply HTML
-    function createProfileReplyHTML(reply, commentId) {
+    function createProfileReplyHTML(reply, commentId, parentCommentUserName = null) {
       const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
       const userAvatar = reply.user_avatar
         ? `<img src="${reply.user_avatar}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover" />`
@@ -2949,6 +3016,9 @@
       const likesCount = reply.likes_count || 0;
       const isLiked = reply.user_liked ? 'text-red-600 fas' : 'far';
       
+      // Determine if this reply is a response to another user
+      const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+      
       return `
         <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
           <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
@@ -2957,9 +3027,10 @@
           <div class="flex-1 min-w-0">
             <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
               <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline">${escapeHtml(userName)}</a>
+              ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
               <p class="text-gray-700 break-words">${escapeHtml(reply.content)}</p>
             </div>
-            <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1">
+            <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
               <span>${timeAgo}</span>
               <button onclick="toggleProfileReplyLike(${reply.id})" class="hover:text-red-600 like-reply-btn-${reply.id}">
                 <i class="${isLiked} fa-heart"></i>

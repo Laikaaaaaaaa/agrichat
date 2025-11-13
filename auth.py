@@ -122,8 +122,23 @@ def init_db():
             comment_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             content TEXT NOT NULL,
+            replied_to_user_id INTEGER,
+            replied_to_user_name TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (comment_id) REFERENCES forum_comments (id),
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Forum reply likes table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forum_reply_likes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reply_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(reply_id, user_id),
+            FOREIGN KEY (reply_id) REFERENCES forum_comment_replies (id),
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')

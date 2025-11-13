@@ -1798,7 +1798,7 @@
       }
     }
     
-    // Submit comment reply
+    // Submit comment reply with mentioned user tracking
     async function submitCommentReply(commentId, postId) {
       const input = document.getElementById(`reply-input-${commentId}`);
       const content = input.value.trim();
@@ -1806,10 +1806,38 @@
       if (!content) return;
       
       try {
+        // Get the parent comment's user ID (the person being replied to)
+        const parentCommentEl = document.getElementById(`comment-${commentId}`);
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        if (parentCommentEl) {
+          // Extract user name from the parent comment
+          repliedToUserName = parentCommentEl.querySelector('.font-semibold')?.textContent;
+          // Extract user ID from profile link
+          const profileLink = parentCommentEl.querySelector('a[href^="/profile"]');
+          if (profileLink) {
+            const href = profileLink.getAttribute('href');
+            const match = href.match(/\/profile\/(.+?)(?:$|\/)/);
+            if (match) {
+              const idPart = match[1];
+              // Try to extract numeric ID if available
+              const numMatch = idPart.match(/(\d+)/);
+              if (numMatch) {
+                repliedToUserId = parseInt(numMatch[1]);
+              }
+            }
+          }
+        }
+        
         const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content })
+          body: JSON.stringify({ 
+            content,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
         });
         
         const data = await response.json();
@@ -1826,8 +1854,8 @@
       }
     }
     
-    // Load comment replies
-    async function loadCommentReplies(commentId) {
+    // Load comment replies with pagination
+    async function loadCommentReplies(commentId, loadMore = false) {
       try {
         const response = await fetch(`/api/forum/comments/${commentId}/replies`);
         const data = await response.json();
@@ -1839,12 +1867,49 @@
             repliesList.innerHTML = '<p class="text-gray-500 text-xs">Chưa có trả lời</p>';
             repliesList.classList.add('hidden');
           } else {
-            repliesList.innerHTML = data.replies.map(reply => createReplyHTML(reply, commentId)).join('');
+            // Show maximum 10 replies initially
+            const MAX_REPLIES = 10;
+            const allReplies = data.replies;
+            const displayedReplies = allReplies.slice(0, MAX_REPLIES);
+            const hasMore = allReplies.length > MAX_REPLIES;
+            
+            let repliesHTML = displayedReplies.map(reply => createReplyHTML(reply, commentId)).join('');
+            
+            // Add "View more" button if needed
+            if (hasMore) {
+              const moreCount = allReplies.length - MAX_REPLIES;
+              repliesHTML += `
+                <div class="flex justify-center mt-2">
+                  <button onclick="toggleMoreReplies(${commentId}, ${allReplies.length})" class="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium">
+                    Xem thêm ${moreCount} phản hồi
+                  </button>
+                </div>
+              `;
+            }
+            
+            repliesList.innerHTML = repliesHTML;
             repliesList.classList.remove('hidden');
           }
         }
       } catch (error) {
         console.error('Error loading replies:', error);
+      }
+    }
+    
+    // Toggle show more replies
+    async function toggleMoreReplies(commentId, totalReplies) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const repliesList = document.getElementById(`replies-${commentId}`);
+          let repliesHTML = data.replies.map(reply => createReplyHTML(reply, commentId)).join('');
+          repliesList.innerHTML = repliesHTML;
+          repliesList.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error loading more replies:', error);
       }
     }
     
@@ -1860,6 +1925,9 @@
       const likesCount = reply.likes_count || 0;
       const isLiked = reply.user_liked ? 'text-red-600 fas' : 'far';
       
+      // Show info if this reply is a response to another user
+      const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+      
       return `
         <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
           <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
@@ -1868,9 +1936,10 @@
           <div class="flex-1 min-w-0">
             <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
               <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline">${escapeHtml(userName)}</a>
+              ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
               <p class="text-gray-700 break-words">${escapeHtml(reply.content)}</p>
             </div>
-            <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1">
+            <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
               <span>${timeAgo}</span>
               <button onclick="toggleReplyLike(${reply.id})" class="hover:text-red-600 like-reply-btn-${reply.id}">
                 <i class="${isLiked} fa-heart"></i>

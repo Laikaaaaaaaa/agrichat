@@ -2720,13 +2720,9 @@
                         </div>
                         
                         <!-- Replies list with connector line -->
-                        <div id="replies-container-${comment.id}" class="relative hidden mt-2">
-                          <!-- Connector line from parent avatar -->
-                          <svg id="connector-svg-${comment.id}" class="absolute left-3 sm:left-4 top-0 pointer-events-none" style="width: 2px; height: 100%;">
-                            <line x1="1" y1="0" x2="1" y2="100%" stroke="#e5e7eb" stroke-width="2"/>
-                          </svg>
+                        <div id="replies-container-${comment.id}" class="relative hidden mt-2 ml-2 sm:ml-4 border-l-2 border-gray-300 pl-2 sm:pl-4">
                           <!-- Replies list -->
-                          <div id="replies-${comment.id}" class="ml-2 sm:ml-4 space-y-2">
+                          <div id="replies-${comment.id}" class="space-y-2">
                           </div>
                         </div>
                       </div>
@@ -3080,11 +3076,7 @@
             </div>
           </div>
           <!-- Container for child replies -->
-          <div id="child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2 relative">
-            <!-- Connector line from this reply to child replies -->
-            <svg class="absolute left-2 sm:left-3 top-0 pointer-events-none" style="width: 2px; height: 100%;">
-              <line x1="1" y1="0" x2="1" y2="100%" stroke="#e5e7eb" stroke-width="2"/>
-            </svg>
+          <div id="child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-4">
             <div id="child-replies-list-${reply.id}"></div>
           </div>
         </div>

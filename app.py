@@ -6486,15 +6486,22 @@ def get_photo_comments(photo_id):
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
+        user_id = session.get('user_id')
+        
         cursor.execute('''
             SELECT 
                 c.id, c.content, c.created_at,
-                u.id as user_id, u.name, u.email, u.avatar_url
+                u.id as user_id, u.name, u.email, u.avatar_url, u.username_slug,
+                (SELECT COUNT(*) FROM photo_comment_replies r WHERE r.comment_id = c.id) as replies_count,
+                (SELECT COUNT(*) FROM photo_comment_likes l WHERE l.comment_id = c.id) as likes_count,
+                CASE WHEN ? IS NOT NULL THEN 
+                    (SELECT COUNT(*) FROM photo_comment_likes l WHERE l.comment_id = c.id AND l.user_id = ?)
+                ELSE 0 END as user_liked
             FROM photo_comments c
             JOIN users u ON c.user_id = u.id
             WHERE c.photo_id = ?
             ORDER BY c.created_at ASC
-        ''', (photo_id,))
+        ''', (user_id, user_id, photo_id,))
         
         comments = []
         for row in cursor.fetchall():
@@ -6505,7 +6512,11 @@ def get_photo_comments(photo_id):
                 'user_id': row[3],
                 'user_name': row[4],
                 'user_email': row[5],
-                'user_avatar': row[6]
+                'user_avatar': row[6],
+                'username_slug': row[7],
+                'replies_count': row[8],
+                'likes_count': row[9],
+                'user_liked': row[10] > 0
             })
         
         conn.close()

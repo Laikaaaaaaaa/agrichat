@@ -394,10 +394,21 @@
       saveConversations() {
         // ✅ Kiểm tra xem user đã đăng nhập chưa
         const isAuthenticated = this.isUserAuthenticated();
+        console.log('🔐 Checking authentication:', isAuthenticated);
+        console.log('   localStorage agrisense_user_logged_in:', localStorage.getItem('agrisense_user_logged_in'));
         if (!isAuthenticated) {
           console.warn('⚠️ User chưa đăng nhập, không lưu lịch sử');
           return;
         }
+        
+        // ✅ LỌC BỎ CONVERSATIONS KHÔNG CÓ TIN NHẮN
+        this.conversations = this.conversations.filter(conv => {
+          const hasMessages = conv.messages && conv.messages.length > 0;
+          if (!hasMessages) {
+            console.log('🗑️ Xóa conversation rỗng:', conv.id);
+          }
+          return hasMessages;
+        });
         
         // ✅ GIỚI HẠN: Chỉ giữ 20 conversation gần nhất
         if (this.conversations.length > 20) {

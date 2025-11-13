@@ -262,73 +262,67 @@
       }
     }
 
-    /* Facebook-style curved connector lines for replies */
+    /* Facebook-style connector lines */
     .replies-container {
       position: relative;
-      padding-left: 2rem;
-      margin-left: 0;
+      margin-left: 2rem;
     }
 
-    /* Main vertical line from parent avatar */
+    /* Vertical line from parent comment avatar down through all replies */
     .replies-container::before {
       content: '';
       position: absolute;
-      left: 16px;
-      top: -32px;
-      bottom: 0;
+      left: -16px;
+      top: -24px;
+      bottom: 12px;
       width: 2px;
-      background-color: #d1d5db;
+      background-color: #cbd5e0;
     }
 
-    /* Horizontal curves connecting to each reply */
-    .replies-container > .border-l-2 > div[id^="reply-"] {
+    /* Individual reply horizontal connector */
+    .replies-container > div > div[id^="reply-"] {
       position: relative;
+      margin-left: 0;
     }
 
-    .replies-container > .border-l-2 > div[id^="reply-"]::before {
+    .replies-container > div > div[id^="reply-"]::before {
       content: '';
       position: absolute;
-      left: -30px;
-      top: 16px;
-      width: 28px;
+      left: -16px;
+      top: 20px;
+      width: 14px;
       height: 2px;
-      background-color: #d1d5db;
-      border-radius: 0 2px 2px 0;
+      background-color: #cbd5e0;
     }
 
-    /* Curved connector for nested replies */
+    /* Nested replies (child) connector */
     div[id^="child-replies-"] {
       position: relative;
-      margin-left: 16px;
-      padding-left: 1rem;
+      margin-left: 1.5rem;
     }
 
     div[id^="child-replies-"]::before {
       content: '';
       position: absolute;
-      left: 0;
-      top: -8px;
+      left: -12px;
+      top: 0;
       bottom: 0;
       width: 2px;
-      background-color: #d1d5db;
+      background-color: #cbd5e0;
     }
 
-    div[id^="child-replies-"] > div > div[id^="nested-reply-"]::before {
+    div[id^="nested-reply-"] {
+      position: relative;
+    }
+
+    div[id^="nested-reply-"]::before {
       content: '';
       position: absolute;
-      left: -18px;
-      top: 12px;
-      width: 16px;
+      left: -12px;
+      top: 16px;
+      width: 10px;
       height: 2px;
-      background-color: #d1d5db;
-      border-radius: 0 2px 2px 0;
-    }
-
-    /* Remove default border styling */
-    .border-l-2.border-gray-300 {
-      border-color: transparent;
-      padding-left: 0;
-      margin-left: 0;
+      background-color: #cbd5e0;
     }
   </style>
 </head>
@@ -2956,21 +2950,23 @@
       
       const repliesContainer = document.getElementById(`replies-container-${commentId}`);
       const replyBox = document.getElementById(`reply-box-${commentId}`);
+      const repliesList = document.getElementById(`replies-${commentId}`);
       
-      // Show replies container if it's hidden AND hasn't been loaded yet
+      // Show replies container if it's hidden
       if (repliesContainer.classList.contains('hidden')) {
         repliesContainer.classList.remove('hidden');
         // Only load if replies list is empty (first time)
-        const repliesList = document.getElementById(`replies-${commentId}`);
         if (!repliesList.hasChildNodes() || repliesList.innerHTML.trim() === '') {
           loadProfileCommentReplies(commentId);
         }
       }
       
-      replyBox.classList.toggle('hidden');
-      
-      if (!replyBox.classList.contains('hidden')) {
+      // Always show the reply box when clicking "Trả lời"
+      if (replyBox.classList.contains('hidden')) {
+        replyBox.classList.remove('hidden');
         document.getElementById(`reply-input-${commentId}`).focus();
+      } else {
+        replyBox.classList.add('hidden');
       }
     }
     

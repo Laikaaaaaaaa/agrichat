@@ -5258,7 +5258,10 @@ def get_forum_posts():
                 u.avatar_url as user_avatar,
                 u.username_slug,
                 (SELECT COUNT(*) FROM forum_likes WHERE post_id = p.id) as likes_count,
-                (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) as comments_count,
+                (SELECT COUNT(*) FROM forum_comments WHERE post_id = p.id) + 
+                (SELECT COUNT(*) FROM forum_comment_replies r 
+                 INNER JOIN forum_comments c ON r.comment_id = c.id 
+                 WHERE c.post_id = p.id) as comments_count,
                 p.poll_data
             FROM forum_posts p
             LEFT JOIN users u ON p.user_id = u.id

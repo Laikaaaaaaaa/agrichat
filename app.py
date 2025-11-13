@@ -945,6 +945,138 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             }
         }
 
+    def get_weather_info_by_coords(self, lat, lon, city_name, country_name):
+        """Get weather info using precise coordinates from geolocation"""
+        logging.info(f"🌦️ get_weather_info_by_coords: lat={lat}, lon={lon}, city={city_name}")
+        
+        weather_code_descriptions = {
+            0: "Trời quang đãng",
+            1: "Trời quang mây",
+            2: "Có mây thưa",
+            3: "Nhiều mây",
+            45: "Sương mù",
+            48: "Sương mù đóng băng",
+            51: "Mưa phùn nhẹ",
+            53: "Mưa phùn",
+            55: "Mưa phùn dày đặc",
+            61: "Mưa nhẹ",
+            63: "Mưa vừa",
+            65: "Mưa to",
+            71: "Tuyết nhẹ",
+            73: "Tuyết vừa",
+            75: "Tuyết to",
+            80: "Mưa rào nhẹ",
+            81: "Mưa rào",
+            82: "Mưa rào mạnh",
+            95: "Dông",
+            96: "Dông kèm mưa đá nhẹ",
+            99: "Dông kèm mưa đá lớn"
+        }
+        
+        # Try WeatherAPI first
+        try:
+            if self.weatherapi_key:
+                params = {
+                    "key": self.weatherapi_key,
+                    "q": f"{lat},{lon}",
+                    "aqi": "no",
+                    "lang": "vi"
+                }
+                resp = requests.get(
+                    "https://api.weatherapi.com/v1/current.json",
+                    params=params,
+                    timeout=6
+                )
+                if resp.ok:
+                    data = resp.json()
+                    current = data.get("current", {})
+                    location = data.get("location", {})
+                    condition_data = current.get("condition", {})
+                    condition = condition_data.get("text", "Không xác định")
+                    icon = condition_data.get("icon")
+                    if icon and icon.startswith("//"):
+                        icon = f"https:{icon}"
+                    
+                    return {
+                        "success": True,
+                        "city": city_name,
+                        "country": country_name,
+                        "condition": condition,
+                        "temp": self._safe_float(current.get("temp_c")),
+                        "humidity": self._safe_float(current.get("humidity")),
+                        "feels_like": self._safe_float(current.get("feelslike_c")),
+                        "wind_kph": self._safe_float(current.get("wind_kph")),
+                        "wind_dir": current.get("wind_dir"),
+                        "wind_dir_vi": self._wind_direction_vi_from_compass(current.get("wind_dir")),
+                        "wind_degree": self._safe_float(current.get("wind_degree")),
+                        "precip_mm": self._safe_float(current.get("precip_mm")),
+                        "cloud": self._safe_float(current.get("cloud")),
+                        "is_day": current.get("is_day"),
+                        "uv": self._safe_float(current.get("uv")),
+                        "pressure_mb": self._safe_float(current.get("pressure_mb")),
+                        "gust_kph": self._safe_float(current.get("gust_kph")),
+                        "visibility_km": self._safe_float(current.get("vis_km")),
+                        "last_updated": current.get("last_updated"),
+                        "icon": icon,
+                        "source": "weatherapi",
+                        "location_name": city_name,
+                        "location_region": None,
+                        "location_country": country_name,
+                        "tz_id": location.get("tz_id"),
+                        "timezone": location.get("tz_id")
+                    }
+        except Exception as e:
+            logging.warning(f"⚠️ WeatherAPI failed: {e}")
+        
+        # Fall back to Open-Meteo
+        try:
+            params = {
+                "latitude": lat,
+                "longitude": lon,
+                "current": "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,is_day,cloud_cover,wind_speed_10m,wind_direction_10m",
+                "timezone": "auto"
+            }
+            resp = requests.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params=params,
+                timeout=6
+            )
+            if resp.ok:
+                data = resp.json()
+                current = data.get("current", {})
+                code = current.get("weather_code")
+                condition = weather_code_descriptions.get(code, "Thời tiết không xác định")
+                
+                return {
+                    "success": True,
+                    "city": city_name,
+                    "country": country_name,
+                    "condition": condition,
+                    "temp": self._safe_float(current.get("temperature_2m")),
+                    "humidity": self._safe_float(current.get("relative_humidity_2m")),
+                    "feels_like": self._safe_float(current.get("apparent_temperature")),
+                    "wind_kph": self._safe_float(current.get("wind_speed_10m")),
+                    "wind_degree": self._safe_float(current.get("wind_direction_10m")),
+                    "wind_dir_vi": self._wind_direction_from_degree(self._safe_float(current.get("wind_direction_10m"))),
+                    "precip_mm": self._safe_float(current.get("precipitation")),
+                    "cloud": self._safe_float(current.get("cloud_cover")),
+                    "is_day": current.get("is_day"),
+                    "last_updated": current.get("time"),
+                    "source": "open-meteo",
+                    "location_name": city_name,
+                    "location_country": country_name,
+                    "timezone": data.get("timezone")
+                }
+        except Exception as e:
+            logging.error(f"❌ Open-Meteo failed: {e}")
+        
+        return {
+            "success": False,
+            "city": city_name,
+            "country": country_name,
+            "message": "Không thể lấy dữ liệu thời tiết"
+        }
+
     def initialize_gemini_model(self):
         """Khởi tạo Gemini model với phiên bản mới nhất"""
         try:
@@ -5208,12 +5340,77 @@ def chat():
 
 @app.route('/api/weather', methods=['GET'])
 def weather():
-    """API endpoint for weather - Gets real user location from IP"""
+    """API endpoint for weather - Supports both IP-based and precise lat/lon"""
     try:
-        # Get real client IP (handles proxies, load balancers, Heroku)
+        # Check if precise lat/lon provided from geolocation
+        lat_param = request.args.get('lat')
+        lon_param = request.args.get('lon')
+        
+        if lat_param and lon_param:
+            # User provided precise location via geolocation
+            try:
+                lat = float(lat_param)
+                lon = float(lon_param)
+                logging.info(f"📍 Precise geolocation provided: lat={lat}, lon={lon}")
+                
+                # Use Nominatim to get city name from coordinates (reverse geocoding)
+                try:
+                    geocode_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=10&addressdetails=1"
+                    geocode_resp = requests.get(
+                        geocode_url,
+                        headers={'User-Agent': 'AgriSense-Weather/1.0'},
+                        timeout=5
+                    )
+                    if geocode_resp.ok:
+                        geo_data = geocode_resp.json()
+                        address = geo_data.get('address', {})
+                        
+                        # Get detailed location info with Vietnamese names
+                        city = (address.get('city') or 
+                               address.get('town') or 
+                               address.get('village') or
+                               address.get('municipality') or
+                               address.get('district') or
+                               address.get('county') or
+                               geo_data.get('name') or
+                               'Vị trí của bạn')
+                        
+                        # Get province/state (tỉnh/thành phố level)
+                        province = (address.get('province') or 
+                                   address.get('state') or 
+                                   address.get('region'))
+                        
+                        country = address.get('country', 'Vietnam')
+                        
+                        # If we have both city and province, use format: "City, Province"
+                        if province and city != province:
+                            location_display = f"{city}, {province}"
+                        else:
+                            location_display = city
+                        
+                        logging.info(f"✅ Reverse geocoded: {location_display}, {country}")
+                        
+                        weather_data = api.get_weather_info_by_coords(lat, lon, location_display, country)
+                        return jsonify(weather_data)
+                    else:
+                        logging.warning("⚠️ Nominatim reverse geocoding failed")
+                        # Fall back to coordinates-only
+                        weather_data = api.get_weather_info_by_coords(lat, lon, f"Vị trí ({lat:.2f}, {lon:.2f})", "Vietnam")
+                        return jsonify(weather_data)
+                        
+                except Exception as geo_error:
+                    logging.error(f"❌ Reverse geocoding error: {geo_error}")
+                    # Fall back to coordinates-only
+                    weather_data = api.get_weather_info_by_coords(lat, lon, f"Vị trí ({lat:.2f}, {lon:.2f})", "Vietnam")
+                    return jsonify(weather_data)
+                    
+            except ValueError:
+                logging.error(f"❌ Invalid lat/lon parameters: lat={lat_param}, lon={lon_param}")
+                return jsonify({"error": "Invalid latitude or longitude"}), 400
+        
+        # Fall back to IP-based location
         client_ip = None
         if request.headers.get('X-Forwarded-For'):
-            # Get first IP from X-Forwarded-For chain (real client IP)
             client_ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
         elif request.headers.get('X-Real-IP'):
             client_ip = request.headers.get('X-Real-IP').strip()

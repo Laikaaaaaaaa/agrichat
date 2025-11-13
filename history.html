@@ -1025,6 +1025,25 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+        // 🔐 CHECK AUTHENTICATION FIRST - redirect if not logged in
+        console.log('🔐 Checking authentication before loading history...');
+        try {
+            const response = await fetch('/api/auth/profile');
+            const data = await response.json();
+            
+            if (!data.success || !data.user) {
+                console.warn('⚠️ User not authenticated, redirecting to login...');
+                window.location.href = '/login';
+                return;  // Stop execution
+            }
+            
+            console.log('✅ User authenticated:', data.user.username);
+        } catch (error) {
+            console.error('❌ Authentication check failed:', error);
+            window.location.href = '/login';
+            return;
+        }
+        
         // Load chat history normally on first page load
         console.log('🔄 Loading chat history...');
         window.chatHistoryManager = new ChatHistoryManager();

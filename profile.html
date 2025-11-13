@@ -1627,6 +1627,13 @@
     // Logout
     function logoutUser() {
       if (confirm('Bạn có chắc muốn đăng xuất?')) {
+        // 🗑️ Clear all chat history and authentication data from localStorage
+        console.log('🗑️ Clearing localStorage on logout...');
+        localStorage.removeItem('agrisense_chat_history');
+        localStorage.removeItem('agrisense_current_session');
+        localStorage.removeItem('agrisense_user_logged_in');
+        console.log('✅ localStorage cleared');
+        
         window.location.href = '/logout';
       }
     }

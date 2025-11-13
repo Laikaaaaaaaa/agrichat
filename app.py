@@ -5864,6 +5864,10 @@ def like_forum_comment(comment_id):
 def get_comment_replies(comment_id):
     """Get replies for a comment"""
     try:
+        # Get optional limit parameter, default to 100 (show all)
+        limit = request.args.get('limit', 100, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
         conn = auth.get_db_connection()
         cursor = conn.cursor()
         
@@ -5892,7 +5896,8 @@ def get_comment_replies(comment_id):
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.comment_id = ? AND r.parent_reply_id IS NULL
                 ORDER BY r.created_at ASC
-            ''', (session.get('user_id', -1), comment_id))
+                LIMIT ? OFFSET ?
+            ''', (session.get('user_id', -1), comment_id, limit, offset))
         else:
             # Query without replied_to_user_name field (fallback for older DB)
             cursor.execute('''
@@ -5912,7 +5917,8 @@ def get_comment_replies(comment_id):
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.comment_id = ? AND r.parent_reply_id IS NULL
                 ORDER BY r.created_at ASC
-            ''', (session.get('user_id', -1), comment_id))
+                LIMIT ? OFFSET ?
+            ''', (session.get('user_id', -1), comment_id, limit, offset))
         
         replies = []
         for row in cursor.fetchall():

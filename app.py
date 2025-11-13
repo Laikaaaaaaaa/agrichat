@@ -5886,10 +5886,11 @@ def get_comment_replies(comment_id):
                     u.username_slug as username_slug,
                     (SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = r.id) as likes_count,
                     CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
-                    r.replied_to_user_name
+                    r.replied_to_user_name,
+                    r.parent_reply_id
                 FROM forum_comment_replies r
                 LEFT JOIN users u ON r.user_id = u.id
-                WHERE r.comment_id = ?
+                WHERE r.comment_id = ? AND r.parent_reply_id IS NULL
                 ORDER BY r.created_at ASC
             ''', (session.get('user_id', -1), comment_id))
         else:
@@ -5905,10 +5906,11 @@ def get_comment_replies(comment_id):
                     u.avatar_url as user_avatar,
                     u.username_slug as username_slug,
                     (SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = r.id) as likes_count,
-                    CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked
+                    CASE WHEN EXISTS(SELECT 1 FROM forum_reply_likes WHERE reply_id = r.id AND user_id = ?) THEN 1 ELSE 0 END as user_liked,
+                    r.parent_reply_id
                 FROM forum_comment_replies r
                 LEFT JOIN users u ON r.user_id = u.id
-                WHERE r.comment_id = ?
+                WHERE r.comment_id = ? AND r.parent_reply_id IS NULL
                 ORDER BY r.created_at ASC
             ''', (session.get('user_id', -1), comment_id))
         
@@ -5919,6 +5921,7 @@ def get_comment_replies(comment_id):
                 created_at = f"{created_at}Z"
             
             replied_to_user_name = row[10] if has_replied_to and len(row) > 10 else None
+            parent_reply_id = row[11] if has_replied_to and len(row) > 11 else (row[10] if not has_replied_to and len(row) > 10 else None)
             
             replies.append({
                 'id': row[0],
@@ -5931,7 +5934,8 @@ def get_comment_replies(comment_id):
                 'username_slug': row[7],
                 'likes_count': row[8],
                 'user_liked': bool(row[9]),
-                'replied_to_user_name': replied_to_user_name
+                'replied_to_user_name': replied_to_user_name,
+                'parent_reply_id': parent_reply_id
             })
         
         conn.close()

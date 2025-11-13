@@ -218,6 +218,8 @@
           const data = await response.json();
           
           if (data.success) {
+            // ✅ Set login flag BEFORE redirect (so index.html can migrate temp session)
+            localStorage.setItem('agrisense_user_logged_in', 'true');
             showAlert('Đăng nhập thành công! Đang chuyển hướng...', 'success');
             setTimeout(() => {
               window.location.href = '/';

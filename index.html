@@ -372,8 +372,20 @@
       }
 
       loadConversations() {
-        const stored = localStorage.getItem('agrisense_chat_history');
-        this.conversations = stored ? JSON.parse(stored) : [];
+        // ✅ Chỉ load permanent history nếu đã login
+        const isAuthenticated = this.isUserAuthenticated();
+        console.log('📥 loadConversations: isAuthenticated =', isAuthenticated);
+        
+        if (isAuthenticated) {
+          // ✅ Đã login: Load permanent history
+          const stored = localStorage.getItem('agrisense_chat_history');
+          this.conversations = stored ? JSON.parse(stored) : [];
+          console.log('✅ Loaded', this.conversations.length, 'permanent conversations (user is logged in)');
+        } else {
+          // ✅ Chưa login: Không load history, sẽ khôi phục từ session sau
+          this.conversations = [];
+          console.log('⏭️ Skipped loading permanent history (user not logged in)');
+        }
       }
 
       // 💾 Lưu session chat hiện tại (không cần auth, giữ lại khi reload)
@@ -504,6 +516,9 @@
 
       // Khôi phục cuộc hội thoại đang dở khi quay lại trang (TRONG CÙNG PHIÊN)
       restoreCurrentConversation() {
+        const isAuthenticated = this.isUserAuthenticated();
+        console.log('🔄 restoreCurrentConversation: isAuthenticated =', isAuthenticated);
+        
         const currentId = sessionStorage.getItem('agrisense_current_conversation_id');
         if (currentId && this.conversations.length > 0) {
           // Tìm cuộc hội thoại trong danh sách
@@ -524,27 +539,32 @@
           }
         }
         
-        // ✅ Nếu không tìm thấy trong history, restore từ session localStorage
-        const sessionData = localStorage.getItem('agrisense_current_session');
-        if (sessionData) {
-          try {
-            this.currentConversation = JSON.parse(sessionData);
-            console.log('📱 Restored current session conversation (không có auth):', this.currentConversation.id);
-            
-            // Lưu ID vào sessionStorage để track
-            sessionStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
-            
-            // Cập nhật URL
-            this.updateURL(this.currentConversation.id);
-            
-            // Khôi phục tin nhắn lên chat box
-            setTimeout(() => {
-              this.restoreMessagesToUI();
-            }, 500);
-            return true;
-          } catch (e) {
-            console.error('❌ Lỗi restore session:', e);
+        // ✅ Chỉ restore session nếu CHƯA LOGIN
+        // Nếu đã login, session sẽ được lưu vào permanent history khi đăng nhập
+        if (!isAuthenticated) {
+          const sessionData = localStorage.getItem('agrisense_current_session');
+          if (sessionData) {
+            try {
+              this.currentConversation = JSON.parse(sessionData);
+              console.log('📱 Restored temp session (chưa login):', this.currentConversation.id);
+              
+              // Lưu ID vào sessionStorage để track
+              sessionStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
+              
+              // Cập nhật URL
+              this.updateURL(this.currentConversation.id);
+              
+              // Khôi phục tin nhắn lên chat box
+              setTimeout(() => {
+                this.restoreMessagesToUI();
+              }, 500);
+              return true;
+            } catch (e) {
+              console.error('❌ Lỗi restore session:', e);
+            }
           }
+        } else {
+          console.log('⏭️ Skipped temp session (user already logged in)');
         }
         
         return false;
@@ -733,6 +753,45 @@
         const isLoggedIn = localStorage.getItem('agrisense_user_logged_in');
         return isLoggedIn === 'true';
       }
+
+      // ✅ Migrate temp session to permanent history when user logs in
+      migrateSessionToHistory() {
+        console.log('🔄 Migrating temp session to permanent history...');
+        
+        const sessionData = localStorage.getItem('agrisense_current_session');
+        if (!sessionData) {
+          console.log('ℹ️ No temp session to migrate');
+          return false;
+        }
+
+        try {
+          const sessionConversation = JSON.parse(sessionData);
+          console.log('📝 Found temp session with', sessionConversation.messages?.length || 0, 'messages');
+
+          if (sessionConversation.messages && sessionConversation.messages.length > 0) {
+            // ✅ Add session conversation to permanent history
+            this.conversations.unshift(sessionConversation);
+            console.log('✅ Migrated temp session to permanent history');
+            
+            // ✅ Save to permanent storage
+            this.saveConversations();
+            
+            // ✅ Clear temp session after migration
+            localStorage.removeItem('agrisense_current_session');
+            console.log('🗑️ Cleared temp session');
+            
+            return true;
+          } else {
+            console.log('ℹ️ Temp session has no messages, skipping migration');
+            // ✅ Clear empty session
+            localStorage.removeItem('agrisense_current_session');
+            return false;
+          }
+        } catch (e) {
+          console.error('❌ Error during migration:', e);
+          return false;
+        }
+      }
     }
 
     // IP-based weather lookup function
@@ -822,6 +881,15 @@
     }
     // Initialize chat history manager
     window.chatHistoryManager = new ChatHistoryManager();
+
+    // ✅ Migrate temp session to permanent history when user logs in
+    if (window.chatHistoryManager.isUserAuthenticated()) {
+      console.log('✅ User is logged in, attempting to migrate temp session...');
+      const migrated = window.chatHistoryManager.migrateSessionToHistory();
+      if (migrated) {
+        console.log('✅ Migrated temp session to permanent history');
+      }
+    }
 
     // Handle browser back/forward button
     window.addEventListener('popstate', (event) => {

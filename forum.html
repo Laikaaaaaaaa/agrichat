@@ -1622,32 +1622,51 @@
       
       try {
         const response = await fetch(`/api/forum/posts/${postId}/like`, {
-          method: 'POST'
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
         });
         
         const data = await response.json();
         
         if (data.success) {
           // Update UI
-          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
-          const likeBtn = postCard.querySelector('.like-btn');
+          const likeBtn = document.querySelector(`.like-btn-${postId}`);
           const likeIcon = likeBtn.querySelector('i');
-          const likesCount = postCard.querySelector('.fa-thumbs-up').parentElement;
+          const likeText = likeBtn.querySelector('span');
           
-          if (data.action === 'liked') {
-            likeBtn.classList.add('liked');
+          if (data.liked) {
             likeIcon.classList.remove('far');
-            likeIcon.classList.add('fas');
+            likeIcon.classList.add('fas', 'text-blue-600');
+            likeText.textContent = 'Đã thích';
+            likeBtn.title = 'Bỏ thích';
           } else {
-            likeBtn.classList.remove('liked');
-            likeIcon.classList.remove('fas');
+            likeIcon.classList.remove('fas', 'text-blue-600');
             likeIcon.classList.add('far');
+            likeText.textContent = 'Thích';
+            likeBtn.title = 'Thích bài viết';
           }
           
-          likesCount.innerHTML = `<i class="fas fa-thumbs-up text-green-600"></i> ${data.likes_count} thích`;
+          // Update likes count in stats
+          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+          const likesCountEl = postCard.querySelector('.fa-thumbs-up').closest('button');
+          if (likesCountEl) {
+            const countSpan = likesCountEl.querySelector('.font-medium');
+            if (countSpan) {
+              countSpan.textContent = data.likes_count;
+            } else if (data.likes_count > 0) {
+              // Add count if it didn't exist before
+              likesCountEl.innerHTML = `
+                <i class="fas fa-thumbs-up text-green-600"></i>
+                <span class="font-medium">${data.likes_count}</span> thích
+              `;
+            }
+          }
+        } else {
+          alert(data.message || 'Lỗi khi thích bài viết');
         }
       } catch (error) {
         console.error('Error toggling like:', error);
+        alert('Lỗi kết nối. Vui lòng thử lại.');
       }
     }
     

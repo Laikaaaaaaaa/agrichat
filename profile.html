@@ -261,6 +261,30 @@
         transform: translateY(0);
       }
     }
+
+    /* Curved connector line for replies */
+    .replies-container {
+      position: relative;
+      padding-left: 0.75rem;
+    }
+
+    .replies-container::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: -12px;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #d1d5db;
+      border-top: none;
+      border-left: none;
+      border-radius: 0 0 0 12px;
+    }
+
+    /* Straight connector for nested replies */
+    .replies-container .border-l-2 {
+      border-color: #d1d5db;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -2703,7 +2727,7 @@
                         </div>
                         
                         <!-- Replies container with connector line from avatar -->
-                        <div id="replies-container-${comment.id}" class="hidden mt-2 relative" style="margin-left: 0.75rem;">
+                        <div id="replies-container-${comment.id}" class="hidden mt-2 relative replies-container" style="margin-left: 0.75rem;">
                           <!-- Reply box for this comment -->
                           <div id="reply-box-${comment.id}" class="hidden mb-2 ml-2 sm:ml-4">
                             <div class="flex gap-2">
@@ -3013,6 +3037,13 @@
           let repliesHTML = data.replies.map(reply => createProfileReplyHTML(reply, commentId, parentUserName)).join('');
           repliesList.innerHTML = repliesHTML;
           document.getElementById(`replies-container-${commentId}`).classList.remove('hidden');
+          
+          // Load child replies for all replies
+          data.replies.forEach(reply => {
+            if (!reply.parent_reply_id) {
+              loadProfileChildReplies(reply.id, commentId);
+            }
+          });
         }
       } catch (error) {
         console.error('Error loading more replies:', error);
@@ -3213,17 +3244,19 @@
               
               return `
                 <div class="relative" id="nested-reply-${reply.id}">
-                  <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+                  <div class="flex gap-1.5 bg-gray-50 rounded-lg p-1.5 text-xs">
                     <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
-                      ${userAvatar}
+                      <div class="w-4 h-4 rounded-full overflow-hidden">
+                        ${userAvatar}
+                      </div>
                     </a>
                     <div class="flex-1 min-w-0">
-                      <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                      <div class="bg-white rounded-lg px-1.5 py-0.5 inline-block max-w-full">
                         <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
                         ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
                         <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
                       </div>
-                      <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                      <div class="flex gap-2 text-xs text-gray-500 mt-0.5 ml-0.5 flex-wrap">
                         <span>${timeAgo}</span>
                         <button onclick="toggleProfileChildReplyLike(${reply.id})" class="hover:text-blue-600 like-child-reply-btn-${reply.id}">
                           <i class="${isLiked} fa-thumbs-up"></i>
@@ -3238,17 +3271,17 @@
                       </div>
                       
                       <!-- Nested reply box (cháu) -->
-                      <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
-                        <div class="flex gap-2">
+                      <div id="nested-reply-box-${reply.id}" class="hidden mt-1.5 ml-1.5 sm:ml-3">
+                        <div class="flex gap-1.5">
                           <input 
                             type="text" 
                             id="nested-reply-input-${reply.id}"
                             placeholder="Viết trả lời..." 
                             spellcheck="false"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                            class="flex-1 px-2 py-1 border border-gray-300 rounded-full text-xs focus:outline-none focus:border-green-600"
                             onkeypress="if(event.key==='Enter') submitProfileNestedReply(${reply.id}, ${parentReplyId}, ${commentId})"
                           />
-                          <button onclick="submitProfileNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                          <button onclick="submitProfileNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-2 py-0.5 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
                             <i class="fas fa-paper-plane"></i>
                           </button>
                         </div>
@@ -3256,7 +3289,7 @@
                     </div>
                   </div>
                   <!-- Container for nested-nested replies (cháu) -->
-                  <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-4">
+                  <div id="nested-child-replies-${reply.id}" class="hidden mt-1.5 ml-1.5 sm:ml-3 space-y-1 border-l-2 border-gray-300 pl-1.5 sm:pl-3">
                     <div id="nested-child-replies-list-${reply.id}"></div>
                   </div>
                 </div>
@@ -3265,38 +3298,15 @@
             
             childRepliesList.innerHTML = repliesHTML;
             childRepliesContainer.classList.remove('hidden');
+            
+            // Load nested-nested replies (cháu) for each child reply
+            data.replies.forEach(reply => {
+              loadProfileNestedChildReplies(reply.id, commentId);
+            });
           }
         }
       } catch (error) {
         console.error('Error loading child replies:', error);
-      }
-    }
-    
-    // Toggle like on child reply
-    async function toggleProfileChildReplyLike(replyId) {
-      if (!currentUserId) {
-        alert('Vui lòng đăng nhập để thích trả lời');
-        return;
-      }
-      
-      try {
-        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          const likeBtn = document.querySelector(`.like-child-reply-btn-${replyId}`);
-          if (data.liked) {
-            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
-          } else {
-            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
-          }
-        }
-      } catch (error) {
-        console.error('Error liking child reply:', error);
       }
     }
     

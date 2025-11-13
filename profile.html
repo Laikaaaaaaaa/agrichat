@@ -287,9 +287,9 @@
       top: 1.25rem; /* 20px, vertically centered with level 1 avatar (24px/2 = 12px + padding) */
       left: -1.5rem; /* Connects to the vertical line */
       width: 1.5rem; /* Horizontal length */
-      height: 0.75rem; /* Reduced height - just enough for the curve, no extra vertical line */
+      height: 0; /* No height to avoid extra vertical line */
       border-bottom: 2px solid #d1d5db;
-      border-left: 2px solid #d1d5db;
+      border-left: 2px solid transparent; /* Transparent to create space for curve */
       border-bottom-left-radius: 0.75rem; /* The curve */
     }
 
@@ -317,9 +317,9 @@
       top: 1rem; /* Vertically centered with level 2 avatar (20px/2 = 10px) */
       left: -1.5rem;
       width: 1.5rem;
-      height: 0.75rem; /* Reduced height - just enough for the curve, no extra vertical line */
+      height: 0; /* No height to avoid extra vertical line */
       border-bottom: 2px solid #d1d5db;
-      border-left: 2px solid #d1d5db;
+      border-left: 2px solid transparent; /* Transparent to create space for curve */
       border-bottom-left-radius: 0.75rem; /* The curve */
     }
 
@@ -3120,14 +3120,6 @@
             
             repliesList.innerHTML = repliesHTML;
             repliesContainer.classList.remove('hidden');
-            
-            // Load child replies for each reply
-            displayedReplies.forEach(reply => {
-              // Check if this reply has parent_reply_id (it's a child reply itself - skip)
-              if (!reply.parent_reply_id) {
-                loadProfileChildReplies(reply.id, commentId);
-              }
-            });
           }
         }
       } catch (error) {
@@ -3149,13 +3141,6 @@
           let repliesHTML = data.replies.map(reply => createProfileReplyHTML(reply, commentId, parentUserName)).join('');
           repliesList.innerHTML = repliesHTML;
           document.getElementById(`replies-container-${commentId}`).classList.remove('hidden');
-          
-          // Load child replies for all replies
-          data.replies.forEach(reply => {
-            if (!reply.parent_reply_id) {
-              loadProfileChildReplies(reply.id, commentId);
-            }
-          });
         }
       } catch (error) {
         console.error('Error loading more replies:', error);

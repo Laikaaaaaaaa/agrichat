@@ -252,8 +252,8 @@
     /* Facebook-style connector lines with curves */
     .replies-container {
       position: relative;
-      margin-left: 2.25rem; /* 36px */
-      padding-left: 1.25rem; /* 20px */
+      margin-left: 2rem; /* 32px - align with comment avatar center */
+      padding-left: 1.5rem; /* 24px */
     }
 
     /* The vertical line that connects all replies */
@@ -263,28 +263,28 @@
       top: 0;
       left: 0;
       bottom: 0;
-      width: 1px;
+      width: 2px;
       background-color: #d1d5db; /* gray-300 */
     }
 
-    /* The L-shaped connector for each direct reply */
+    /* The L-shaped connector for each direct reply (level 1) */
     .replies-container > div > div[id^="reply-"]::before {
       content: '';
       position: absolute;
-      top: 1.25rem; /* 20px, vertically centered with avatar */
-      left: -1.25rem; /* Connects to the vertical line */
-      width: 1.25rem; /* Horizontal length */
-      height: 1.25rem; /* Vertical height to create the curve */
-      border-bottom: 1px solid #d1d5db;
-      border-left: 1px solid #d1d5db;
+      top: 1.25rem; /* 20px, vertically centered with level 1 avatar (24px/2 = 12px + padding) */
+      left: -1.5rem; /* Connects to the vertical line */
+      width: 1.5rem; /* Horizontal length */
+      height: 1.5rem; /* Vertical height to create the curve */
+      border-bottom: 2px solid #d1d5db;
+      border-left: 2px solid #d1d5db;
       border-bottom-left-radius: 0.75rem; /* The curve */
     }
 
     /* Child replies (nested) connector styling */
     div[id^="child-replies-"] {
       position: relative;
-      margin-left: 2.25rem; /* 36px */
-      padding-left: 1.25rem; /* 20px */
+      margin-left: 1.75rem; /* 28px - align with level 1 avatar center */
+      padding-left: 1.5rem; /* 24px */
     }
 
     div[id^="child-replies-"]::before {
@@ -293,28 +293,21 @@
       top: 0;
       left: 0;
       bottom: 0;
-      width: 1px;
+      width: 2px;
       background-color: #d1d5db;
     }
 
-    /* L-shaped connector for each nested reply */
+    /* L-shaped connector for each nested reply (level 2) */
     div[id^="nested-reply-"]::before {
       content: '';
       position: absolute;
-      top: 1rem; /* Adjust for smaller avatar */
-      left: -1.25rem;
-      width: 1.25rem;
-      height: 1rem;
-      border-bottom: 1px solid #d1d5db;
-      border-left: 1px solid #d1d5db;
-      border-bottom-left-radius: 0.75rem;
-    }
-
-    /* Remove default border styling */
-    .border-l-2.border-gray-300 {
-      border-color: transparent;
-      padding-left: 0;
-      margin-left: 0;
+      top: 1rem; /* Vertically centered with level 2 avatar (20px/2 = 10px) */
+      left: -1.5rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-bottom: 2px solid #d1d5db;
+      border-left: 2px solid #d1d5db;
+      border-bottom-left-radius: 0.75rem; /* The curve */
     }
   </style>
 </head>
@@ -1764,6 +1757,11 @@
               <button onclick="toggleCommentReplyBox(${comment.id})" class="hover:text-blue-600">
                 Trả lời
               </button>
+              ${repliesCount > 0 ? `
+                <button onclick="toggleViewReplies(${comment.id}, ${postId})" class="hover:text-blue-600 font-medium" id="view-replies-btn-${comment.id}">
+                  <i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi
+                </button>
+              ` : ''}
               ${currentUser && currentUser.id === comment.user_id ? `
                 <button onclick="deleteComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
               ` : ''}
@@ -1910,6 +1908,35 @@
       }
     }
     
+    // Facebook-style toggle to view/hide replies
+    async function toggleViewReplies(commentId, postId) {
+      const repliesContainer = document.getElementById(`replies-container-${commentId}`);
+      const repliesList = document.getElementById(`replies-${commentId}`);
+      const viewBtn = document.getElementById(`view-replies-btn-${commentId}`);
+      
+      // If already showing, hide them
+      if (!repliesContainer.classList.contains('hidden')) {
+        repliesContainer.classList.add('hidden');
+        if (viewBtn) {
+          const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+          viewBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi`;
+        }
+        return;
+      }
+      
+      // Show container and load replies if not loaded yet
+      repliesContainer.classList.remove('hidden');
+      if (viewBtn) {
+        const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+        viewBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Ẩn ${repliesCount} phản hồi`;
+      }
+      
+      // Load replies if not loaded yet
+      if (!repliesList.hasChildNodes() || repliesList.innerHTML.trim() === '') {
+        await loadCommentReplies(commentId);
+      }
+    }
+    
     // Submit comment reply with mentioned user tracking
     async function submitCommentReply(commentId, postId) {
       const input = document.getElementById(`reply-input-${commentId}`);
@@ -2051,6 +2078,7 @@
       const profileLink = reply.username_slug || reply.user_id;
       const timeAgo = getTimeAgo(reply.created_at);
       const likesCount = reply.likes_count || 0;
+      const nestedRepliesCount = reply.nested_replies_count || 0;
       const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
       
       // Show info if this reply is a response to another user
@@ -2077,17 +2105,22 @@
                 <button onclick="toggleReplyBox(${reply.id})" class="hover:text-blue-600">
                   Trả lời
                 </button>
+                ${nestedRepliesCount > 0 ? `
+                  <button onclick="toggleViewNestedReplies(${reply.id}, ${commentId})" class="hover:text-blue-600 font-medium" id="view-nested-replies-btn-${reply.id}">
+                    <i class="fas fa-chevron-down"></i> Xem ${nestedRepliesCount} phản hồi
+                  </button>
+                ` : ''}
                 ${currentUser && currentUser.id === reply.user_id ? `
                   <button onclick="deleteReply(${reply.id})" class="hover:text-red-600">Xóa</button>
                 ` : ''}
               </div>
               
               <!-- Reply box to reply to this reply -->
-              <div id="reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
+              <div id="child-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
                 <div class="flex gap-2">
                   <input 
                     type="text" 
-                    id="reply-input-${reply.id}"
+                    id="child-reply-input-${reply.id}"
                     placeholder="Viết trả lời..." 
                     spellcheck="false"
                     class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
@@ -2166,7 +2199,7 @@
       }
       
       const childRepliesContainer = document.getElementById(`child-replies-${replyId}`);
-      const replyBox = document.getElementById(`reply-box-${replyId}`);
+      const replyBox = document.getElementById(`child-reply-box-${replyId}`);
       
       // Get commentId from parent reply element
       const replyElement = document.getElementById(`reply-${replyId}`);
@@ -2185,13 +2218,42 @@
       replyBox.classList.toggle('hidden');
       
       if (!replyBox.classList.contains('hidden')) {
-        document.getElementById(`reply-input-${replyId}`).focus();
+        document.getElementById(`child-reply-input-${replyId}`).focus();
+      }
+    }
+    
+    // Facebook-style toggle to view/hide nested replies (level 2)
+    async function toggleViewNestedReplies(replyId, commentId) {
+      const childRepliesContainer = document.getElementById(`child-replies-${replyId}`);
+      const childRepliesList = document.getElementById(`child-replies-list-${replyId}`);
+      const viewBtn = document.getElementById(`view-nested-replies-btn-${replyId}`);
+      
+      // If already showing, hide them
+      if (!childRepliesContainer.classList.contains('hidden')) {
+        childRepliesContainer.classList.add('hidden');
+        if (viewBtn) {
+          const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+          viewBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi`;
+        }
+        return;
+      }
+      
+      // Show container and load replies if not loaded yet
+      childRepliesContainer.classList.remove('hidden');
+      if (viewBtn) {
+        const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+        viewBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Ẩn ${repliesCount} phản hồi`;
+      }
+      
+      // Load replies if not loaded yet
+      if (!childRepliesList.hasChildNodes() || childRepliesList.innerHTML.trim() === '') {
+        await loadChildReplies(replyId, commentId);
       }
     }
     
     // Submit reply to a reply (child reply)
     async function submitChildReply(parentReplyId, commentId) {
-      const input = document.getElementById(`reply-input-${parentReplyId}`);
+      const input = document.getElementById(`child-reply-input-${parentReplyId}`);
       const content = input.value.trim();
       
       if (!content) return;
@@ -2230,7 +2292,7 @@
         
         if (data.success) {
           input.value = '';
-          document.getElementById(`reply-box-${parentReplyId}`).classList.add('hidden');
+          document.getElementById(`child-reply-box-${parentReplyId}`).classList.add('hidden');
           
           // Load child replies
           loadChildReplies(parentReplyId, commentId);
@@ -2265,26 +2327,28 @@
             let repliesHTML = displayedReplies.map(reply => {
               const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
               const userAvatar = reply.user_avatar
-                ? `<img src="${reply.user_avatar}" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover" />`
-                : `<div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+                ? `<img src="${reply.user_avatar}" class="w-5 h-5 rounded-full object-cover" />`
+                : `<div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
               
               const profileLink = reply.username_slug || reply.user_id;
               const timeAgo = getTimeAgo(reply.created_at);
               const likesCount = reply.likes_count || 0;
               const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
-              const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+              const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs sm:text-sm">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
               
               return `
                 <div class="relative" id="nested-reply-${reply.id}" data-parent-reply-id="${parentReplyId}" data-comment-id="${commentId}">
-                  <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+                  <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
                     <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
-                      ${userAvatar}
+                      <div class="w-5 h-5 rounded-full overflow-hidden">
+                        ${userAvatar}
+                      </div>
                     </a>
                     <div class="flex-1 min-w-0">
                       <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
-                        <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
-                        ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
-                        <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+                        <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs sm:text-sm">${escapeHtml(userName)}</a>
+                        ${replyInfo ? `<span class="text-xs sm:text-sm text-gray-600">${replyInfo}</span>` : ''}
+                        <p class="text-gray-700 break-words text-xs sm:text-sm">${escapeHtml(reply.content)}</p>
                       </div>
                       <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
                         <span>${timeAgo}</span>
@@ -2301,17 +2365,17 @@
                       </div>
                       
                       <!-- Nested reply box (cháu) -->
-                      <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
+                      <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3">
                         <div class="flex gap-2">
                           <input 
                             type="text" 
                             id="nested-reply-input-${reply.id}"
                             placeholder="Viết trả lời..." 
                             spellcheck="false"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                            class="flex-1 px-2 py-1 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
                             onkeypress="if(event.key==='Enter') submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})"
                           />
-                          <button onclick="submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                          <button onclick="submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-2 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs sm:text-sm flex-shrink-0">
                             <i class="fas fa-paper-plane"></i>
                           </button>
                         </div>
@@ -2319,7 +2383,7 @@
                     </div>
                   </div>
                   <!-- Container for nested-nested replies (cháu) -->
-                  <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-4">
+                  <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-3">
                     <div id="nested-child-replies-list-${reply.id}"></div>
                   </div>
                 </div>
@@ -2369,26 +2433,28 @@
           let repliesHTML = data.replies.map(reply => {
             const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
             const userAvatar = reply.user_avatar
-              ? `<img src="${reply.user_avatar}" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover" />`
-              : `<div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+              ? `<img src="${reply.user_avatar}" class="w-5 h-5 rounded-full object-cover" />`
+              : `<div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
             
             const profileLink = reply.username_slug || reply.user_id;
             const timeAgo = getTimeAgo(reply.created_at);
             const likesCount = reply.likes_count || 0;
             const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
-            const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+            const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs sm:text-sm">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
             
             return `
               <div class="relative" id="nested-reply-${reply.id}" data-parent-reply-id="${parentReplyId}" data-comment-id="${commentId}">
-                <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs">
+                <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
                   <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
-                    ${userAvatar}
+                    <div class="w-5 h-5 rounded-full overflow-hidden">
+                      ${userAvatar}
+                    </div>
                   </a>
                   <div class="flex-1 min-w-0">
                     <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
-                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs">${escapeHtml(userName)}</a>
-                      ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
-                      <p class="text-gray-700 break-words text-xs">${escapeHtml(reply.content)}</p>
+                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs sm:text-sm">${escapeHtml(userName)}</a>
+                      ${replyInfo ? `<span class="text-xs sm:text-sm text-gray-600">${replyInfo}</span>` : ''}
+                      <p class="text-gray-700 break-words text-xs sm:text-sm">${escapeHtml(reply.content)}</p>
                     </div>
                     <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
                       <span>${timeAgo}</span>
@@ -2405,17 +2471,17 @@
                     </div>
                     
                     <!-- Nested reply box (cháu) -->
-                    <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
+                    <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3">
                       <div class="flex gap-2">
                         <input 
                           type="text" 
                           id="nested-reply-input-${reply.id}"
                           placeholder="Viết trả lời..." 
                           spellcheck="false"
-                          class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                          class="flex-1 px-2 py-1 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
                           onkeypress="if(event.key==='Enter') submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})"
                         />
-                        <button onclick="submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                        <button onclick="submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-2 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs sm:text-sm flex-shrink-0">
                           <i class="fas fa-paper-plane"></i>
                         </button>
                       </div>
@@ -2423,7 +2489,7 @@
                   </div>
                 </div>
                 <!-- Container for nested-nested replies (cháu) -->
-                <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-4">
+                <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3 space-y-2 border-l-2 border-gray-300 pl-2 sm:pl-3">
                   <div id="nested-child-replies-list-${reply.id}"></div>
                 </div>
               </div>

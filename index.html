@@ -512,30 +512,32 @@
         
         if (conversationId) {
           console.log('🔍 Found conversation ID in URL:', conversationId);
+          
+          // ❌ SECURITY: Nếu chưa login và có link conversation → redirect về trang chủ
+          if (!isAuthenticated) {
+            console.warn('🚫 User not authenticated, redirecting to home page');
+            window.location.href = window.location.pathname;  // Redirect to clean URL
+            return false;
+          }
+          
           const foundIndex = this.conversations.findIndex(conv => conv.id === conversationId);
           
           if (foundIndex !== -1) {
-            // ✅ KIỂM TRA: Chỉ restore nếu đã login
-            if (!isAuthenticated) {
-              console.warn('🚫 User not authenticated, cannot restore permanent conversation');
-              window.history.replaceState({}, '', window.location.pathname);
-              // Fall through to restore temp session if available
-            } else {
-              // IMPORTANT: Use reference to object in array!
-              this.currentConversation = this.conversations[foundIndex];
-              sessionStorage.setItem('agrisense_current_conversation_id', conversationId);
-              console.log('✅ Found conversation:', this.currentConversation.title);
-              console.log('   Messages:', this.currentConversation.messages.length);
-              this.currentConversation.messages.forEach((msg, idx) => {
-                console.log(`   ${idx + 1}. ${msg.sender}: ${msg.content ? msg.content.substring(0, 30) : '(no content)'}, image: ${!!msg.imageUrl}`);
-              });
-              
-              // Khôi phục tin nhắn lên chat box
-              setTimeout(() => {
-                this.restoreMessagesToUI();
-              }, 500);
-              return true;
-            }
+            // ✅ KIỂM TRA: Chỉ restore nếu đã login (đã checked ở trên)
+            // IMPORTANT: Use reference to object in array!
+            this.currentConversation = this.conversations[foundIndex];
+            sessionStorage.setItem('agrisense_current_conversation_id', conversationId);
+            console.log('✅ Found conversation:', this.currentConversation.title);
+            console.log('   Messages:', this.currentConversation.messages.length);
+            this.currentConversation.messages.forEach((msg, idx) => {
+              console.log(`   ${idx + 1}. ${msg.sender}: ${msg.content ? msg.content.substring(0, 30) : '(no content)'}, image: ${!!msg.imageUrl}`);
+            });
+            
+            // Khôi phục tin nhắn lên chat box
+            setTimeout(() => {
+              this.restoreMessagesToUI();
+            }, 500);
+            return true;
           } else {
             console.warn('❌ Conversation not found in localStorage, clearing URL');
             console.log('   Available conversation IDs:', this.conversations.map(c => c.id));

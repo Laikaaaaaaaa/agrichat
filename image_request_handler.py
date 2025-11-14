@@ -70,14 +70,18 @@ class ImageRequestHandler:
         if use_ml:
             try:
                 is_request, confidence = image_classifier.predict(message)
-                if confidence > 0.6:  # Threshold 60%
-                    logging.debug(f"🤖 ML detected: {is_request} (confidence: {confidence:.2f})")
+                logging.info(f"🤖 ML prediction: {is_request} (confidence: {confidence:.2%}) for: '{message}'")
+                if confidence > 0.5:  # Lowered threshold from 0.6 to 0.5
                     return is_request
+                else:
+                    logging.info(f"⚠️ Confidence {confidence:.2%} below threshold 50%, falling back to rule-based")
             except Exception as e:
                 logging.warning(f"⚠️ ML prediction failed: {e}, falling back to rule-based")
         
         # STEP 2: Fallback - Rule-based detection
-        return self._rule_based_detection(message)
+        result = self._rule_based_detection(message)
+        logging.info(f"📋 Rule-based detection result: {result} for: '{message}'")
+        return result
     
     def _rule_based_detection(self, message: str) -> bool:
         """

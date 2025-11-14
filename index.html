@@ -7604,7 +7604,26 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       console.warn('⚠️ ipapi.co lookup failed:', error);
     }
 
-    // Option 3: Mock data as ultimate fallback (always works)
+    // Option 3: Try backend API without coordinates (it will use IP geolocation)
+    console.log('🔄 Trying backend /api/weather endpoint (uses server-side IP geolocation)...');
+    try {
+      const backendResponse = await fetch('/api/weather', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (backendResponse.ok) {
+        const backendData = await backendResponse.json();
+        if (backendData?.location_name) {
+          console.log('✅ Backend /api/weather returned location:', backendData.location_name);
+          return backendData;
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Backend /api/weather call failed:', e);
+    }
+
+    // Option 4: Mock data as ultimate fallback (always works)
     console.log('🇻🇳 Using mock weather data for demonstration...');
     return {
       temp: 28,

@@ -34,6 +34,11 @@ from image_request_handler import (
     image_handler, is_image_request, extract_query, get_response_message
 )  # 📸 Import image request handler
 from image_intent_classifier import image_classifier  # 🤖 ML-based image intent classifier
+from image_search_memory import (
+    image_search_memory, alternative_detector, 
+    save_search_result, get_unsent_images, has_unsent_images,
+    is_alternative_request, is_same_category_request
+)  # 💾 Import image search memory for handling "different image" requests
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urljoin
 
@@ -5287,9 +5292,25 @@ def chat():
         logging.info(f"🔍 Chat API called - Message: '{message}', Mode: {mode}")
 
         # �️ KIỂM TRA YÊU CẦU TÌM ẢNH TRƯỚC
-        # Use ML-based image detection from image_handler
-        is_image_request = image_handler.is_image_request(message)
+        # 🔄 KIỂM TRA REQUEST "ẢNH KHÁC" TRƯỚC
+        if is_alternative_request(message):
+            logging.info("🔄 Alternative image request detected")
+            last_query = get_last_query(user_id)
+            if last_query and has_unsent_images(user_id):
+                unsent_images = get_unsent_images(user_id, count=4)
+                if unsent_images:
+                    return jsonify({
+                        "response": f"🖼️ Đây là {len(unsent_images)} ảnh khác về '{last_query}':",
+                        "success": True,
+                        "type": "images",
+                        "images": unsent_images,
+                        "query": last_query
+                    })
+                return jsonify({"response": f"😔 Không còn ảnh khác", "success": True, "type": "text"})
+            return jsonify({"response": "😔 Chưa có lịch sử tìm kiếm", "success": True, "type": "text"})
 
+        is_image_request = image_handler.is_image_request(message)
+        
         if is_image_request:
             logging.info("🖼️ Image search request detected")
 
@@ -5302,12 +5323,20 @@ def chat():
             images = api.search_image_with_retry(clean_query)
 
             if images and len(images) > 0:
+                # 💾 Save search result cho lần "ảnh khác" sau
+                save_search_result(user_id, clean_query, images)
+                
+                # Gửi 4 ảnh đầu tiên, mark rest as unsent
+                first_batch = images[:4]
+                for img in first_batch:
+                    image_search_memory.mark_image_as_sent(user_id, img.get('id'))
+                
                 # Trả về format đặc biệt cho frontend
                 return jsonify({
                     "response": get_response_message(clean_query, len(images)),
                     "success": True,
                     "type": "images",
-                    "images": images,
+                    "images": first_batch,
                     "query": clean_query
                 })
             else:

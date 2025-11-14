@@ -1064,6 +1064,62 @@
     </div>
   </div>
 
+  <!-- 📸 PHOTO VIEWER MODAL -->
+  <div id="photo-modal" class="modal" onclick="if(event.target === this) closePhotoModal()">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 flex flex-col">
+      
+      <!-- Close button -->
+      <div class="flex justify-between items-center p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+        <h3 class="text-lg sm:text-xl font-bold text-gray-800">Xem ảnh</h3>
+        <button onclick="closePhotoModal()" class="text-gray-400 hover:text-gray-600 p-1">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Image display -->
+      <div class="flex-1 flex items-center justify-center p-4 bg-gray-50 overflow-auto">
+        <img id="photo-modal-image" src="" alt="Photo" class="max-w-full max-h-[400px] sm:max-h-[500px] object-contain rounded-lg" />
+      </div>
+
+      <!-- Like, comment section -->
+      <div class="p-4 border-t border-gray-200 bg-white">
+        <div class="flex items-center gap-4 mb-4 pb-4 border-b border-gray-200">
+          <button onclick="likePhoto()" class="flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors">
+            <i class="fas fa-heart text-lg"></i>
+            <span id="photo-likes-count" class="text-sm">0</span>
+          </button>
+          <button class="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors">
+            <i class="fas fa-comment text-lg"></i>
+            <span id="photo-comments-count" class="text-sm">0</span>
+          </button>
+          <button class="ml-auto flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors">
+            <i class="fas fa-share text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Comments section -->
+        <div id="photo-comments-container" class="space-y-3 max-h-48 overflow-y-auto mb-4">
+          <p class="text-center text-gray-500 text-sm">Đang tải bình luận...</p>
+        </div>
+
+        <!-- Comment input -->
+        <div class="flex gap-2 pt-3 border-t border-gray-200">
+          <input 
+            type="text" 
+            id="photo-comment-input"
+            placeholder="Viết bình luận..." 
+            spellcheck="false"
+            class="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-green-600 text-sm sm:text-base"
+            onkeypress="if(event.key==='Enter') submitPhotoComment()"
+          />
+          <button onclick="submitPhotoComment()" class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors flex-shrink-0">
+            <i class="fas fa-paper-plane text-sm"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="settings-modal" class="modal">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
       
@@ -5008,6 +5064,144 @@
       closeLocationModal();
       showAlert('Vị trí đã được thêm!', 'success');
     }
+
+    // ================= PHOTO MODAL FUNCTIONS =================
+    
+    async function openPhotoModal(photoId) {
+      const modal = document.getElementById('photo-modal');
+      modal.classList.add('active');
+      
+      try {
+        // Fetch photo details and image URL
+        const response = await fetch(`/api/profile/photo/${photoId}`);
+        const data = await response.json();
+        
+        if (data.success && data.photo) {
+          // Set image
+          document.getElementById('photo-modal-image').src = data.photo.photo_url;
+          document.getElementById('photo-modal-image').alt = data.photo.caption || 'Photo';
+          
+          // Set like count
+          document.getElementById('photo-likes-count').textContent = data.photo.likes_count || 0;
+          
+          // Set comment count and load comments
+          document.getElementById('photo-comments-count').textContent = data.photo.comments_count || 0;
+          
+          // Load comments
+          loadPhotoComments(photoId);
+          
+          // Store current photo ID for later use
+          window.currentPhotoId = photoId;
+        }
+      } catch (error) {
+        console.error('Error loading photo:', error);
+        showAlert('Không thể tải ảnh', 'error');
+        closePhotoModal();
+      }
+    }
+    
+    function closePhotoModal() {
+      const modal = document.getElementById('photo-modal');
+      modal.classList.remove('active');
+      document.getElementById('photo-comment-input').value = '';
+      window.currentPhotoId = null;
+    }
+    
+    async function loadPhotoComments(photoId) {
+      try {
+        const response = await fetch(`/api/profile/photo/${photoId}/comments`);
+        const data = await response.json();
+        
+        const container = document.getElementById('photo-comments-container');
+        
+        if (data.success && data.comments && data.comments.length > 0) {
+          container.innerHTML = data.comments.map(comment => `
+            <div class="flex gap-2 pb-3 border-b border-gray-100 last:border-0">
+              <img src="${comment.user_avatar || '/static/default-avatar.png'}" alt="Avatar" class="w-8 h-8 rounded-full object-cover" />
+              <div class="flex-1">
+                <p class="text-xs sm:text-sm font-semibold text-gray-800">${escapeHtml(comment.user_name)}</p>
+                <p class="text-xs sm:text-sm text-gray-700">${escapeHtml(comment.content)}</p>
+                <p class="text-xs text-gray-500 mt-1">${timeAgo(comment.created_at)}</p>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Chưa có bình luận</p>';
+        }
+      } catch (error) {
+        console.error('Error loading comments:', error);
+      }
+    }
+    
+    async function submitPhotoComment() {
+      const photoId = window.currentPhotoId;
+      const content = document.getElementById('photo-comment-input').value.trim();
+      
+      if (!photoId || !content) {
+        showAlert('Vui lòng nhập nội dung bình luận', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/profile/photo/${photoId}/comments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          document.getElementById('photo-comment-input').value = '';
+          loadPhotoComments(photoId);
+          showAlert('Bình luận thành công!', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi gửi bình luận', 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+        showAlert('Lỗi khi gửi bình luận', 'error');
+      }
+    }
+    
+    async function likePhoto() {
+      const photoId = window.currentPhotoId;
+      if (!photoId) return;
+      
+      try {
+        const response = await fetch(`/api/profile/photo/${photoId}/like`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Update like count
+          document.getElementById('photo-likes-count').textContent = data.likes_count || 0;
+        }
+      } catch (error) {
+        console.error('Error liking photo:', error);
+      }
+    }
+    
+    function timeAgo(dateString) {
+      const now = new Date();
+      const date = new Date(dateString);
+      const seconds = Math.floor((now - date) / 1000);
+      
+      if (seconds < 60) return 'Vừa xong';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m trước`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h trước`;
+      const days = Math.floor(hours / 24);
+      if (days < 7) return `${days}d trước`;
+      return date.toLocaleDateString('vi-VN');
+    }
+    
+    // ================= END PHOTO MODAL FUNCTIONS =================
     
     // Escape HTML to prevent XSS
     function escapeHtml(text) {

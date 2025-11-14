@@ -23,6 +23,13 @@ from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh m�
 from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
 import auth  # Import authentication module
+from error_handlers import (
+    handle_errors, ValidationError, NotFoundError, AuthenticationError,
+    PermissionError, DatabaseError, ExternalAPIError, error_response
+)  # ✅ Import error handling utilities
+from prompt_manager import (
+    prompt_manager, request_router, context_summarizer, token_tracker, FunctionSchema
+)  # 🚀 Import token optimization system
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urljoin
 
@@ -5227,6 +5234,83 @@ def client_log():
         logging.info(log_message)
 
     return jsonify({"success": True})
+
+
+# ============ 🚀 TOKEN OPTIMIZATION API ============
+
+@app.route('/api/token-optimization/stats', methods=['GET'])
+def get_token_optimization_stats():
+    """✅ Get token optimization statistics (public endpoint)"""
+    stats = token_tracker.get_summary()
+    return jsonify({
+        "success": True,
+        "data": stats,
+        "description": "Token optimization statistics - shows how much API cost is saved"
+    })
+
+
+@app.route('/api/token-optimization/profiles', methods=['GET'])
+def get_prompt_profiles():
+    """✅ Get available prompt profiles for frontend reference"""
+    profiles = prompt_manager.list_profiles()
+    image_profiles = list(prompt_manager.image_profiles.keys())
+    
+    return jsonify({
+        "success": True,
+        "chat_profiles": profiles,
+        "image_profiles": image_profiles,
+        "description": "Available prompt profiles - used for token optimization"
+    })
+
+
+@app.route('/api/token-optimization/demo', methods=['POST'])
+def demo_token_optimization():
+    """🎯 Demo endpoint - test request routing without calling AI"""
+    try:
+        data = request.get_json() or {}
+        message = data.get('message', '')
+        
+        if not message:
+            raise ValidationError('Message required')
+        
+        # Demonstrate all 5 strategies
+        route = request_router.detect_request_type(message)
+        profile_id = prompt_manager.get_profile_id_for_mode('normal')
+        profile = prompt_manager.get_profile(profile_id)
+        
+        return jsonify({
+            "success": True,
+            "message": message,
+            "optimization": {
+                "strategy_1_3": {
+                    "name": "Prompt Profile Caching",
+                    "profile_id": profile_id,
+                    "tokens_saved": profile.token_estimate,
+                    "description": "Instead of sending full prompt, use profile ID"
+                },
+                "strategy_2": {
+                    "name": "Request Routing",
+                    "route": route['action'],
+                    "requires_ai": route['requires_ai'],
+                    "api_service": route['api_service'],
+                    "description": "Route to appropriate service (weather API, image search, etc)"
+                },
+                "strategy_4": {
+                    "name": "Context Summarization",
+                    "trigger": "When conversation > 10 messages",
+                    "savings_percent": "40-60%",
+                    "description": "Compress old messages into summary"
+                },
+                "strategy_5": {
+                    "name": "Function Calling Schema",
+                    "available_functions": len(FunctionSchema.TOOLS),
+                    "description": "Define tools as JSON schema instead of instructions"
+                }
+            },
+            "total_potential_savings": "30-50% per session"
+        })
+    except Exception as e:
+        return error_response(e, session.get('user_id'))
 
 
 @app.route('/api/chat', methods=['POST'])

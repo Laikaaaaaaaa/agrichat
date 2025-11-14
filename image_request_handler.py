@@ -6,6 +6,7 @@ Xử lý tất cả các tin nhắn yêu cầu ảnh từ người dùng
 import logging
 import re
 from typing import Tuple, Optional, List, Dict
+from image_intent_classifier import image_classifier
 
 
 class ImageRequestHandler:
@@ -25,22 +26,6 @@ class ImageRequestHandler:
             'cho tôi ảnh', 'cho tôi hình', 'đưa tôi ảnh', 'đưa tôi hình',
             'muốn xem ảnh', 'muốn xem hình', 'cần ảnh', 'cần hình',
             'tim anh', 'tim hinh', 'cho toi anh', 'cho toi hinh',  # No diacritics
-        ]
-        
-        # Từ khóa biểu đồ và dữ liệu trực quan
-        self.chart_keywords = [
-            'biểu đồ', 'đồ thị', 'chart', 'graph', 'số liệu', 'thống kê',
-            'tỷ lệ', 'phân bố', 'dữ liệu', 'data', 'visualization',
-            'infographic', 'info graphic', 'bảng số liệu',
-            'bieu do', 'do thi', 'so lieu', 'thong ke',  # No diacritics
-        ]
-        
-        # Từ khóa dữ liệu phân tích
-        self.data_keywords = [
-            'phân tích số liệu', 'số lượng', 'so sánh', 'phân tích',
-            'báo cáo', 'report', 'thống kê về', 'tỷ lệ phần trăm',
-            'percentage', 'phần trăm', 'distribution', 'ratio',
-            'phan tich', 'bao cao', 'thong ke', 'ty le',  # No diacritics
         ]
         
         # Từ khóa nông nghiệp + gia súc
@@ -67,12 +52,13 @@ class ImageRequestHandler:
             'hình ảnh', 'hinh anh',
         ]
 
-    def is_image_request(self, message: str) -> bool:
+    def is_image_request(self, message: str, use_ml: bool = True) -> bool:
         """
         Kiểm tra xem tin nhắn có phải là yêu cầu ảnh không
         
         Args:
             message: Tin nhắn từ người dùng
+            use_ml: Sử dụng ML classifier (True) hay rule-based (False)
             
         Returns:
             True nếu là yêu cầu ảnh, False nếu không
@@ -80,12 +66,28 @@ class ImageRequestHandler:
         if not message or not isinstance(message, str):
             return False
         
+        # STEP 1: Sử dụng ML Classifier (chính xác hơn)
+        if use_ml:
+            try:
+                is_request, confidence = image_classifier.predict(message)
+                if confidence > 0.6:  # Threshold 60%
+                    logging.debug(f"🤖 ML detected: {is_request} (confidence: {confidence:.2f})")
+                    return is_request
+            except Exception as e:
+                logging.warning(f"⚠️ ML prediction failed: {e}, falling back to rule-based")
+        
+        # STEP 2: Fallback - Rule-based detection
+        return self._rule_based_detection(message)
+    
+    def _rule_based_detection(self, message: str) -> bool:
+        """
+        Rule-based fallback detection (nếu ML thất bại)
+        """
         message_lower = message.lower()
         
         # STEP 1: Kiểm tra hard keywords
         all_keywords = (
-            self.image_keywords + self.chart_keywords + 
-            self.data_keywords + self.livestock_keywords
+            self.image_keywords + self.livestock_keywords
         )
         
         for keyword in all_keywords:
@@ -122,8 +124,7 @@ class ImageRequestHandler:
         
         # Xóa tất cả các keyword của ảnh ra khỏi tin nhắn
         all_keywords = (
-            self.image_keywords + self.chart_keywords + 
-            self.data_keywords + self.livestock_keywords
+            self.image_keywords + self.livestock_keywords
         )
         
         for keyword in sorted(all_keywords, key=len, reverse=True):  # Xóa keyword dài trước
@@ -169,25 +170,19 @@ class ImageRequestHandler:
 
     def classify_request_type(self, message: str) -> str:
         """
-        Phân loại loại yêu cầu ảnh: image, chart, data, livestock
+        Phân loại loại yêu cầu ảnh: livestock hoặc general
         
         Args:
             message: Tin nhắn từ người dùng
             
         Returns:
-            Loại yêu cầu: 'image', 'chart', 'data', 'livestock', hoặc 'general'
+            Loại yêu cầu: 'livestock' hoặc 'general'
         """
         message_lower = message.lower()
         
         # Kiểm tra từng loại
         if any(kw in message_lower for kw in self.livestock_keywords):
             return 'livestock'
-        elif any(kw in message_lower for kw in self.chart_keywords):
-            return 'chart'
-        elif any(kw in message_lower for kw in self.data_keywords):
-            return 'data'
-        elif any(kw in message_lower for kw in self.image_keywords):
-            return 'image'
         else:
             return 'general'
 

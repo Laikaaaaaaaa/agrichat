@@ -33,6 +33,7 @@ from prompt_manager import (
 from image_request_handler import (
     image_handler, is_image_request, extract_query, get_response_message
 )  # 📸 Import image request handler
+from image_intent_classifier import image_classifier  # 🤖 ML-based image intent classifier
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urljoin
 

@@ -3052,9 +3052,9 @@
 
         const WEATHER_CACHE_KEY = 'agrisense_weather_cache_v1';
         const LOCATION_CACHE_KEY = 'agrisense_location_cache_v1';
-        const WEATHER_CACHE_TTL = 30 * 60 * 1000; // 30 phút (respect Nominatim rate limit)
-        const LOCATION_CACHE_TTL = 30 * 60 * 1000; // 30 phút (same as weather)
-        const WEATHER_UPDATE_INTERVAL = 30 * 60 * 1000; // 30 phút (to avoid blocking from Nominatim)
+        const WEATHER_CACHE_TTL = 5 * 60 * 1000; // 5 phút - refresh frequently for fresh data
+        const LOCATION_CACHE_TTL = 5 * 60 * 1000; // 5 phút - same as weather
+        const WEATHER_UPDATE_INTERVAL = 5 * 60 * 1000; // 5 phút - update every 5 minutes
         const DEFAULT_LOCATION = {
           lat: 21.028511,
           lon: 105.804817,

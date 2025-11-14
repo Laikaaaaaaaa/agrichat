@@ -5355,71 +5355,48 @@ def weather():
                 lon = float(lon_param)
                 logging.info(f"📍 Precise geolocation provided: lat={lat}, lon={lon}")
                 
-                # Use Google Geocoding API to get Vietnamese address with diacritics
-                google_api_key = os.getenv('GOOGLE_API_KEY', 'AIzaSyDdJimOMFcxWubWbbJz_AleXYut_gJzCSI')
-                
+                # Use Nominatim (OpenStreetMap) for reverse geocoding - free, no API key needed
                 try:
-                    geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lon}&language=vi&key={google_api_key}"
-                    geocode_resp = requests.get(geocode_url, timeout=5)
+                    # Nominatim API for reverse geocoding with Vietnamese support
+                    nominatim_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=10&language=vi"
+                    
+                    headers = {
+                        'User-Agent': 'AgriSense-AI/1.0'  # Nominatim requires User-Agent
+                    }
+                    
+                    geocode_resp = requests.get(nominatim_url, headers=headers, timeout=5)
                     
                     if geocode_resp.ok:
                         geo_data = geocode_resp.json()
+                        address = geo_data.get('address', {})
                         
-                        if geo_data.get('status') == 'OK' and geo_data.get('results'):
-                            result = geo_data['results'][0]
-                            address_components = result.get('address_components', [])
-                            
-                            # Extract Vietnamese address components with diacritics
-                            city = None
-                            district = None
-                            province = None
-                            country = 'Việt Nam'
-                            
-                            for component in address_components:
-                                types = component.get('types', [])
-                                name = component.get('long_name', '')
-                                
-                                # Get city (thành phố/thị xã/thị trấn)
-                                if 'locality' in types or 'administrative_area_level_3' in types:
-                                    city = name
-                                
-                                # Get district (quận/huyện)
-                                elif 'administrative_area_level_2' in types:
-                                    district = name
-                                
-                                # Get province (tỉnh/thành phố trực thuộc TW)
-                                elif 'administrative_area_level_1' in types:
-                                    province = name
-                                
-                                # Get country
-                                elif 'country' in types:
-                                    country = name
-                            
-                            # Build location display with Vietnamese format
-                            # Priority: City/District, Province
-                            location_parts = []
-                            
-                            if city:
-                                location_parts.append(city)
-                            elif district:
-                                location_parts.append(district)
-                            
-                            if province and province not in location_parts:
-                                location_parts.append(province)
-                            
-                            location_display = ', '.join(location_parts) if location_parts else 'Việt Nam'
-                            
-                            logging.info(f"✅ Google Geocoding: {location_display}, {country}")
-                            
-                            weather_data = api.get_weather_info_by_coords(lat, lon, location_display, country)
-                            return jsonify(weather_data)
-                        else:
-                            logging.warning(f"⚠️ Google Geocoding API returned status: {geo_data.get('status')}")
-                            # Fall back to coordinates-only
-                            weather_data = api.get_weather_info_by_coords(lat, lon, f"Vị trí ({lat:.2f}, {lon:.2f})", "Việt Nam")
-                            return jsonify(weather_data)
+                        # Extract Vietnamese address components with diacritics
+                        # Nominatim returns: city/town/village, county/district, state/province, country
+                        city = address.get('city') or address.get('town') or address.get('village')
+                        district = address.get('county') or address.get('district')
+                        province = address.get('state') or address.get('province')
+                        country = address.get('country', 'Việt Nam')
+                        
+                        # Build location display with Vietnamese format
+                        # Priority: City/District, Province
+                        location_parts = []
+                        
+                        if city:
+                            location_parts.append(city)
+                        elif district:
+                            location_parts.append(district)
+                        
+                        if province and province not in location_parts:
+                            location_parts.append(province)
+                        
+                        location_display = ', '.join(location_parts) if location_parts else 'Việt Nam'
+                        
+                        logging.info(f"✅ Nominatim Reverse Geocoding: {location_display}, {country}")
+                        
+                        weather_data = api.get_weather_info_by_coords(lat, lon, location_display, country)
+                        return jsonify(weather_data)
                     else:
-                        logging.warning("⚠️ Google Geocoding API request failed")
+                        logging.warning("⚠️ Nominatim API request failed")
                         # Fall back to coordinates-only
                         weather_data = api.get_weather_info_by_coords(lat, lon, f"Vị trí ({lat:.2f}, {lon:.2f})", "Việt Nam")
                         return jsonify(weather_data)

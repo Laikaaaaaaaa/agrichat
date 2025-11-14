@@ -3371,7 +3371,17 @@
         // try same-origin REST endpoint (Flask)
         async function tryServerApi(timeout = 6000) {
           try {
-            const resp = await fetchWithTimeout('/api/weather', { method: 'GET' }, timeout);
+            // ✅ Check if we have precise geolocation coordinates
+            let url = '/api/weather';
+            const geoCoords = window.geoCoordinates;
+            
+            if (geoCoords && geoCoords.lat && geoCoords.lon) {
+              // ✅ Add coordinates to request for reverse geocoding
+              url = `/api/weather?lat=${geoCoords.lat}&lon=${geoCoords.lon}`;
+              console.log('📍 Sending precise geolocation coordinates to backend:', geoCoords);
+            }
+            
+            const resp = await fetchWithTimeout(url, { method: 'GET' }, timeout);
             if (!resp.ok) throw new Error('non-OK');
             const j = await resp.json();
             return j;
@@ -3606,6 +3616,13 @@
                 });
                 localStorage.setItem('agrisense_weather_source', 'geolocation');
                 geoAcquired = true;
+                
+                // ✅ Store precise coordinates for weather API
+                window.geoCoordinates = {
+                  lat: position.coords.latitude,
+                  lon: position.coords.longitude,
+                  accuracy: position.coords.accuracy
+                };
                 
                 // Get weather with precise coordinates
                 const lat = position.coords.latitude;

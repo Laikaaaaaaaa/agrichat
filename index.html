@@ -5958,7 +5958,7 @@
     messageType: imageUrl ? 'IMAGE' : 'TEXT'
   });
   
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     try {
       const chatBox = document.getElementById('chat-box');
       if (!chatBox) {

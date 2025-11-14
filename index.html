@@ -474,41 +474,53 @@
 
       // Khôi phục cuộc hội thoại từ URL
       restoreFromURL() {
+        const isAuthenticated = this.isUserAuthenticated();
         const urlParams = new URLSearchParams(window.location.search);
         const conversationId = urlParams.get('c');
         
         console.log('🔗 Checking URL for conversation ID...');
         console.log('   URL:', window.location.href);
         console.log('   Conversation ID from URL:', conversationId);
+        console.log('   IsAuthenticated:', isAuthenticated);
         console.log('   Total conversations available:', this.conversations.length);
         
         if (conversationId) {
-          console.log('� Found conversation ID in URL:', conversationId);
+          console.log('🔍 Found conversation ID in URL:', conversationId);
           const foundIndex = this.conversations.findIndex(conv => conv.id === conversationId);
           
           if (foundIndex !== -1) {
-            // IMPORTANT: Use reference to object in array!
-            this.currentConversation = this.conversations[foundIndex];
-            sessionStorage.setItem('agrisense_current_conversation_id', conversationId);
-            console.log('✅ Found conversation:', this.currentConversation.title);
-            console.log('   Messages:', this.currentConversation.messages.length);
-            this.currentConversation.messages.forEach((msg, idx) => {
-              console.log(`   ${idx + 1}. ${msg.sender}: ${msg.content ? msg.content.substring(0, 30) : '(no content)'}, image: ${!!msg.imageUrl}`);
-            });
-            
-            // Khôi phục tin nhắn lên chat box
-            setTimeout(() => {
-              this.restoreMessagesToUI();
-            }, 500);
-            return true;
+            // ✅ KIỂM TRA: Chỉ restore nếu đã login
+            if (!isAuthenticated) {
+              console.warn('🚫 User not authenticated, cannot restore permanent conversation');
+              window.history.replaceState({}, '', window.location.pathname);
+              // Fall through to restore temp session if available
+            } else {
+              // IMPORTANT: Use reference to object in array!
+              this.currentConversation = this.conversations[foundIndex];
+              sessionStorage.setItem('agrisense_current_conversation_id', conversationId);
+              console.log('✅ Found conversation:', this.currentConversation.title);
+              console.log('   Messages:', this.currentConversation.messages.length);
+              this.currentConversation.messages.forEach((msg, idx) => {
+                console.log(`   ${idx + 1}. ${msg.sender}: ${msg.content ? msg.content.substring(0, 30) : '(no content)'}, image: ${!!msg.imageUrl}`);
+              });
+              
+              // Khôi phục tin nhắn lên chat box
+              setTimeout(() => {
+                this.restoreMessagesToUI();
+              }, 500);
+              return true;
+            }
           } else {
             console.warn('❌ Conversation not found in localStorage, clearing URL');
             console.log('   Available conversation IDs:', this.conversations.map(c => c.id));
             window.history.replaceState({}, '', window.location.pathname);
           }
-        } else {
-          console.log('ℹ️ No conversation ID in URL, checking sessionStorage...');
-          // Nếu không có URL param, thử restore từ sessionStorage
+        }
+        
+        // No URL param or not authenticated - check session
+        if (!conversationId || !isAuthenticated) {
+          console.log('ℹ️ No conversation ID in URL or not authenticated, checking session...');
+          // Nếu không có URL param hoặc chưa login, thử restore từ sessionStorage/temp session
           this.restoreCurrentConversation();
         }
         return false;

@@ -37,7 +37,7 @@ from image_intent_classifier import image_classifier  # 🤖 ML-based image inte
 from image_search_memory import (
     image_search_memory, alternative_detector, 
     save_search_result, get_unsent_images, has_unsent_images,
-    is_alternative_request, is_same_category_request
+    get_last_query, is_alternative_request, is_same_category_request
 )  # 💾 Import image search memory for handling "different image" requests
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urljoin

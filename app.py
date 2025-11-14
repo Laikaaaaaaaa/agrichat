@@ -15,6 +15,8 @@ from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, make_response, redirect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from functools import wraps
 from cryptography.fernet import Fernet
 from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh mới
@@ -332,6 +334,14 @@ app = Flask(__name__,
             template_folder=os.path.join(HERE, 'templates'),
             static_folder=os.path.join(HERE, 'static'), 
             static_url_path='/static')
+
+# ✅ Initialize Rate Limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"  # Use memory storage (for production, use Redis)
+)
 
 # Configure session for authentication
 # 🔐 SECURITY: Strict session configuration
@@ -5589,6 +5599,7 @@ def get_forum_posts():
 
 
 @app.route('/api/forum/posts', methods=['POST'])
+@limiter.limit("5 per minute")  # ✅ Prevent spam
 def create_forum_post():
     """Create a new forum post"""
     if 'user_id' not in session:
@@ -5910,6 +5921,7 @@ def get_forum_comments(post_id):
 
 
 @app.route('/api/forum/posts/<int:post_id>/comments', methods=['POST'])
+@limiter.limit("10 per minute")  # ✅ Prevent comment spam
 def create_forum_comment(post_id):
     """Create a comment on a post"""
     if 'user_id' not in session:

@@ -7,7 +7,6 @@ import logging
 import pickle
 import os
 from typing import Tuple
-import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline

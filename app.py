@@ -5287,15 +5287,8 @@ def chat():
         logging.info(f"🔍 Chat API called - Message: '{message}', Mode: {mode}")
 
         # �️ KIỂM TRA YÊU CẦU TÌM ẢNH TRƯỚC
-        message_lower = message.lower()
-        image_keywords = [
-            'tìm ảnh', 'tim anh', 'tìm hình', 'tim hinh',
-            'cho tôi ảnh', 'cho toi anh', 'ảnh về', 'anh ve',
-            'hình ảnh', 'hinh anh', 'show me image', 'find image',
-            'search image', 'get image', 'hiển thị ảnh', 'hien thi anh'
-        ]
-
-        is_image_request = any(keyword in message_lower for keyword in image_keywords)
+        # Use ML-based image detection from image_handler
+        is_image_request = image_handler.is_image_request(message)
 
         if is_image_request:
             logging.info("🖼️ Image search request detected")

@@ -370,6 +370,20 @@ def init_db():
         )
     ''')
     
+    # Image search history table - persist search data for "ảnh khác" feature
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS image_search_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            query TEXT NOT NULL,
+            images_json TEXT NOT NULL,
+            sent_image_ids_json TEXT DEFAULT '[]',
+            last_search_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            search_count INTEGER DEFAULT 1,
+            UNIQUE(user_id) ON CONFLICT REPLACE
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 

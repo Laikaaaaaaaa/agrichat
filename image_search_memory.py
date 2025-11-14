@@ -1,21 +1,29 @@
 """
 Image Search Memory Module
 Quản lý lịch sử tìm kiếm ảnh để xử lý requests như "ảnh khác", "ảnh tiếp theo", etc.
+💾 NOW PERSISTS TO DATABASE - survives server restarts!
 """
 
 import logging
+import json
+import sqlite3
 from typing import List, Dict, Optional
 from datetime import datetime
+import os
+
+# Database path
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'agrichat.db')
 
 
 class ImageSearchMemory:
     """
     Lưu trữ thông tin về lần tìm ảnh cuối cùng của user
     Để xử lý các request như "ảnh khác", "ảnh tiếp theo", etc.
+    ✅ NOW PERSISTS TO DATABASE for reliability across restarts
     """
     
     def __init__(self):
-        """Khởi tạo memory - per user"""
+        """Khởi tạo memory - per user (in-RAM cache + database backup)"""
         # Format: {user_id: {
         #   'query': 'con bò',
         #   'images': [{'url': '...', 'id': '...', ...}, ...],
@@ -25,9 +33,20 @@ class ImageSearchMemory:
         # }}
         self.memory = {}
     
+    def _get_db_connection(self):
+        """Get database connection"""
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            return conn
+        except Exception as e:
+            logging.error(f"❌ Failed to connect to database: {e}")
+            return None
+    
     def save_search_result(self, user_id: str, query: str, images: List[Dict]):
         """
         Lưu kết quả tìm kiếm ảnh
+        ✅ Saves to BOTH in-memory and database for persistence
         
         Args:
             user_id: ID người dùng
@@ -37,6 +56,7 @@ class ImageSearchMemory:
         if not user_id or not query or not images:
             return
         
+        # Save to in-memory cache
         self.memory[user_id] = {
             'query': query,
             'images': images,
@@ -46,10 +66,37 @@ class ImageSearchMemory:
         }
         
         logging.info(f"💾 Saved image search result for user {user_id}: '{query}' ({len(images)} images)")
+        
+        # Save to database for persistence
+        try:
+            conn = self._get_db_connection()
+            if not conn:
+                logging.warning("⚠️ Could not save to database (connection failed)")
+                return
+            
+            cursor = conn.cursor()
+            
+            # Serialize images and sent_image_ids for storage
+            images_json = json.dumps(images, ensure_ascii=False)
+            sent_ids_json = json.dumps([], ensure_ascii=False)  # Start with empty sent IDs
+            
+            cursor.execute('''
+                INSERT OR REPLACE INTO image_search_history 
+                (user_id, query, images_json, sent_image_ids_json, last_search_time, search_count)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (user_id, query, images_json, sent_ids_json, datetime.now(), 1))
+            
+            conn.commit()
+            conn.close()
+            
+            logging.info(f"💾 ✅ Persisted to database for user {user_id}")
+        except Exception as e:
+            logging.error(f"❌ Error saving to database: {e}")
     
     def get_unsent_images(self, user_id: str, count: int = 5) -> Optional[List[Dict]]:
         """
         Lấy ảnh chưa gửi từ lần tìm kiếm cuối cùng
+        First tries in-memory, then falls back to database if not in memory
         
         Args:
             user_id: ID người dùng
@@ -58,7 +105,13 @@ class ImageSearchMemory:
         Returns:
             Danh sách ảnh chưa gửi, hoặc None nếu không có
         """
+        # Try to load from memory first
         if user_id not in self.memory:
+            # Try to load from database
+            self._load_from_database(user_id)
+        
+        if user_id not in self.memory:
+            logging.warning(f"⚠️ No search history for user {user_id} (not in memory or database)")
             return None
         
         data = self.memory[user_id]
@@ -77,6 +130,9 @@ class ImageSearchMemory:
         for img in result:
             sent_ids.add(img.get('id'))
         
+        # Save updated sent_ids to database
+        self._update_sent_ids_in_database(user_id, sent_ids)
+        
         logging.info(f"📤 Retrieved {len(result)} unsent images for user {user_id}")
         return result
     
@@ -84,15 +140,33 @@ class ImageSearchMemory:
         """Mark ảnh đã gửi"""
         if user_id in self.memory:
             self.memory[user_id]['sent_image_ids'].add(image_id)
+            # Update database
+            self._update_sent_ids_in_database(user_id, self.memory[user_id]['sent_image_ids'])
     
     def get_last_query(self, user_id: str) -> Optional[str]:
-        """Lấy query tìm kiếm cuối cùng của user"""
+        """
+        Lấy query tìm kiếm cuối cùng của user
+        First tries in-memory, then falls back to database if not in memory
+        """
+        # Try to load from memory first
+        if user_id not in self.memory:
+            # Try to load from database
+            self._load_from_database(user_id)
+        
         if user_id in self.memory:
             return self.memory[user_id]['query']
         return None
     
     def has_unsent_images(self, user_id: str) -> bool:
-        """Check xem có ảnh chưa gửi không"""
+        """
+        Check xem có ảnh chưa gửi không
+        First tries in-memory, then falls back to database if not in memory
+        """
+        # Try to load from memory first
+        if user_id not in self.memory:
+            # Try to load from database
+            self._load_from_database(user_id)
+        
         if user_id not in self.memory:
             return False
         
@@ -103,8 +177,78 @@ class ImageSearchMemory:
         
         return unsent_count > 0
     
+    def _load_from_database(self, user_id: str):
+        """
+        Load search history from database into memory
+        Used when in-memory cache is empty but database has data
+        """
+        try:
+            conn = self._get_db_connection()
+            if not conn:
+                logging.warning("⚠️ Could not load from database (connection failed)")
+                return
+            
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT query, images_json, sent_image_ids_json, last_search_time, search_count
+                FROM image_search_history
+                WHERE user_id = ?
+            ''', (user_id,))
+            
+            row = cursor.fetchone()
+            conn.close()
+            
+            if not row:
+                logging.info(f"ℹ️ No search history in database for user {user_id}")
+                return
+            
+            # Deserialize from JSON
+            query = row[0]
+            images = json.loads(row[1])
+            sent_ids = json.loads(row[2])
+            last_search_time = row[3]
+            search_count = row[4]
+            
+            # Load into memory
+            self.memory[user_id] = {
+                'query': query,
+                'images': images,
+                'sent_image_ids': set(sent_ids),  # Convert back to set
+                'last_search_time': datetime.fromisoformat(last_search_time) if isinstance(last_search_time, str) else last_search_time,
+                'search_count': search_count
+            }
+            
+            logging.info(f"📖 Loaded search history from database for user {user_id}: '{query}' ({len(images)} images, {len(sent_ids)} sent)")
+        
+        except Exception as e:
+            logging.error(f"❌ Error loading from database: {e}")
+    
+    def _update_sent_ids_in_database(self, user_id: str, sent_ids: set):
+        """Update sent_image_ids in database"""
+        try:
+            conn = self._get_db_connection()
+            if not conn:
+                logging.warning("⚠️ Could not update database (connection failed)")
+                return
+            
+            cursor = conn.cursor()
+            sent_ids_json = json.dumps(list(sent_ids), ensure_ascii=False)
+            
+            cursor.execute('''
+                UPDATE image_search_history
+                SET sent_image_ids_json = ?
+                WHERE user_id = ?
+            ''', (sent_ids_json, user_id))
+            
+            conn.commit()
+            conn.close()
+            
+            logging.info(f"📝 Updated sent_ids in database for user {user_id}")
+        except Exception as e:
+            logging.error(f"❌ Error updating database: {e}")
+    
     def clear_user_memory(self, user_id: str):
-        """Xóa memory của user"""
+        """Xóa memory của user (but keep in database)"""
         if user_id in self.memory:
             del self.memory[user_id]
             logging.info(f"🧹 Cleared image search memory for user {user_id}")
@@ -187,22 +331,22 @@ alternative_detector = AlternativeImageRequestDetector()
 
 
 def save_search_result(user_id: str, query: str, images: List[Dict]):
-    """Helper - lưu kết quả tìm kiếm ảnh"""
+    """Helper - lưu kết quả tìm kiếm ảnh (to both memory and database)"""
     image_search_memory.save_search_result(user_id, query, images)
 
 
 def get_unsent_images(user_id: str, count: int = 5) -> Optional[List[Dict]]:
-    """Helper - lấy ảnh chưa gửi"""
+    """Helper - lấy ảnh chưa gửi (loads from database if needed)"""
     return image_search_memory.get_unsent_images(user_id, count)
 
 
 def get_last_query(user_id: str) -> Optional[str]:
-    """Helper - lấy query cuối cùng"""
+    """Helper - lấy query cuối cùng (loads from database if needed)"""
     return image_search_memory.get_last_query(user_id)
 
 
 def has_unsent_images(user_id: str) -> bool:
-    """Helper - check có ảnh chưa gửi"""
+    """Helper - check có ảnh chưa gửi (loads from database if needed)"""
     return image_search_memory.has_unsent_images(user_id)
 
 

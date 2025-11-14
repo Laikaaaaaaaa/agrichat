@@ -404,14 +404,10 @@
       }
 
       saveConversations() {
-        // ✅ Kiểm tra xem user đã đăng nhập chưa
+        // ✅ LUÔN lưu localStorage (dù đã đăng nhập hay chưa)
+        // Kiểm tra xem user đã đăng nhập để quyết định có sync database không
         const isAuthenticated = this.isUserAuthenticated();
         console.log('🔐 Checking authentication:', isAuthenticated);
-        console.log('   localStorage agrisense_user_logged_in:', localStorage.getItem('agrisense_user_logged_in'));
-        if (!isAuthenticated) {
-          console.warn('⚠️ User chưa đăng nhập, không lưu lịch sử');
-          return;
-        }
         
         // ✅ LỌC BỎ CONVERSATIONS KHÔNG CÓ TIN NHẮN
         this.conversations = this.conversations.filter(conv => {
@@ -445,8 +441,14 @@
         });
         
         try {
+          // ✅ LUÔN lưu localStorage
           localStorage.setItem('agrisense_chat_history', JSON.stringify(conversationsToSave));
-          console.log(`✅ Đã lưu ${conversationsToSave.length} conversations (không có ảnh)`);
+          console.log(`✅ Đã lưu ${conversationsToSave.length} conversations vào localStorage`);
+          
+          // ✅ Nếu đã đăng nhập, sync thêm lên database
+          if (isAuthenticated) {
+            this.syncToDatabase(conversationsToSave);
+          }
         } catch (e) {
           console.error('❌ Lỗi lưu localStorage:', e);
           // Nếu vẫn lỗi, xóa hết và chỉ giữ conversation hiện tại
@@ -462,6 +464,30 @@
           sessionStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
           // Cập nhật URL với conversation ID
           this.updateURL(this.currentConversation.id);
+        }
+      }
+      
+      // ✅ Sync conversations to database when user is authenticated
+      async syncToDatabase(conversations) {
+        try {
+          console.log('🔄 Syncing conversations to database...');
+          const response = await fetch('/api/chat/history/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              conversations: conversations
+            })
+          });
+          
+          if (response.ok) {
+            console.log('✅ Successfully synced to database');
+          } else {
+            console.warn('⚠️ Failed to sync to database:', response.status);
+          }
+        } catch (error) {
+          console.warn('⚠️ Error syncing to database (non-blocking):', error.message);
         }
       }
 
@@ -900,6 +926,15 @@
       const migrated = window.chatHistoryManager.migrateSessionToHistory();
       if (migrated) {
         console.log('✅ Migrated temp session to permanent history');
+      }
+      
+      // ✅ Trigger sync to database when user logs in
+      console.log('🔄 Syncing localStorage conversations to database...');
+      const conversationToSync = window.chatHistoryManager.conversations;
+      if (conversationToSync && conversationToSync.length > 0) {
+        window.chatHistoryManager.syncToDatabase(conversationToSync).catch(err => {
+          console.warn('⚠️ Sync failed (non-critical):', err.message);
+        });
       }
     }
 

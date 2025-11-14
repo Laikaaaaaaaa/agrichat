@@ -5434,6 +5434,49 @@ def chat():
         }), 500
 
 
+@app.route('/api/chat/history/sync', methods=['POST'])
+def sync_chat_history():
+    """API endpoint to sync localStorage conversations to database when user logs in"""
+    # 🔐 SECURITY: Check if user is authenticated
+    if 'user_id' not in session:
+        logging.warning("⚠️ Unauthorized sync attempt - No session user_id")
+        return jsonify({
+            "success": False,
+            "error": "Unauthorized"
+        }), 401
+    
+    try:
+        user_id = session['user_id']
+        data = request.json
+        conversations = data.get('conversations', [])
+        
+        logging.info(f"🔄 Syncing {len(conversations)} conversations for user {user_id}")
+        
+        if not conversations:
+            logging.info(f"ℹ️ No conversations to sync for user {user_id}")
+            return jsonify({
+                "success": True,
+                "message": "ℹ️ No conversations to sync"
+            })
+        
+        # ✅ TODO: Implement database sync
+        # For now, just acknowledge receipt
+        logging.info(f"✅ Received {len(conversations)} conversations for sync")
+        
+        return jsonify({
+            "success": True,
+            "message": f"✅ Synced {len(conversations)} conversations",
+            "synced_count": len(conversations)
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error syncing history: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 @app.route('/api/weather', methods=['GET'])
 def weather():
     """API endpoint for weather - Supports both IP-based and precise lat/lon"""

@@ -3079,9 +3079,9 @@
 
         const WEATHER_CACHE_KEY = 'agrisense_weather_cache_v1';
         const LOCATION_CACHE_KEY = 'agrisense_location_cache_v1';
-        const WEATHER_CACHE_TTL = 15 * 60 * 1000; // 15 phút
-        const LOCATION_CACHE_TTL = 15 * 60 * 1000; // 15 phút (same as weather)
-        const WEATHER_UPDATE_INTERVAL = 15 * 60 * 1000; // 15 phút
+        const WEATHER_CACHE_TTL = 30 * 60 * 1000; // 30 phút (respect Nominatim rate limit)
+        const LOCATION_CACHE_TTL = 30 * 60 * 1000; // 30 phút (same as weather)
+        const WEATHER_UPDATE_INTERVAL = 30 * 60 * 1000; // 30 phút (to avoid blocking from Nominatim)
         const DEFAULT_LOCATION = {
           lat: 21.028511,
           lon: 105.804817,
@@ -3713,9 +3713,9 @@
         // Start weather on page load with automatic geolocation request
         requestGeolocationOnLoad();
 
-        // ✅ Update geolocation every 15 minutes
+        // ✅ Update geolocation every 30 minutes (respect Nominatim rate limit - avoid blocking)
         setInterval(() => {
-          console.log('🔄 15-minute geolocation + weather update...');
+          console.log('🔄 30-minute geolocation + weather update...');
           // Clear old coordinates to force fresh geolocation
           window.geoCoordinates = null;
           // Clear weather cache to force fresh data
@@ -3723,15 +3723,14 @@
           requestGeolocationOnLoad();
         }, WEATHER_UPDATE_INTERVAL);
 
-        // ✅ Update geolocation when page becomes visible (tab refocus, return from background)
+        // ✅ When page becomes visible: just load weather (don't clear cache if within 30min)
+        // This way, reload keeps the cached location for 30 minutes to respect Nominatim rate limits
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {
-            console.log('👁️ Page is now visible, updating geolocation + weather...');
-            // Clear old coordinates to force fresh geolocation
-            window.geoCoordinates = null;
-            // Clear weather cache to force fresh data
-            clearWeatherCache();
-            requestGeolocationOnLoad();
+            console.log('👁️ Page is now visible, using cached location (reload respects 30min limit)...');
+            // Don't clear cache - keep location cached for full 30 minutes
+            // Just fetch latest weather with cached coordinates if available
+            getWeatherInfo();
           }
         });
 

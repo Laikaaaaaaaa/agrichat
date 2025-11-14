@@ -30,6 +30,9 @@ from error_handlers import (
 from prompt_manager import (
     prompt_manager, request_router, context_summarizer, token_tracker, FunctionSchema
 )  # 🚀 Import token optimization system
+from image_request_handler import (
+    image_handler, is_image_request, extract_query, get_response_message
+)  # 📸 Import image request handler
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urljoin
 
@@ -3559,63 +3562,9 @@ Chỉ trả lời đúng 1 từ khóa, không giải thích.
     def detect_image_request(self, message):
         """
         Detect if user is requesting an image, chart, or visual data
+        Uses image_request_handler module for centralized logic
         """
-        image_keywords = [
-            # Từ khóa ảnh trực tiếp
-            'hình ảnh', 'ảnh', 'xem ảnh', 'xem hình', 'coi ảnh', 'coi hình',
-            'cho tôi xem', 'cho tôi xem hình', 'cho tôi coi ảnh', 'cho tôi coi hình',
-            'đưa ảnh', 'hiển thị ảnh', 'cho xin ảnh', 'cho xin hình',
-            'tìm ảnh', 'tìm hình', 'kiếm ảnh', 'kiếm hình',
-            'lấy ảnh', 'lấy hình', 'gửi ảnh', 'gửi hình',
-            'show', 'image', 'picture', 'photo',
-            'cho tôi ảnh', 'cho tôi hình', 'đưa tôi ảnh', 'đưa tôi hình',
-            'muốn xem ảnh', 'muốn xem hình', 'cần ảnh', 'cần hình',
-            
-            # Từ khóa biểu đồ và dữ liệu trực quan
-            'biểu đồ', 'đồ thị', 'chart', 'graph', 'số liệu', 'thống kê',
-            'tỷ lệ', 'phân bố', 'dữ liệu', 'data', 'visualization',
-            'infographic', 'info graphic', 'bảng số liệu',
-            
-            # Từ khóa yêu cầu hiển thị dữ liệu
-            'phân tích số liệu', 'số lượng', 'so sánh', 'phân tích',
-            'báo cáo', 'report', 'thống kê về', 'tỷ lệ phần trăm',
-            'percentage', 'phần trăm', 'distribution', 'ratio',
-            
-            # Từ khóa đặc biệt cho nông nghiệp và chăn nuôi
-            'số lượng gia súc', 'tỷ lệ gia súc', 'phân bố gia súc',
-            'số lượng bò', 'số lượng heo', 'số lượng gà',
-            'thống kê nông nghiệp', 'dữ liệu chăn nuôi',
-            'livestock data', 'agricultural statistics'
-        ]
-        
-        message_lower = message.lower()
-        message_normalized = self._normalize_text(message)
-
-        for keyword in image_keywords:
-            if keyword in message_lower:
-                print(f"DEBUG: Found visual/data keyword '{keyword}' in message: {message}")
-                return True
-
-        normalized_visual_terms = [
-            'hinh', 'hinh anh', 'anh chup', 'hinh chup',
-            'buc anh', 'tam anh', 'buc hinh', 'tam hinh',
-            'anh minh hoa', 'anh ve', 'hinh ve',
-            'image', 'picture', 'photo', 'img'
-        ]
-        normalized_request_terms = [
-            'tim', 'tim kiem', 'kiem', 'kiem giup', 'find', 'search', 'look for',
-            'cho toi', 'cho tui', 'cho minh', 'cho em', 'xin', 'cho xin', 'vui long', 'lam on',
-            'lay', 'lay giup', 'gui', 'gui giup', 'cung cap', 'show', 'show me', 'display',
-            'xem', 'coi', 'hay cho', 'giup tim', 'giup kiem', 'please', 'may i see',
-            'give me', 'provide', 'send me', 'let me see', 'mo', 'mo giup', 'open'
-        ]
-
-        normalized_visual_match = any(term in message_normalized for term in normalized_visual_terms)
-        normalized_request_match = any(term in message_normalized for term in normalized_request_terms)
-
-        if normalized_visual_match and normalized_request_match:
-            print(f"DEBUG: Detected image intent via dynamic keywords in: {message}")
-            return True
+        return image_handler.is_image_request(message)
 
         bare_visual_intents = [
             'hinh', 'hinh anh', 'picture', 'photo', 'image',
@@ -5348,20 +5297,11 @@ def chat():
         is_image_request = any(keyword in message_lower for keyword in image_keywords)
 
         if is_image_request:
-            logging.info("�️ Image search request detected")
+            logging.info("🖼️ Image search request detected")
 
-            # Trích xuất chủ đề
-            query = message
-            for keyword in image_keywords:
-                query = query.lower().replace(keyword, '').strip()
-
-            stop_words = ['của', 'cho', 'về', 'với', 'trong', 'tôi', 'mình', 'bạn', 'đi', 'nha', 'ạ', 'nhé']
-            query_words = [word for word in query.split() if word not in stop_words]
-            clean_query = ' '.join(query_words).strip()
-
-            if not clean_query:
-                clean_query = 'nông nghiệp'
-
+            # Sử dụng image_request_handler để trích xuất query
+            clean_query = image_handler.extract_query(message)
+            
             logging.info(f"🎯 Search query: {clean_query}")
 
             # Tìm ảnh
@@ -5370,15 +5310,17 @@ def chat():
             if images and len(images) > 0:
                 # Trả về format đặc biệt cho frontend
                 return jsonify({
-                    "response": f"🖼️ Đây là {len(images)} ảnh về '{clean_query}':",
+                    "response": get_response_message(clean_query, len(images)),
                     "success": True,
                     "type": "images",
                     "images": images,
                     "query": clean_query
                 })
             else:
+                # Tạo tin nhắn "không tìm được"
+                not_found_msg = get_response_message(clean_query, 0)
                 return jsonify({
-                    "response": f"😔 Xin lỗi, tôi không tìm được ảnh nào về '{clean_query}'. Bạn thử từ khóa khác nhé!",
+                    "response": not_found_msg,
                     "success": True,
                     "type": "text"
                 })

@@ -7715,6 +7715,16 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     if (ipWeather) {
       console.log('✅ Weather data loaded via IP lookup:', ipWeather);
       
+      // ✅ Save location from IP lookup if it's not a fallback location
+      const isNotFallback = (ipWeather.location_name !== 'Hồ Chí Minh' && ipWeather.location_name !== 'Ho Chi Minh City');
+      if (isNotFallback) {
+        localStorage.setItem('agrisense_last_location', JSON.stringify({
+          name: ipWeather.location_name,
+          country: ipWeather.location_country,
+          timestamp: Date.now()
+        }));
+      }
+      
       // Show "Enable precise location" button if IP location looks wrong
       const locationBtn = document.getElementById('request-location-btn');
       const isLikelyWrongLocation = 
@@ -8136,6 +8146,13 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
           if (weatherData.success) {
             console.log('✅ Weather data received with precise location:', weatherData);
             
+            // ✅ Save this location as last known good location
+            localStorage.setItem('agrisense_last_location', JSON.stringify({
+              name: weatherData.location_name,
+              country: weatherData.location_country,
+              timestamp: Date.now()
+            }));
+            
             // Render the weather display
             renderWeatherDisplay(weatherEl, {
               city: weatherData.location_name || weatherData.city || 'Vị trí chính xác',
@@ -8195,6 +8212,11 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     if (weatherEl && weatherEl.dataset.state !== 'loading') {
       // Re-run the main weather initialization to get fresh data
       clearWeatherCache();
+      
+      // Get last known location from localStorage as fallback
+      const lastLocationStr = localStorage.getItem('agrisense_last_location');
+      const lastLocation = lastLocationStr ? JSON.parse(lastLocationStr) : null;
+      
       // Trigger weather update using the same logic as initial load
       if ('geolocation' in navigator) {
         try {
@@ -8202,7 +8224,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             navigator.geolocation.getCurrentPosition(
               (pos) => resolve(pos),
               (err) => reject(err),
-              { timeout: 5000, enableHighAccuracy: false, maximumAge: 0 }
+              { timeout: 5000, enableHighAccuracy: false, maximumAge: 60 * 1000 }  // Allow 60s cached position
             );
           });
           if (position?.coords) {
@@ -8211,6 +8233,13 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             if (response.ok) {
               const data = await response.json();
               if (data.success) {
+                // Save this location as last known good location
+                localStorage.setItem('agrisense_last_location', JSON.stringify({
+                  name: data.location_name,
+                  country: data.location_country,
+                  timestamp: Date.now()
+                }));
+                
                 // Update weather display
                 const mainEl = document.getElementById('weather-main');
                 const subEl = document.getElementById('weather-sub');
@@ -8220,24 +8249,38 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
                 document.getElementById('stat-hum').textContent = data.humidity ? `${data.humidity}%` : '—';
                 document.getElementById('stat-wind').textContent = data.wind_speed ? `${data.wind_speed} km/h` : '—';
                 document.getElementById('stat-precip').textContent = data.precipitation ? `${data.precipitation} mm` : '—';
-                console.log('✅ Weather updated successfully');
+                console.log('✅ Weather updated successfully via geolocation');
               }
             }
           }
         } catch (e) {
-          console.log('ℹ️ Fallback to IP-based weather update...');
+          console.log('ℹ️ Geolocation failed, trying IP-based weather update...');
           // Fallback to IP-based update
           const ipWeather = await getWeatherByIP();
-          if (ipWeather) {
+          if (ipWeather && ipWeather.location_name) {
+            // ✅ NEW: Validate location - don't replace with 'Hồ Chí Minh' if we have a better location
+            const isLikelyFallback = (ipWeather.location_name === 'Hồ Chí Minh' || ipWeather.location_name === 'Ho Chi Minh City');
+            const shouldUseLastLocation = isLikelyFallback && lastLocation;
+            
+            const finalLocation = shouldUseLastLocation ? lastLocation.name : ipWeather.location_name;
+            const finalCountry = shouldUseLastLocation ? lastLocation.country : ipWeather.location_country;
+            
             const mainEl = document.getElementById('weather-main');
             const subEl = document.getElementById('weather-sub');
-            if (mainEl) mainEl.textContent = `${ipWeather.condition} — ${ipWeather.location_name}, ${ipWeather.location_country}`;
+            if (mainEl) mainEl.textContent = `${ipWeather.condition} — ${finalLocation}, ${finalCountry}`;
             if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()}`;
             document.getElementById('stat-temp').textContent = ipWeather.temp ? `${ipWeather.temp}°C` : '—';
             document.getElementById('stat-hum').textContent = ipWeather.humidity ? `${ipWeather.humidity}%` : '—';
             document.getElementById('stat-wind').textContent = ipWeather.wind_kph ? `${ipWeather.wind_kph} km/h` : '—';
             document.getElementById('stat-precip').textContent = ipWeather.precip_mm ? `${ipWeather.precip_mm} mm` : '—';
-            console.log('✅ Weather updated via IP fallback');
+            console.log('✅ Weather updated via IP fallback, using last known location:', finalLocation);
+          } else if (lastLocation) {
+            // Use cached location as ultimate fallback
+            console.log('⚠️ IP weather failed, using last known location:', lastLocation.name);
+            const mainEl = document.getElementById('weather-main');
+            const subEl = document.getElementById('weather-sub');
+            if (mainEl) mainEl.textContent = `Thời tiết — ${lastLocation.name}, ${lastLocation.country}`;
+            if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()} (bản đệm)`;
           }
         }
       }

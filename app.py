@@ -5603,8 +5603,25 @@ def create_forum_post():
         poll = data.get('poll')  # Poll data
         mentioned_users = data.get('mentioned_users', [])  # Mentioned users
         
-        if not content:
+        # ✅ INPUT VALIDATION
+        if not content or len(content) == 0:
             return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
+        
+        if len(content) > 5000:
+            return jsonify({'success': False, 'message': 'Nội dung quá dài (tối đa 5000 ký tự)'}), 400
+        
+        if title and len(title) > 300:
+            return jsonify({'success': False, 'message': 'Tiêu đề quá dài (tối đa 300 ký tự)'}), 400
+        
+        # Validate tags
+        if not isinstance(tags, list):
+            tags = []
+        tags = [str(tag).strip()[:50] for tag in tags if tag][:10]  # Max 10 tags, 50 chars each
+        
+        # Validate mentioned users
+        if not isinstance(mentioned_users, list):
+            mentioned_users = []
+        mentioned_users = [int(uid) for uid in mentioned_users if str(uid).isdigit()][:10]
         
         conn = auth.get_db_connection()
         cursor = conn.cursor()
@@ -5622,10 +5639,11 @@ def create_forum_post():
         conn.commit()
         conn.close()
         
+        logging.info(f"📝 Forum post created: post_id={post_id}, user_id={session['user_id']}")
         return jsonify({'success': True, 'post_id': post_id})
     except Exception as e:
-        logging.error(f"Error creating forum post: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error(f"❌ Error creating forum post: {e}")
+        return jsonify({'success': False, 'message': 'Lỗi tạo bài viết'}), 500
 
 
 @app.route('/api/forum/posts/<int:post_id>', methods=['DELETE'])
@@ -5901,8 +5919,12 @@ def create_forum_comment(post_id):
         data = request.get_json()
         content = data.get('content', '').strip()
         
-        if not content:
+        # ✅ INPUT VALIDATION
+        if not content or len(content) == 0:
             return jsonify({'success': False, 'message': 'Nội dung không được để trống'}), 400
+        
+        if len(content) > 2000:
+            return jsonify({'success': False, 'message': 'Nội dung quá dài (tối đa 2000 ký tự)'}), 400
         
         conn = auth.get_db_connection()
         cursor = conn.cursor()

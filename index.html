@@ -3079,9 +3079,9 @@
 
         const WEATHER_CACHE_KEY = 'agrisense_weather_cache_v1';
         const LOCATION_CACHE_KEY = 'agrisense_location_cache_v1';
-        const WEATHER_CACHE_TTL = 5 * 60 * 1000; // 5 phút - refresh frequently for fresh data
-        const LOCATION_CACHE_TTL = 5 * 60 * 1000; // 5 phút - same as weather
-        const WEATHER_UPDATE_INTERVAL = 5 * 60 * 1000; // 5 phút - update every 5 minutes
+        const WEATHER_CACHE_TTL = 5 * 60 * 1000; // 5 phút - cache for API calls
+        const LOCATION_CACHE_TTL = 90 * 60 * 1000; // 90 phút - sync with weather update interval
+        const WEATHER_UPDATE_INTERVAL = 90 * 60 * 1000; // 90 phút (1h30) - update every 1.5 hours
         const DEFAULT_LOCATION = {
           lat: 21.028511,
           lon: 105.804817,
@@ -8244,16 +8244,50 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       const lastLocationStr = localStorage.getItem('agrisense_last_location');
       const lastLocation = lastLocationStr ? JSON.parse(lastLocationStr) : null;
       
+      // Get cached geolocation coordinates if fresh (reuse instead of making new request every 5 min)
+      const cachedGeoStr = localStorage.getItem('agrisense_cached_geolocation');
+      const cachedGeo = cachedGeoStr ? JSON.parse(cachedGeoStr) : null;
+      const GEO_CACHE_TTL = 90 * 60 * 1000; // 90 minutes - sync with weather update interval
+      const now = Date.now();
+      const isGeoCacheFresh = cachedGeo && (now - cachedGeo.timestamp) < GEO_CACHE_TTL;
+      
+      let shouldUseGeolocation = isGeoCacheFresh || 'geolocation' in navigator;
+      
       // Trigger weather update using the same logic as initial load
-      if ('geolocation' in navigator) {
+      if (shouldUseGeolocation) {
         try {
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => resolve(pos),
-              (err) => reject(err),
-              { timeout: 5000, enableHighAccuracy: false, maximumAge: 60 * 1000 }  // Allow 60s cached position
-            );
-          });
+          let position;
+          
+          if (isGeoCacheFresh) {
+            // Reuse cached geolocation coordinates if still fresh
+            console.log('📍 Using cached geolocation (fresh)');
+            position = {
+              coords: {
+                latitude: cachedGeo.latitude,
+                longitude: cachedGeo.longitude
+              }
+            };
+          } else {
+            // Request fresh geolocation
+            position = await new Promise((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => resolve(pos),
+                (err) => reject(err),
+                { timeout: 5000, enableHighAccuracy: false, maximumAge: 5 * 1000 }  // 5s cache for OS geolocation
+              );
+            });
+            
+            // Cache the geolocation coordinates for next refresh cycle
+            if (position?.coords) {
+              localStorage.setItem('agrisense_cached_geolocation', JSON.stringify({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                timestamp: Date.now()
+              }));
+              console.log('📍 Cached new geolocation:', position.coords.latitude, position.coords.longitude);
+            }
+          }
+          
           if (position?.coords) {
             const { latitude, longitude } = position.coords;
             const response = await fetch(`/api/weather?lat=${latitude}&lon=${longitude}`);
@@ -8312,7 +8346,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
         }
       }
     }
-  }, 5 * 60 * 1000); // Every 5 minutes
+  }, 90 * 60 * 1000); // Every 90 minutes (1h30)
   
   // Old weather initialization removed - new weather widget is self-initializing
   

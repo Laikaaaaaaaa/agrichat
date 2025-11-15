@@ -513,8 +513,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             "tz_id": default_tz
         }
 
-        self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 900)) or 900
-        self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300
+        self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 5400)) or 5400  # 90 min - sync with frontend weather update
+        self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300  # 5 min - for API rate limiting
         self._ip_location_cache = {"timestamp": 0.0, "data": None}
         self._weather_cache = {"timestamp": 0.0, "payload": None}
 
@@ -856,11 +856,21 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                         ip_data = raw_data
                     
                     ip_meta["source"] = service_name
-                    self._ip_location_cache = {
-                        "timestamp": now,
-                        "data": copy.deepcopy(ip_data)
-                    }
-                    logging.info(f"✅ Got location from {service_name}: {ip_data.get('city')}, {ip_data.get('country_name')}")
+                    
+                    # ✅ VALIDATE: Only cache if we got meaningful location (not just fallback)
+                    # Skip caching if city is empty or coordinate format (fallback indicator)
+                    extracted_city = ip_data.get('city') or ip_data.get('region')
+                    if extracted_city and extracted_city.strip():
+                        self._ip_location_cache = {
+                            "timestamp": now,
+                            "data": copy.deepcopy(ip_data)
+                        }
+                        logging.info(f"✅ Got location from {service_name}: {ip_data.get('city')}, {ip_data.get('country_name')}")
+                    else:
+                        logging.warning(f"⚠️ {service_name} returned empty city, skipping cache")
+                        ip_data = None
+                        continue
+                    
                     break  # Success, exit the loop
                     
                 except Exception as exc:

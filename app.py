@@ -5457,6 +5457,9 @@ def weather():
                 lon = float(lon_param)
                 logging.info(f"📍 Precise geolocation provided: lat={lat}, lon={lon}")
                 
+                city_name = None
+                country_name = 'Việt Nam'
+                
                 # Use Nominatim (OpenStreetMap) for reverse geocoding - free, no API key needed
                 try:
                     # Nominatim API for reverse geocoding with Vietnamese support
@@ -5491,23 +5494,58 @@ def weather():
                         if province and province not in location_parts:
                             location_parts.append(province)
                         
-                        location_display = ', '.join(location_parts) if location_parts else 'Việt Nam'
+                        city_name = ', '.join(location_parts) if location_parts else None
+                        country_name = country
                         
-                        logging.info(f"✅ Nominatim Reverse Geocoding: {location_display}, {country}")
-                        
-                        weather_data = api.get_weather_info_by_coords(lat, lon, location_display, country)
-                        return jsonify(weather_data)
+                        logging.info(f"✅ Nominatim Reverse Geocoding: {city_name}, {country_name}")
                     else:
                         logging.warning("⚠️ Nominatim API request failed")
-                        # Fall back to coordinates-only
-                        weather_data = api.get_weather_info_by_coords(lat, lon, f"Vị trí ({lat:.2f}, {lon:.2f})", "Việt Nam")
-                        return jsonify(weather_data)
                         
                 except Exception as geo_error:
-                    logging.error(f"❌ Google Geocoding error: {geo_error}")
-                    # Fall back to coordinates-only
-                    weather_data = api.get_weather_info_by_coords(lat, lon, f"Vị trí ({lat:.2f}, {lon:.2f})", "Việt Nam")
-                    return jsonify(weather_data)
+                    logging.warning(f"⚠️ Nominatim error: {geo_error}")
+                
+                # If Nominatim failed, try to get location from WeatherAPI
+                if not city_name:
+                    try:
+                        logging.info("🔄 Trying WeatherAPI for location fallback...")
+                        params = {
+                            "key": api.weatherapi_key,
+                            "q": f"{lat},{lon}",
+                            "aqi": "no",
+                            "lang": "vi"
+                        }
+                        resp = requests.get(
+                            "https://api.weatherapi.com/v1/current.json",
+                            params=params,
+                            timeout=6
+                        )
+                        if resp.ok:
+                            data = resp.json()
+                            location = data.get("location", {})
+                            # Try to build location from WeatherAPI response
+                            weatherapi_city = location.get('name')
+                            weatherapi_region = location.get('region')
+                            
+                            location_parts = []
+                            if weatherapi_city:
+                                location_parts.append(weatherapi_city)
+                            if weatherapi_region and weatherapi_region not in location_parts:
+                                location_parts.append(weatherapi_region)
+                            
+                            if location_parts:
+                                city_name = ', '.join(location_parts)
+                                country_name = location.get('country', 'Việt Nam')
+                                logging.info(f"✅ Got location from WeatherAPI: {city_name}, {country_name}")
+                    except Exception as wa_error:
+                        logging.warning(f"⚠️ WeatherAPI location lookup failed: {wa_error}")
+                
+                # If still no location name, use coordinates
+                if not city_name:
+                    city_name = f"Vị trí ({lat:.2f}, {lon:.2f})"
+                    logging.warning(f"⚠️ Using coordinate format: {city_name}")
+                
+                weather_data = api.get_weather_info_by_coords(lat, lon, city_name, country_name)
+                return jsonify(weather_data)
                     
             except ValueError:
                 logging.error(f"❌ Invalid lat/lon parameters: lat={lat_param}, lon={lon_param}")

@@ -2874,7 +2874,7 @@
   <script>
     /**
      * Forum notification - Hiển thị một lần duy nhất (không lặp lại khi reload)
-     * Người dùng có thể đóng, và không hiển thị lại trong phiên làm việc này
+     * Tự động đóng sau 10 giây với hiệu ứng slide-up mượt mà
      */
     (function() {
       const notif = document.getElementById('forum-notification');
@@ -2883,6 +2883,26 @@
 
       // Flag để theo dõi đã hiển thị hay chưa trong phiên này
       const NOTIFICATION_SHOWN_FLAG = 'forumNotificationShown';
+      let hideTimeout = null;
+
+      /**
+       * Ẩn thông báo với hiệu ứng slide-up
+       */
+      function hideNotif() {
+        try {
+          clearTimeout(hideTimeout); // Cancel auto-hide if triggered manually
+          notif.classList.remove('animate-slide-down');
+          notif.classList.add('animate-slide-up');
+          
+          // Ẩn sau khi animation hoàn thành (0.5s)
+          setTimeout(() => {
+            notif.style.display = 'none';
+            notif.classList.remove('animate-slide-up');
+          }, 500);
+        } catch (e) {
+          console.error('❌ Lỗi ẩn thông báo diễn đàn:', e);
+        }
+      }
 
       /**
        * Hiển thị thông báo
@@ -2894,25 +2914,32 @@
           notif.classList.add('animate-slide-down');
           // Đánh dấu là đã hiển thị
           sessionStorage.setItem(NOTIFICATION_SHOWN_FLAG, 'true');
+          
+          // ⏰ Auto-hide sau 10 giây
+          scheduleAutoHide();
         } catch (e) {
           console.error('❌ Lỗi hiển thị thông báo diễn đàn:', e);
         }
       }
 
       /**
-       * Ẩn thông báo
+       * Lên lịch tự động ẩn sau 10 giây
        */
-      function hideNotif() {
-        try {
-          notif.style.display = 'none';
-          notif.classList.remove('animate-slide-down');
-        } catch (e) {
-          console.error('❌ Lỗi ẩn thông báo diễn đàn:', e);
-        }
+      function scheduleAutoHide() {
+        clearTimeout(hideTimeout);
+        hideTimeout = setTimeout(() => {
+          console.log('⏰ Auto-hiding forum notification after 10s');
+          hideNotif();
+        }, 10000);
       }
 
-      // Gắn sự kiện đóng
-      if (closeBtn) closeBtn.addEventListener('click', hideNotif);
+      // Gắn sự kiện đóng thủ công
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          hideNotif();
+        });
+      }
 
       // Chỉ hiển thị một lần duy nhất (nếu chưa hiển thị)
       try {

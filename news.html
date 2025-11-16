@@ -283,9 +283,10 @@
       </div>
 
       <div class="text-center mt-6 pt-4 border-t border-gray-100">
-        <button id="load-more" class="hidden bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-sm">
+        <button id="load-more" class="hidden bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-sm flex items-center gap-2 mx-auto">
           <i class="fas fa-plus mr-2"></i>
-          Tải thêm tin tức
+          <span id="load-more-text">Tải thêm tin tức</span>
+          <i id="load-more-spinner" class="fas fa-spinner fa-spin hidden"></i>
         </button>
       </div>
     </main>
@@ -801,7 +802,7 @@
         }
         
         // Chuyển đổi format từ backend
-        const newsItems = data.items.map(item => {
+        let newsItems = data.items.map(item => {
           let description = item.description || '';
           if (description) {
             description = description.replace(/<[^>]*>/g, '').substring(0, 300);
@@ -821,6 +822,19 @@
             guid: item.guid || item.link
           };
         });
+        
+        // For Dân Trí, filter out articles without images
+        if (feed.name.includes('Dân Trí')) {
+          const originalCount = newsItems.length;
+          newsItems = newsItems.filter(item => item.urlToImage && item.urlToImage.trim() !== '');
+          if (newsItems.length === 0) {
+            console.log(`⚠️ Dân Trí: tất cả bài đều không có ảnh, bỏ feed này`);
+            return [];
+          }
+          if (newsItems.length < originalCount) {
+            console.log(`📸 Dân Trí: lọc bài không ảnh: ${originalCount} → ${newsItems.length}`);
+          }
+        }
         
         if (newsItems.length > 0) {
           console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ backend)`);
@@ -896,9 +910,23 @@
             };
           });
           
-          if (newsItems.length > 0) {
-            console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ rss2json fallback)`);
-            return newsItems;
+          // For Dân Trí, filter out articles without images
+          let filteredItems = newsItems;
+          if (feed.name.includes('Dân Trí')) {
+            const originalCount = filteredItems.length;
+            filteredItems = filteredItems.filter(item => item.urlToImage && item.urlToImage.trim() !== '');
+            if (filteredItems.length === 0) {
+              console.log(`⚠️ Dân Trí (fallback): tất cả bài đều không có ảnh`);
+              continue;
+            }
+            if (filteredItems.length < originalCount) {
+              console.log(`📸 Dân Trí (fallback): lọc bài không ảnh: ${originalCount} → ${filteredItems.length}`);
+            }
+          }
+          
+          if (filteredItems.length > 0) {
+            console.log(`✅ ${feed.name}: ${filteredItems.length} bài (từ rss2json fallback)`);
+            return filteredItems;
           }
           
         } catch (error) {
@@ -1886,6 +1914,15 @@
         return;
       }
       
+      // Show loading spinner on button
+      const loadMoreBtn = document.getElementById('load-more');
+      const spinner = document.getElementById('load-more-spinner');
+      const loadMoreText = document.getElementById('load-more-text');
+      
+      spinner?.classList.remove('hidden');
+      loadMoreText.textContent = 'Đang tải...';
+      loadMoreBtn.disabled = true;
+      
       // Get current filtered articles for this category
       const filteredArticles = categoryCache[currentCategory] || [];
       
@@ -1893,6 +1930,11 @@
       if (currentDisplayCount < filteredArticles.length) {
         console.log(`📄 Hiển thị thêm 10 bài từ cache (${currentDisplayCount}/${filteredArticles.length})`);
         displayNews(filteredArticles, true); // Append mode
+        
+        // Hide spinner
+        spinner?.classList.add('hidden');
+        loadMoreText.textContent = 'Tải thêm tin tức';
+        loadMoreBtn.disabled = false;
         return;
       }
       
@@ -1932,6 +1974,11 @@
         console.log('🏁 Đã hết tất cả tin tức');
         document.getElementById('load-more').classList.add('hidden');
       }
+      
+      // Hide spinner
+      spinner?.classList.add('hidden');
+      loadMoreText.textContent = 'Tải thêm tin tức';
+      loadMoreBtn.disabled = false;
     }
 
     // Enhanced search function to include Vietnamese news

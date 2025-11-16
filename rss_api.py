@@ -169,18 +169,31 @@ class RSSNewsAPI:
                 description = (desc_elem.text or '').strip() if desc_elem is not None else ''
                 pubdate = (pubdate_elem.text or '').strip() if pubdate_elem is not None else ''
                 
+                # Extract image from HTML description (for Dân Trí)
+                image_url = None
+                if '<img' in description.lower():
+                    import re
+                    img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', description, re.IGNORECASE)
+                    if img_match:
+                        image_url = img_match.group(1)
+                
                 # Clean HTML from text
                 title = self.clean_html_text(title)
                 description = self.clean_html_text(description)
                 description = description[:500]  # Limit length
                 
                 if title and link:
-                    items.append({
+                    article = {
                         'title': title,
                         'link': link,
                         'description': description,
                         'pubDate': pubdate,
-                    })
+                    }
+                    # Add image if found
+                    if image_url:
+                        article['image'] = image_url
+                    
+                    items.append(article)
             
             # If no items found, try Atom format
             if not items:

@@ -426,11 +426,6 @@
         category: "climate"
       },
       {
-        name: "Dân Trí - Môi trường",
-        url: "https://dantri.com.vn/rss/moi-truong.rss",
-        category: "climate"
-      },
-      {
         name: "VietnamNet - Môi trường",
         url: "https://vietnamnet.vn/rss/moi-truong.rss",
         category: "climate"
@@ -461,13 +456,6 @@
         name: "Môi trường - Kinh tế xanh",
         url: "https://moitruong.net.vn/rss/kinh-te-xanh/chuyen-doi-xanh",
         category: "climate"
-      },
-      
-      // Dân Trí - Đời sống
-      {
-        name: "Dân Trí - Đời sống",
-        url: "https://dantri.com.vn/rss/doi-song.rss",
-        category: "agriculture"
       }
     ];
     
@@ -821,19 +809,6 @@
             guid: item.guid || item.link
           };
         });
-        
-        // For Dân Trí, filter out articles without images
-        if (feed.name.includes('Dân Trí')) {
-          const originalCount = newsItems.length;
-          newsItems = newsItems.filter(item => item.urlToImage && item.urlToImage.trim() !== '');
-          if (newsItems.length === 0) {
-            console.log(`⚠️ Dân Trí: tất cả bài đều không có ảnh, bỏ feed này`);
-            return [];
-          }
-          if (newsItems.length < originalCount) {
-            console.log(`📸 Dân Trí: lọc bài không ảnh: ${originalCount} → ${newsItems.length}`);
-          }
-        }
         
         if (newsItems.length > 0) {
           console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ backend)`);

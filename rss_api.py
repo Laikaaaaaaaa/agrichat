@@ -68,6 +68,9 @@ class RSSNewsAPI:
             {"name": "Tuổi Trẻ", "url": "https://tuoitre.vn/rss/", "category": "agriculture", "filter": True},
             {"name": "VietnamNet", "url": "https://vietnamnet.vn/rss/", "category": "agriculture", "filter": True},
             {"name": "Thanh Niên", "url": "https://thanhnien.vn/rss/", "category": "agriculture", "filter": True},
+            
+            # ✅ Dân Trí - Has images in HTML description
+            {"name": "Dân Trí - Đời sống", "url": "https://dantri.com.vn/rss/doi-song.rss", "category": "agriculture", "filter": True, "extract_image": True},
         ]
 
     def is_agriculture_related(self, title, description):
@@ -121,8 +124,31 @@ class RSSNewsAPI:
         text = ' '.join(text.split())
         return text
 
-    def parse_rss_xml(self, xml_text):
-        """Parse RSS XML and extract items"""
+    def extract_image_from_html(self, html_text):
+        """✅ Extract image URL from HTML description (for Dân Trí)"""
+        if not html_text:
+            return None
+        
+        import re
+        # Look for <img> tags with src attribute
+        img_pattern = r'<img[^>]+src=["\']([^"\']+)["\']'
+        matches = re.findall(img_pattern, html_text)
+        
+        if matches:
+            # Return first image found
+            image_url = matches[0]
+            logger.info(f"✅ Extracted image from HTML: {image_url[:80]}...")
+            return image_url
+        
+        return None
+
+    def parse_rss_xml(self, xml_text, feed_config=None):
+        """Parse RSS XML and extract items
+        
+        Args:
+            xml_text: RSS XML content
+            feed_config: Feed configuration dict (optional, for special handling like Dân Trí)
+        """
         try:
             if not xml_text:
                 return []
@@ -135,6 +161,7 @@ class RSSNewsAPI:
                 root = ET.fromstring(xml_text)
             
             items = []
+            extract_image = feed_config and feed_config.get('extract_image', False)
             
             # RSS 2.0 format
             for item in root.findall('.//item'):
@@ -148,19 +175,30 @@ class RSSNewsAPI:
                 description = (desc_elem.text or '').strip() if desc_elem is not None else ''
                 pubdate = (pubdate_elem.text or '').strip() if pubdate_elem is not None else ''
                 
+                # ✅ For Dân Trí, extract image from HTML before cleaning
+                image_url = None
+                if extract_image and description:
+                    image_url = self.extract_image_from_html(description)
+                
                 title = self.clean_html_text(title)
                 description = self.clean_html_text(description)
                 description = description[:500]
                 
                 if title and link:
-                    items.append({
+                    item_data = {
                         'title': title,
                         'link': link,
                         'description': description,
                         'pubDate': pubdate,
-                    })
+                    }
+                    
+                    # ✅ Add image URL if found
+                    if image_url:
+                        item_data['image_url'] = image_url
+                    
+                    items.append(item_data)
             
-            logger.info(f"✅ Parsed {len(items)} items")
+            logger.info(f"✅ Parsed {len(items)} items" + (f" with images extraction" if extract_image else ""))
             return items
             
         except Exception as e:
@@ -188,7 +226,8 @@ class RSSNewsAPI:
                 
                 xml_text = self.fetch_rss_feed(feed['url'])
                 if xml_text:
-                    items = self.parse_rss_xml(xml_text)
+                    # ✅ Pass feed config for special handling (e.g., Dân Trí image extraction)
+                    items = self.parse_rss_xml(xml_text, feed_config=feed)
                     items = self.filter_articles(items, feed)
                     items = items[:30]
                     

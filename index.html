@@ -699,6 +699,14 @@
       }
 
       startNewConversation() {
+        // 💾 Lưu conversation cũ trước khi tạo cái mới
+        if (this.currentConversation && this.currentConversation.messages.length > 0) {
+          console.log('💾 Saving old conversation before starting new one:', this.currentConversation.id);
+          // Update lastUpdated time
+          this.currentConversation.lastUpdated = new Date().toISOString();
+          this.saveConversations();
+        }
+
         const conversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
         // Tạo tên cuộc hội thoại với số thứ tự

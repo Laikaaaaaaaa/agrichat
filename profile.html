@@ -427,6 +427,13 @@
           <div class="flex gap-1 pl-1 flex-shrink-0 border-b-2 border-transparent">
             
             <div id="owner-actions-mobile" class="relative">
+              <button onclick="openNotificationsPanel()" class="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center justify-center relative" title="Thông báo">
+                <i class="fas fa-bell text-xs"></i>
+                <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold hidden">0</span>
+              </button>
+            </div>
+
+            <div id="owner-actions-mobile" class="relative">
               <button onclick="openSettingsModal()" class="p-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs font-medium transition-colors flex items-center justify-center" title="Chỉnh sửa">
                 <i class="fas fa-cog text-xs"></i>
               </button>
@@ -1420,6 +1427,143 @@
       }
     }
     
+    // ==================== NOTIFICATION FUNCTIONS ====================
+
+    let notificationsCheckInterval;
+
+    async function loadNotifications() {
+      try {
+        const response = await fetch('/api/notifications/unread', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          const badge = document.getElementById('notification-badge');
+          const notificationsList = document.getElementById('notifications-list');
+
+          // Update badge
+          if (data.unread_count > 0) {
+            badge.textContent = data.unread_count;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+
+          // Update notifications list
+          if (data.notifications.length > 0) {
+            notificationsList.innerHTML = data.notifications.map(notif => {
+              const typeLabel = getNotificationTypeLabel(notif.type);
+              const timeAgo = getTimeAgo(new Date(notif.created_at));
+              
+              return `
+                <div class="border-b border-gray-200 p-3 hover:bg-blue-50 cursor-pointer transition" onclick="markNotificationRead(${notif.id})">
+                  <div class="flex gap-3">
+                    <img src="${notif.sender_avatar || '/static/logo/logo.png'}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">
+                        <span class="font-semibold text-gray-900">${notif.sender_name || 'Người dùng'}</span>
+                        <span class="text-gray-600"> ${typeLabel}</span>
+                      </div>
+                      <p class="text-xs text-gray-500 text-gray-600 truncate">${notif.content || ''}</p>
+                      <p class="text-xs text-gray-400 mt-1">${timeAgo}</p>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          } else {
+            notificationsList.innerHTML = `
+              <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-inbox text-3xl mb-2"></i>
+                <p>Không có thông báo nào</p>
+              </div>
+            `;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+      }
+    }
+
+    function getNotificationTypeLabel(type) {
+      const labels = {
+        'post_comment': 'đã bình luận bài viết của bạn',
+        'comment_reply': 'đã trả lời bình luận của bạn',
+        'comment_liked': 'đã thích bình luận của bạn',
+        'reply_liked': 'đã thích trả lời của bạn',
+        'password_changed': 'Mật khẩu đã được thay đổi',
+        'profile_updated': 'Hồ sơ đã được cập nhật',
+        'friend_request': 'đã gửi yêu cầu kết bạn',
+        'friend_accepted': 'đã chấp nhận yêu cầu kết bạn'
+      };
+      return labels[type] || type;
+    }
+
+    function getTimeAgo(date) {
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - date) / 1000);
+      
+      if (diffInSeconds < 60) return 'Vừa xong';
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+      if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+      return date.toLocaleDateString('vi-VN');
+    }
+
+    async function markNotificationRead(notificationId) {
+      try {
+        await fetch(`/api/notifications/${notificationId}/read`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        loadNotifications();
+      } catch (error) {
+        console.error('Error marking notification read:', error);
+      }
+    }
+
+    async function markAllNotificationsRead() {
+      try {
+        await fetch('/api/notifications/read-all', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        loadNotifications();
+      } catch (error) {
+        console.error('Error marking all notifications read:', error);
+      }
+    }
+
+    function openNotificationsPanel() {
+      const panel = document.getElementById('notifications-panel');
+      panel.classList.remove('hidden');
+      loadNotifications();
+      
+      // Check for new notifications every 10 seconds when panel is open
+      if (!notificationsCheckInterval) {
+        notificationsCheckInterval = setInterval(loadNotifications, 10000);
+      }
+    }
+
+    function closeNotificationsPanel() {
+      const panel = document.getElementById('notifications-panel');
+      panel.classList.add('hidden');
+      
+      // Clear interval when panel is closed
+      if (notificationsCheckInterval) {
+        clearInterval(notificationsCheckInterval);
+        notificationsCheckInterval = null;
+      }
+    }
+
+    // Load notifications on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadNotifications();
+      // Check for new notifications every 30 seconds
+      setInterval(loadNotifications, 30000);
+    });
+
     // Open settings modal
     function openSettingsModal() {
       const settingsModal = document.getElementById('settings-modal');
@@ -1444,6 +1588,15 @@
       
       if (!menu.contains(e.target) && e.target !== settingsBtn && !settingsBtn?.contains(e.target)) {
         menu.classList.add('hidden');
+      }
+
+      // Close notifications panel when clicking outside
+      const notifPanel = document.getElementById('notifications-panel');
+      const notifBtn = document.querySelector('button[onclick="openNotificationsPanel()"]');
+      if (notifPanel && !notifPanel.classList.contains('hidden')) {
+        if (!notifPanel.contains(e.target) && e.target !== notifBtn && !notifBtn?.contains(e.target)) {
+          closeNotificationsPanel();
+        }
       }
     });
     
@@ -5242,6 +5395,27 @@
         <div id="profile-share-options" class="flex justify-center items-center gap-4 flex-wrap">
           
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications Panel -->
+  <div id="notifications-panel" class="hidden fixed top-16 right-4 w-96 max-h-96 bg-white rounded-lg shadow-2xl z-50 flex flex-col border border-gray-200">
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex justify-between items-center rounded-t-lg">
+      <h3 class="text-lg font-semibold text-white">Thông báo</h3>
+      <div class="flex gap-2">
+        <button onclick="markAllNotificationsRead()" class="text-xs bg-blue-400 hover:bg-blue-500 text-white px-2 py-1 rounded" title="Đánh dấu tất cả đã đọc">
+          Đánh dấu tất cả
+        </button>
+        <button onclick="closeNotificationsPanel()" class="text-white hover:text-blue-200 text-xl">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div id="notifications-list" class="flex-1 overflow-y-auto">
+      <div class="text-center py-8 text-gray-500">
+        <i class="fas fa-inbox text-3xl mb-2"></i>
+        <p>Không có thông báo nào</p>
       </div>
     </div>
   </div>

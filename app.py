@@ -4973,23 +4973,31 @@ def api_update_profile():
     # Update name in users table
     result = auth.update_user_profile(user_id, name)
     
-    if result['success'] and bio is not None:
-        # Update or insert bio in user_profiles table
+    if result['success']:
+        # Create notification for profile update
         try:
             conn = auth.get_db_connection()
             cursor = conn.cursor()
             
-            # Check if profile exists
-            cursor.execute('SELECT user_id FROM user_profiles WHERE user_id = ?', (user_id,))
-            if cursor.fetchone():
-                cursor.execute('UPDATE user_profiles SET bio = ? WHERE user_id = ?', (bio, user_id))
-            else:
-                cursor.execute('INSERT INTO user_profiles (user_id, bio) VALUES (?, ?)', (user_id, bio))
+            # Create notification for name change
+            if name:
+                cursor.execute('''
+                    INSERT INTO notifications (recipient_id, sender_id, type, content, created_at)
+                    VALUES (?, ?, 'profile_updated', 'Thông tin profile của bạn đã được cập nhật', datetime('now'))
+                ''', (user_id, user_id))
+            
+            # Update or insert bio in user_profiles table
+            if bio is not None:
+                cursor.execute('SELECT user_id FROM user_profiles WHERE user_id = ?', (user_id,))
+                if cursor.fetchone():
+                    cursor.execute('UPDATE user_profiles SET bio = ? WHERE user_id = ?', (bio, user_id))
+                else:
+                    cursor.execute('INSERT INTO user_profiles (user_id, bio) VALUES (?, ?)', (user_id, bio))
             
             conn.commit()
             conn.close()
         except Exception as e:
-            logging.error(f"Error updating bio: {e}")
+            logging.error(f"Error updating bio or creating notification: {e}")
             return jsonify({'success': False, 'message': f'Lỗi cập nhật tiểu sử: {str(e)}'})
     
     return jsonify(result)
@@ -5023,7 +5031,124 @@ def api_change_password():
         return jsonify({'success': False, 'message': 'Mật khẩu cũ và mật khẩu mới là bắt buộc'})
     
     result = auth.change_password(user_id, old_password, new_password)
+    
+    # Create notification for password change
+    if result['success']:
+        try:
+            conn = auth.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO notifications (recipient_id, sender_id, type, content, created_at)
+                VALUES (?, ?, 'password_changed', 'Mật khẩu của bạn đã được thay đổi', datetime('now'))
+            ''', (user_id, user_id))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logging.error(f"Error creating password change notification: {e}")
+    
     return jsonify(result)
+
+
+@app.route('/api/notifications/unread', methods=['GET'])
+@auth.login_required
+def get_unread_notifications():
+    """Get unread notifications count and list"""
+    user_id = session.get('user_id')
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get unread count
+        cursor.execute('''
+            SELECT COUNT(*) FROM notifications WHERE recipient_id = ? AND is_read = 0
+        ''', (user_id,))
+        unread_count = cursor.fetchone()[0]
+        
+        # Get unread notifications
+        cursor.execute('''
+            SELECT n.id, n.sender_id, n.type, n.content, n.post_id, n.comment_id, 
+                   n.created_at, u.name, u.avatar_url
+            FROM notifications n
+            LEFT JOIN users u ON n.sender_id = u.id
+            WHERE n.recipient_id = ? AND n.is_read = 0
+            ORDER BY n.created_at DESC
+            LIMIT 10
+        ''', (user_id,))
+        
+        notifications = []
+        for row in cursor.fetchall():
+            notifications.append({
+                'id': row[0],
+                'sender_id': row[1],
+                'type': row[2],
+                'content': row[3],
+                'post_id': row[4],
+                'comment_id': row[5],
+                'created_at': row[6],
+                'sender_name': row[7],
+                'sender_avatar': row[8]
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'unread_count': unread_count,
+            'notifications': notifications
+        })
+    except Exception as e:
+        logging.error(f"Error getting notifications: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/notifications/<int:notification_id>/read', methods=['POST'])
+@auth.login_required
+def mark_notification_read(notification_id):
+    """Mark notification as read"""
+    user_id = session.get('user_id')
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Mark as read
+        cursor.execute('''
+            UPDATE notifications SET is_read = 1 
+            WHERE id = ? AND recipient_id = ?
+        ''', (notification_id, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Error marking notification read: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/notifications/read-all', methods=['POST'])
+@auth.login_required
+def mark_all_notifications_read():
+    """Mark all notifications as read"""
+    user_id = session.get('user_id')
+    
+    try:
+        conn = auth.get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE notifications SET is_read = 1 
+            WHERE recipient_id = ? AND is_read = 0
+        ''', (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Error marking all notifications read: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # ==================== MAIN APP ROUTES ====================
@@ -6174,11 +6299,13 @@ def like_forum_comment(comment_id):
         
         # Check if this is a reply_id being passed as comment_id
         # First check if it's a valid reply
-        cursor.execute('SELECT id FROM forum_comment_replies WHERE id = ?', (comment_id,))
+        cursor.execute('SELECT user_id FROM forum_comment_replies WHERE id = ?', (comment_id,))
         reply_row = cursor.fetchone()
         
         if reply_row:
             # This is a reply, like the reply
+            reply_owner_id = reply_row[0]
+            
             # Check if already liked
             cursor.execute('SELECT id FROM forum_reply_likes WHERE reply_id = ? AND user_id = ?', 
                           (comment_id, session['user_id']))
@@ -6193,6 +6320,13 @@ def like_forum_comment(comment_id):
                 cursor.execute('INSERT INTO forum_reply_likes (reply_id, user_id, created_at) VALUES (?, ?, datetime("now"))',
                               (comment_id, session['user_id']))
                 liked = True
+                
+                # Create notification if liking someone else's reply
+                if reply_owner_id != session['user_id']:
+                    cursor.execute('''
+                        INSERT INTO notifications (recipient_id, sender_id, type, comment_id, content, created_at)
+                        VALUES (?, ?, 'reply_liked', ?, 'Ai đó đã thích trả lời của bạn', datetime('now'))
+                    ''', (reply_owner_id, session['user_id'], comment_id))
             
             # Get updated like count
             cursor.execute('SELECT COUNT(*) FROM forum_reply_likes WHERE reply_id = ?', (comment_id,))
@@ -6201,9 +6335,12 @@ def like_forum_comment(comment_id):
             # This is a comment, like the comment
             # Check if comment exists
             cursor.execute('SELECT user_id FROM forum_comments WHERE id = ?', (comment_id,))
-            if not cursor.fetchone():
+            result = cursor.fetchone()
+            if not result:
                 conn.close()
                 return jsonify({'success': False, 'message': 'Bình luận không tồn tại'}), 404
+            
+            comment_owner_id = result[0]
             
             # Check if already liked
             cursor.execute('SELECT id FROM forum_comment_likes WHERE comment_id = ? AND user_id = ?', 
@@ -6219,6 +6356,13 @@ def like_forum_comment(comment_id):
                 cursor.execute('INSERT INTO forum_comment_likes (comment_id, user_id, created_at) VALUES (?, ?, datetime("now"))',
                               (comment_id, session['user_id']))
                 liked = True
+                
+                # Create notification if liking someone else's comment
+                if comment_owner_id != session['user_id']:
+                    cursor.execute('''
+                        INSERT INTO notifications (recipient_id, sender_id, type, comment_id, content, created_at)
+                        VALUES (?, ?, 'comment_liked', ?, 'Ai đó đã thích bình luận của bạn', datetime('now'))
+                    ''', (comment_owner_id, session['user_id'], comment_id))
             
             # Get updated like count
             cursor.execute('SELECT COUNT(*) FROM forum_comment_likes WHERE comment_id = ?', (comment_id,))

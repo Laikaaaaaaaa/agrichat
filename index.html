@@ -4618,6 +4618,7 @@
   
   let currentImageData = null;
   let currentRecognition = null;  // Store active speech recognition object for stopping
+  let voiceShouldFillInput = true;  // Flag to control whether onend should fill input
   const currentMode = 'normal';
   let dataSidebarEnabled = true; // Track if data sidebar should auto-show
   let lastDataCategory = null; // Store last data category for toggle button
@@ -6396,13 +6397,19 @@
         voiceBtn.classList.add('bg-white');
         voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
         
-        if (finalTranscript.trim()) {
+        // Only fill input if we should (not stopped by sendMessage)
+        if (voiceShouldFillInput && finalTranscript.trim()) {
           console.log('✅ Kết quả nhận dạng:', finalTranscript.trim());
           messageInput.value = finalTranscript.trim();
           messageInput.focus();
+        } else if (!voiceShouldFillInput) {
+          console.log('ℹ️ Voice stopped by message send - not filling input');
         } else {
           console.log('ℹ️ Không có kết quả nhận dạng');
         }
+        
+        // Reset flag for next voice input
+        voiceShouldFillInput = true;
       };
 
       // Bắt đầu ghi âm
@@ -6421,6 +6428,7 @@
     // ⏹️ Stop any active voice recording
     if (currentRecognition) {
       console.log('⏹️ Stopping voice recognition...');
+      voiceShouldFillInput = false;  // Prevent onend from filling input after send
       currentRecognition.stop();
       currentRecognition = null;
       

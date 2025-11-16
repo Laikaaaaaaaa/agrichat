@@ -55,6 +55,23 @@ class RSSNewsAPI:
             {"name": "Nông nghiệp Môi trường - Thời sự", "url": "https://nongnghiepmoitruong.vn/thoi-su.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Video", "url": "https://nongnghiepmoitruong.vn/video.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Tất cả", "url": "https://nongnghiepmoitruong.vn/rss", "category": "agriculture", "filter": False},
+            
+            # Báo lớn - Môi trường / Nông nghiệp
+            {"name": "VnExpress - Môi trường", "url": "https://vnexpress.net/rss/moi-truong.rss", "category": "climate", "filter": False},
+            {"name": "VnExpress - Nông nghiệp", "url": "https://vnexpress.net/tag/nong-nghiep.rss", "category": "agriculture", "filter": False},
+            {"name": "Tuổi Trẻ - Môi trường", "url": "https://tuoitre.vn/rss/moi-truong.rss", "category": "climate", "filter": False},
+            {"name": "Dân Trí - Môi trường", "url": "https://dantri.com.vn/rss/moi-truong.rss", "category": "climate", "filter": False},
+            {"name": "VietnamNet - Môi trường", "url": "https://vietnamnet.vn/rss/moi-truong.rss", "category": "climate", "filter": False},
+            
+            # Moitruong.net.vn - 5 feeds chuyên sâu
+            {"name": "Môi trường - Biến đổi khí hậu", "url": "https://moitruong.net.vn/rss/tin-tuc/bien-doi-khi-hau", "category": "climate", "filter": False},
+            {"name": "Môi trường - An ninh nguồn nước", "url": "https://moitruong.net.vn/rss/nuoc-va-cuoc-song/an-ninh-nguon-nuoc", "category": "climate", "filter": False},
+            {"name": "Môi trường - Ô nhiễm", "url": "https://moitruong.net.vn/rss/moi-truong-tai-nguyen/o-nhiem-moi-truong", "category": "climate", "filter": False},
+            {"name": "Môi trường - Vấn đề hôm nay", "url": "https://moitruong.net.vn/rss/tin-tuc/van-de-hom-nay", "category": "climate", "filter": False},
+            {"name": "Môi trường - Kinh tế xanh", "url": "https://moitruong.net.vn/rss/kinh-te-xanh/chuyen-doi-xanh", "category": "climate", "filter": False},
+            
+            # Dân Trí - Đời sống
+            {"name": "Dân Trí - Đời sống", "url": "https://dantri.com.vn/rss/doi-song.rss", "category": "agriculture", "filter": False},
         ]
 
     def is_agriculture_related(self, title, description):

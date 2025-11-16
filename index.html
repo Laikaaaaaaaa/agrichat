@@ -6328,24 +6328,60 @@
     const words = text.toLowerCase().split(' ');
     if (words.length === 0) return text;
     
-    // ✅ Lọc lặp từ liên tiếp
+    // ✅ Lọc lặp từ liên tiếp - xóa TẤT CẢ từ lặp, không chỉ 1
     const filtered = [words[0]];
     for (let i = 1; i < words.length; i++) {
+      // Xóa từ nếu nó giống từ trước
       if (words[i] !== words[i-1]) {
         filtered.push(words[i]);
       } else {
-        console.log(`🔁 Lọc từ lặp: '${words[i]}'`);
+        console.log(`  🔁 Lọc từ lặp: '${words[i]}'`);
+      }
+    }
+    
+    // ✅ Lọc cụm từ lặp (ví dụ: "xin chào xin chào" → "xin chào")
+    // Kiểm tra xem có cụm từ nào lặp lại không
+    const deduplicatedPhrase = [];
+    let skipCount = 0;
+    for (let i = 0; i < filtered.length; i++) {
+      if (skipCount > 0) {
+        skipCount--;
+        continue;
+      }
+      
+      deduplicatedPhrase.push(filtered[i]);
+      
+      // Kiểm tra xem từ hiện tại có tạo thành cụm lặp với những từ trước không
+      // Ví dụ: ["xin", "chào", "xin", "chào"] → ["xin", "chào"]
+      if (i + 1 < filtered.length) {
+        let phraseLen = 1;
+        let isRepeating = true;
+        
+        // Tìm độ dài của cụm từ lặp
+        while (i - phraseLen >= 0 && i + phraseLen < filtered.length) {
+          if (filtered[i - phraseLen] !== filtered[i + phraseLen]) {
+            isRepeating = false;
+            break;
+          }
+          phraseLen++;
+        }
+        
+        // Nếu tìm thấy cụm lặp, bỏ qua từ lặp
+        if (isRepeating && phraseLen > 0 && i + phraseLen < filtered.length) {
+          console.log(`  🔂 Lọc cụm lặp từ vị trí ${i}`);
+          skipCount = phraseLen;
+        }
       }
     }
     
     // ✅ Xóa filler words lặp (um, ơi, ní, nữa, etc)
-    const fillerWords = ['um', 'ơi', 'ní', 'nữa', 'cái', 'ạ', 'nhé', 'hả', 'à', 'ơi'];
+    const fillerWords = ['um', 'ơi', 'ní', 'nữa', 'cái', 'ạ', 'nhé', 'hả', 'à'];
     const final = [];
-    for (let i = 0; i < filtered.length; i++) {
-      const word = filtered[i];
+    for (let i = 0; i < deduplicatedPhrase.length; i++) {
+      const word = deduplicatedPhrase[i];
       if (fillerWords.includes(word)) {
         // Chỉ thêm nếu từ trước không phải filler
-        if (i === 0 || !fillerWords.includes(filtered[i-1])) {
+        if (i === 0 || !fillerWords.includes(deduplicatedPhrase[i-1])) {
           final.push(word);
         }
       } else {
@@ -6360,7 +6396,9 @@
       result = result.charAt(0).toUpperCase() + result.slice(1);
     }
     
-    console.log(`✅ Cleaned text: '${text}' → '${result}'`);
+    if (text !== result) {
+      console.log(`✅ Cleaned: '${text}' → '${result}'`);
+    }
     return result;
   }
 
@@ -6394,7 +6432,8 @@
       recognition.lang = 'vi-VN'; // Tiếng Việt
       
       // ✅ ENHANCED configuration cho mobile:
-      recognition.continuous = true; // Tiếp tục ghi âm cho phép nói lâu
+      // ⚠️ IMPORTANT: Set continuous to FALSE for mobile to prevent duplication
+      recognition.continuous = false;  // ✅ FIXED: Was true, causing word repetition on mobile
       recognition.interimResults = true; // Hiển thị kết quả tạm thời
       recognition.maxAlternatives = 1; // Lấy kết quả tốt nhất
       
@@ -6407,6 +6446,7 @@
 
       let finalTranscript = '';
       let lastResultIndex = -1;
+      let allTranscripts = [];  // ✅ Track all results to prevent duplication
 
       // Bắt đầu ghi âm
       recognition.onstart = () => {
@@ -6420,8 +6460,12 @@
       recognition.onresult = (event) => {
         let interimTranscript = '';
 
-        // Lặp qua tất cả kết quả từ lastResultIndex
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // ✅ IMPORTANT: Rebuild from scratch each time to avoid duplication
+        // This is the key fix for mobile word repetition
+        finalTranscript = '';
+        
+        // Lặp qua TẤT CẢ kết quả (không chỉ từ lastResultIndex)
+        for (let i = 0; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
 
           if (event.results[i].isFinal) {
@@ -6443,6 +6487,9 @@
         // Auto scroll input nếu text dài
         messageInput.scrollLeft = messageInput.scrollWidth;
         
+        console.log('📊 Event results count:', event.results.length);
+        console.log('📊 Final:', finalTranscript.trim());
+        console.log('📊 Interim:', interimTranscript.trim());
         console.log('🔤 Real-time update:', cleanedText);
       };
 

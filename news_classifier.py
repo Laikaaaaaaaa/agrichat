@@ -19,32 +19,50 @@ logger = logging.getLogger(__name__)
 CATEGORY_KEYWORDS = {
     'chăn_nuôi': [
         'chăn nuôi', 'gia súc', 'gia cầm', 'đàn vật nuôi', 'vật nuôi', 'bò', 'lợn', 'gà', 'vịt', 'cá', 
-        'tôm', 'nuôi trồng', 'thức ăn chăn nuôi', 'vaccine', 'bệnh gia súc', 'sản xuất chăn nuôi',
-        'chất lượng thịt', 'sữa', 'trứng', 'bảo vệ vật nuôi', 'cải thiện chăn nuôi', 'kỹ thuật chăn nuôi'
+        'tôm', 'nuôi trồng', 'thức ăn chăn nuôi', 'vaccine gia súc', 'bệnh gia súc', 'sản xuất chăn nuôi',
+        'chất lượng thịt', 'sữa', 'trứng', 'bảo vệ vật nuôi', 'cải thiện chăn nuôi', 'kỹ thuật chăn nuôi',
+        'trang trại chăn nuôi', 'nuôi dưỡng gia súc', 'giống gia súc'
     ],
     'nông_nghiệp': [
         'nông nghiệp', 'cây trồng', 'lúa', 'ngô', 'khoai', 'rau', 'quả', 'hoa', 'cacao', 'cà phê',
         'trồng trọt', 'giống cây', 'phân bón', 'phòng trừ sâu bệnh', 'máy nông nghiệp', 'tưới tiêu',
         'đất nông nghiệp', 'canh tác', 'vụ mưa', 'vụ khô', 'thu hoạch', 'gieo trồng', 'nông dân',
-        'sản lượng lúa', 'cải thiện năng suất', 'kỹ thuật canh tác'
+        'sản lượng lúa', 'cải thiện năng suất', 'kỹ thuật canh tác', 'trang trại trồng trọt'
     ],
     'công_nghệ': [
         'công nghệ', 'AI', 'máy tính', 'ứng dụng', 'phần mềm', 'robot', 'IoT', 'công nghệ nông nghiệp',
         'nông nghiệp 4.0', 'tự động hóa', 'trí tuệ nhân tạo', 'machine learning', 'smart farm',
-        'cảm biến', 'dữ liệu', 'blockchain', 'công nghệ sinh học', 'phân tích dữ liệu nông nghiệp'
+        'cảm biến', 'dữ liệu', 'blockchain', 'công nghệ sinh học', 'phân tích dữ liệu nông nghiệp',
+        'ứng dụng công nghệ', 'hệ thống thông minh'
     ],
     'thời_tiết': [
         'thời tiết', 'mưa', 'nắng', 'gió', 'dự báo', 'bão', 'lũ', 'hạn hán', 'nhiệt độ', 'độ ẩm',
-        'khí hậu', 'thay đổi khí hậu', 'biến đổi khí hậu', 'thời tiết nông nghiệp', 'cảnh báo thời tiết'
+        'khí hậu', 'thay đổi khí hậu', 'biến đổi khí hậu', 'thời tiết nông nghiệp', 'cảnh báo thời tiết',
+        'dự báo mưa', 'dự báo nắng', 'điều kiện thời tiết'
     ],
     'thị_trường': [
         'thị trường', 'giá', 'buôn bán', 'xuất khẩu', 'nhập khẩu', 'cung cầu', 'kinh tế', 'lợi nhuận',
-        'chi phí', 'tăng giá', 'giảm giá', 'doanh số', 'bán hàng', 'thương mại nông sản', 'nông sản'
+        'chi phí', 'tăng giá', 'giảm giá', 'doanh số', 'bán hàng', 'thương mại nông sản', 'nông sản',
+        'giá nông sản', 'thị giá', 'khoá hàng', 'mua bán'
     ],
     'chính_sách': [
         'chính sách', 'pháp luật', 'hỗ trợ', 'chương trình', 'dự án', 'quyết định', 'điều lệ',
-        'hướng dẫn', 'quy định', 'yêu cầu', 'tiêu chuẩn', 'hợp tác', 'hội nhập'
+        'hướng dẫn', 'quy định', 'yêu cầu', 'tiêu chuẩn', 'hợp tác', 'hội nhập', 'nghị định',
+        'luật lệ', 'công bố', 'thông tư', 'cải cách', 'phát triển xanh', 'phát thải', 'khí hậu',
+        'tái cơ cấu', 'số hóa', 'quản trị'
     ]
+}
+
+# Keywords to exclude or reduce weight for policy/regulation classification
+POLICY_INDICATORS = [
+    'nghị định', 'luật', 'quy định', 'thông tư', 'quyết định', 'công bố', 'cải cách',
+    'phát thải', 'phát triển xanh', 'tái cơ cấu', 'số hóa quản trị', 'thể chế'
+]
+
+# Keywords to EXCLUDE - common false positives
+EXCLUSION_KEYWORDS = {
+    'chăn_nuôi': ['nông nghiệp chung', 'nông nghiệp môi trường', 'tái cơ cấu nông nghiệp', 'phát triển nông nghiệp'],
+    'nông_nghiệp': ['chăn nuôi gia súc', 'nuôi vật nuôi', 'thức ăn chăn nuôi'],
 }
 
 class NewsClassifier:
@@ -155,39 +173,97 @@ class NewsClassifier:
     
     def _rule_based_classification(self, title, description, content):
         """
-        Rule-based classification as fallback/verification
-        Returns category and confidence score
+        Improved rule-based classification with:
+        - Policy detection (high priority)
+        - Exclusion rules to prevent false positives
+        - Content analysis (not just keyword matching)
+        - Weighted scoring
         """
-        combined_text = (title + ' ' + description + ' ' + content[:300]).lower()
+        combined_text = (title + ' ' + description + ' ' + content[:500]).lower()
         
+        # Check for policy-related content first (high priority)
+        policy_score = sum(1 for indicator in POLICY_INDICATORS if indicator in combined_text)
+        if policy_score >= 2:
+            logger.info("📋 Detected as POLICY based on policy indicators")
+            return 'chính_sách', 0.9
+        
+        # Check for exclusions that would indicate another category
+        for category, exclusions in EXCLUSION_KEYWORDS.items():
+            for exclusion in exclusions:
+                if exclusion in combined_text:
+                    logger.info(f"❌ Exclusion match: '{exclusion}' → NOT {category}")
+        
+        # Calculate scores for each category
         category_scores = {}
         
         for category, keywords in CATEGORY_KEYWORDS.items():
             score = 0
+            matches = []
+            
             for keyword in keywords:
-                # Check for exact keyword match with word boundaries
-                if keyword.lower() in combined_text:
-                    score += 1
-                # Check for partial matches
-                elif any(word in combined_text for word in keyword.lower().split()):
+                keyword_lower = keyword.lower()
+                # Exact phrase match (higher weight)
+                if keyword_lower in combined_text:
+                    # Check if it's an exclusion
+                    is_excluded = False
+                    if category in EXCLUSION_KEYWORDS:
+                        for exclusion in EXCLUSION_KEYWORDS[category]:
+                            if exclusion in combined_text and keyword_lower not in exclusion:
+                                is_excluded = True
+                                break
+                    
+                    if not is_excluded:
+                        score += 2  # Higher weight for exact matches
+                        matches.append(keyword)
+                # Partial word match (lower weight)
+                elif any(word in combined_text for word in keyword_lower.split()):
                     score += 0.5
+            
+            if matches:
+                logger.info(f"  {category}: score={score}, matches={matches[:3]}")
             
             category_scores[category] = score
         
         # Get category with highest score
         if category_scores and max(category_scores.values()) > 0:
             best_category = max(category_scores, key=category_scores.get)
-            confidence = min(category_scores[best_category] / 5.0, 1.0)  # Normalize to 0-1
+            score = category_scores[best_category]
+            
+            # Normalize confidence to 0-1
+            # Score of 2 = one exact match = 0.5 confidence
+            # Score of 4+ = high confidence
+            confidence = min(score / 4.0, 1.0)
+            
+            logger.info(f"📋 Rule-based result: {best_category} (score={score}, confidence={confidence:.2f})")
             return best_category, confidence
         
+        logger.info("📋 No category matched, returning 'khác'")
         return 'khác', 0.0
     
-    def classify(self, title='', description='', content=''):
+    def classify(self, article=None, title='', description='', content=''):
         """
         Classify article into category
         Uses ML prediction with rule-based verification
+        Can accept either:
+        - article dict with 'title', 'description', 'source', 'content'
+        - individual title, description, content parameters
         """
         try:
+            # Handle both dict and parameter inputs
+            if isinstance(article, dict):
+                title = article.get('title', '')
+                description = article.get('description', '')
+                source = article.get('source', '')
+                content = article.get('content', '')
+                # Combine source into description for better context
+                if source:
+                    description = f"{source} {description}" if description else source
+            
+            # Ensure all values are strings
+            title = str(title or '')
+            description = str(description or '')
+            content = str(content or '')
+            
             # Prepare features
             combined_text = self._extract_ml_features(title, description, content)
             

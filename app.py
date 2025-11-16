@@ -521,8 +521,10 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
 
         self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 5400)) or 5400  # 90 min - sync with frontend weather update
         self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300  # 5 min - for API rate limiting
+        self.nominatim_cache_ttl = self._safe_float(os.getenv("NOMINATIM_CACHE_TTL", 5400)) or 5400  # 90 min - respect Nominatim rate limits
         self._ip_location_cache = {"timestamp": 0.0, "data": None}
         self._weather_cache = {"timestamp": 0.0, "payload": None}
+        self._nominatim_cache = {}  # Dictionary to cache Nominatim results by lat,lon key
 
     # ------------------------------------------------------------------
     # Utility helpers
@@ -5662,49 +5664,73 @@ def weather():
                 city_name = None
                 country_name = 'Việt Nam'
                 
-                # Use Nominatim (OpenStreetMap) for reverse geocoding - free, no API key needed
-                try:
-                    # Nominatim API for reverse geocoding with Vietnamese support
-                    nominatim_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=10&language=vi"
-                    
-                    headers = {
-                        'User-Agent': 'AgriSense-AI/1.0'  # Nominatim requires User-Agent
-                    }
-                    
-                    geocode_resp = requests.get(nominatim_url, headers=headers, timeout=5)
-                    
-                    if geocode_resp.ok:
-                        geo_data = geocode_resp.json()
-                        address = geo_data.get('address', {})
-                        
-                        # Extract Vietnamese address components with diacritics
-                        # Nominatim returns: city/town/village, county/district, state/province, country
-                        city = address.get('city') or address.get('town') or address.get('village')
-                        district = address.get('county') or address.get('district')
-                        province = address.get('state') or address.get('province')
-                        country = address.get('country', 'Việt Nam')
-                        
-                        # Build location display with Vietnamese format
-                        # Priority: City/District, Province
-                        location_parts = []
-                        
-                        if city:
-                            location_parts.append(city)
-                        elif district:
-                            location_parts.append(district)
-                        
-                        if province and province not in location_parts:
-                            location_parts.append(province)
-                        
-                        city_name = ', '.join(location_parts) if location_parts else None
-                        country_name = country
-                        
-                        logging.info(f"✅ Nominatim Reverse Geocoding: {city_name}, {country_name}")
+                # ✅ CHECK NOMINATIM CACHE FIRST
+                cache_key = f"{lat:.4f},{lon:.4f}"
+                now = time.time()
+                
+                if cache_key in api._nominatim_cache:
+                    cached_data = api._nominatim_cache[cache_key]
+                    cache_age = now - cached_data.get('timestamp', 0)
+                    if cache_age < api.nominatim_cache_ttl:
+                        logging.info(f"♻️  Nominatim cache hit (age={cache_age:.0f}s, TTL={api.nominatim_cache_ttl}s)")
+                        city_name = cached_data.get('city_name')
+                        country_name = cached_data.get('country_name', 'Việt Nam')
                     else:
-                        logging.warning("⚠️ Nominatim API request failed")
+                        logging.info(f"⏰ Nominatim cache expired (age={cache_age:.0f}s > TTL={api.nominatim_cache_ttl}s), refreshing...")
+                        del api._nominatim_cache[cache_key]
+                
+                # Use Nominatim (OpenStreetMap) for reverse geocoding - free, no API key needed
+                if not city_name:
+                    try:
+                        # Nominatim API for reverse geocoding with Vietnamese support
+                        nominatim_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=10&language=vi"
                         
-                except Exception as geo_error:
-                    logging.warning(f"⚠️ Nominatim error: {geo_error}")
+                        headers = {
+                            'User-Agent': 'AgriSense-AI/1.0'  # Nominatim requires User-Agent
+                        }
+                        
+                        geocode_resp = requests.get(nominatim_url, headers=headers, timeout=5)
+                        
+                        if geocode_resp.ok:
+                            geo_data = geocode_resp.json()
+                            address = geo_data.get('address', {})
+                            
+                            # Extract Vietnamese address components with diacritics
+                            # Nominatim returns: city/town/village, county/district, state/province, country
+                            city = address.get('city') or address.get('town') or address.get('village')
+                            district = address.get('county') or address.get('district')
+                            province = address.get('state') or address.get('province')
+                            country = address.get('country', 'Việt Nam')
+                            
+                            # Build location display with Vietnamese format
+                            # Priority: City/District, Province
+                            location_parts = []
+                            
+                            if city:
+                                location_parts.append(city)
+                            elif district:
+                                location_parts.append(district)
+                            
+                            if province and province not in location_parts:
+                                location_parts.append(province)
+                            
+                            city_name = ', '.join(location_parts) if location_parts else None
+                            country_name = country
+                            
+                            logging.info(f"✅ Nominatim Reverse Geocoding: {city_name}, {country_name}")
+                            
+                            # ✅ SAVE TO NOMINATIM CACHE (90 minutes)
+                            api._nominatim_cache[cache_key] = {
+                                'timestamp': now,
+                                'city_name': city_name,
+                                'country_name': country_name
+                            }
+                            logging.info(f"💾 Cached Nominatim result for {cache_key} (TTL: {api.nominatim_cache_ttl}s)")
+                        else:
+                            logging.warning("⚠️ Nominatim API request failed")
+                            
+                    except Exception as geo_error:
+                        logging.warning(f"⚠️ Nominatim error: {geo_error}")
                 
                 # If Nominatim failed, try to get location from WeatherAPI
                 if not city_name:

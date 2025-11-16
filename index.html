@@ -8033,7 +8033,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
 
     // PRIORITY 1: Try browser geolocation FIRST (most accurate - GPS/WiFi)
     // Use cached position if available (user already granted permission)
-    const GEOLOCATION_TIMEOUT_MS = 15000;
+    const GEOLOCATION_TIMEOUT_MS = 30000;  // Increased from 15s to 30s - GPS needs time to acquire signal
     if ('geolocation' in navigator) {
       try {
         console.log('📍 Requesting browser geolocation (most accurate)...');
@@ -8064,6 +8064,18 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             console.log('✅ Weather data loaded via precise geolocation');
             // Mark that we got location via geolocation
             localStorage.setItem('agrisense_weather_source', 'geolocation');
+            // Save successful location for fallback
+            if (latitude && longitude) {
+              // Get location name from the weather data if available
+              const weatherEl = document.getElementById('weather-info');
+              const locationName = weatherEl?.querySelector('[data-location-name]')?.textContent || 'Vị trí của bạn';
+              localStorage.setItem('agrisense_last_location', JSON.stringify({
+                name: locationName,
+                country: 'Việt Nam',
+                timestamp: Date.now()
+              }));
+              console.log('💾 Saved GPS location:', locationName);
+            }
             return;
           }
         }
@@ -8625,7 +8637,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
               navigator.geolocation.getCurrentPosition(
                 (pos) => resolve(pos),
                 (err) => reject(err),
-                { timeout: 5000, enableHighAccuracy: false, maximumAge: 5 * 1000 }  // 5s cache for OS geolocation
+                { timeout: 5000, enableHighAccuracy: false, maximumAge: 30 * 60 * 1000 }  // Accept cached position up to 30 minutes old
               );
             });
             
@@ -8678,6 +8690,16 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             const finalLocation = shouldUseLastLocation ? lastLocation.name : ipWeather.location_name;
             const finalCountry = shouldUseLastLocation ? lastLocation.country : ipWeather.location_country;
             
+            // ✅ Save successful location for next fallback
+            if (!isLikelyFallback) {
+              localStorage.setItem('agrisense_last_location', JSON.stringify({
+                name: ipWeather.location_name,
+                country: ipWeather.location_country,
+                timestamp: Date.now()
+              }));
+              console.log('💾 Saved IP location:', ipWeather.location_name);
+            }
+            
             const mainEl = document.getElementById('weather-main');
             const subEl = document.getElementById('weather-sub');
             if (mainEl) mainEl.textContent = `${ipWeather.condition} — ${finalLocation}, ${finalCountry}`;
@@ -8686,7 +8708,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             document.getElementById('stat-hum').textContent = ipWeather.humidity ? `${ipWeather.humidity}%` : '—';
             document.getElementById('stat-wind').textContent = ipWeather.wind_kph ? `${ipWeather.wind_kph} km/h` : '—';
             document.getElementById('stat-precip').textContent = ipWeather.precip_mm ? `${ipWeather.precip_mm} mm` : '—';
-            console.log('✅ Weather updated via IP fallback, using last known location:', finalLocation);
+            console.log('✅ Weather updated via IP fallback, using:', shouldUseLastLocation ? 'last known location' : 'new IP location', finalLocation);
           } else if (lastLocation) {
             // Use cached location as ultimate fallback
             console.log('⚠️ IP weather failed, using last known location:', lastLocation.name);

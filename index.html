@@ -4003,10 +4003,6 @@
           <button id="voice-input-btn" class="flex-shrink-0 border-2 border-green-500 text-green-500 rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-sm hover:bg-green-50 active:scale-95 transition-all flex items-center justify-center" title="Nhập bằng giọng nói">
             <i class="fas fa-microphone text-lg"></i>
           </button>
-          <!-- ✅ Voice stop button - shown when recording -->
-          <button id="voice-stop-btn" class="hidden flex-shrink-0 border-2 border-red-500 text-red-500 rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-sm hover:bg-red-50 active:scale-95 transition-all flex items-center justify-center" title="Dừng ghi âm">
-            <i class="fas fa-stop-circle text-lg"></i>
-          </button>
 
           <button id="send-btn" class="flex-shrink-0 bg-green-500 text-white rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-md hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center">
             <i class="fas fa-paper-plane text-lg"></i>
@@ -4707,41 +4703,32 @@
     if (voiceInputBtn) {
       console.log('✅ Attaching click listener to voice input button');
       voiceInputBtn.addEventListener('click', async () => {
-        console.log('🎤 Voice button clicked - starting speech recognition');
-        await handleVoiceInput();
-      });
-    } else {
-      console.warn('⚠️ Voice input button not found!');
-    }
-    
-    // ✅ Voice stop button listener
-    const voiceStopBtn = document.getElementById('voice-stop-btn');
-    if (voiceStopBtn) {
-      console.log('✅ Attaching click listener to voice stop button');
-      voiceStopBtn.addEventListener('click', () => {
-        console.log('⏹️ Stop button clicked - stopping speech recognition');
-        if (currentRecognition) {
+        // ✅ Toggle between recording and stopping
+        if (currentRecognition && currentRecognition.isRecording !== false) {
+          // Already recording - stop it
+          console.log('⏹️ Stopping voice recording...');
           voiceShouldFillInput = false;
           currentRecognition.abort();
           
-          // ✅ Force reset UI immediately (don't wait for onend)
+          // ✅ Reset button UI immediately
           setTimeout(() => {
-            const stopBtn = document.getElementById('voice-stop-btn');
-            if (stopBtn) {
-              stopBtn.classList.add('hidden');
-            }
-            if (voiceInputBtn) {
-              voiceInputBtn.classList.remove('animate-pulse', 'bg-green-100');
-              voiceInputBtn.classList.add('bg-white');
-              voiceInputBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
-            }
+            voiceInputBtn.classList.remove('animate-pulse', 'bg-red-100', 'border-red-500');
+            voiceInputBtn.classList.add('border-green-500');
+            voiceInputBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+            voiceInputBtn.style.backgroundColor = '';
+            voiceInputBtn.style.color = '';
+            voiceInputBtn.title = 'Nhập bằng giọng nói';
             currentRecognition = null;
-            console.log('✅ Voice UI reset completed');
+            console.log('✅ Voice recording stopped');
           }, 0);
+        } else {
+          // Not recording - start it
+          console.log('🎤 Voice button clicked - starting speech recognition');
+          await handleVoiceInput();
         }
       });
     } else {
-      console.warn('⚠️ Voice stop button not found!');
+      console.warn('⚠️ Voice input button not found!');
     }
 
     // Remove image button
@@ -6484,15 +6471,12 @@
 
       // Bắt đầu ghi âm
       recognition.onstart = () => {
-        // ✅ Show stop button, hide mic button
-        const stopBtn = document.getElementById('voice-stop-btn');
-        if (stopBtn) {
-          stopBtn.classList.remove('hidden');
-        }
-        
-        voiceBtn.classList.add('animate-pulse', 'bg-green-100');
-        voiceBtn.classList.remove('bg-white');
-        voiceBtn.innerHTML = '<i class="fas fa-microphone-slash text-lg text-green-500 animate-pulse"></i>';
+        // ✅ Change button to red stop button
+        voiceBtn.classList.add('animate-pulse', 'bg-red-100');
+        voiceBtn.classList.remove('border-green-500', 'text-green-500', 'hover:bg-green-50');
+        voiceBtn.classList.add('border-red-500', 'text-red-500', 'hover:bg-red-50');
+        voiceBtn.innerHTML = '<i class="fas fa-circle text-lg"></i>';
+        voiceBtn.title = 'Dừng ghi âm';
         console.log('🎤 Bắt đầu ghi âm...');
       };
 
@@ -6564,15 +6548,11 @@
         
         // ✅ Only reset UI if recognition wasn't already stopped by user
         if (currentRecognition !== null) {
-          // ✅ Hide stop button, show mic button
-          const stopBtn = document.getElementById('voice-stop-btn');
-          if (stopBtn) {
-            stopBtn.classList.add('hidden');
-          }
-          
-          voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
-          voiceBtn.classList.add('bg-white');
-          voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+          // ✅ Change button back to green microphone
+          voiceBtn.classList.remove('animate-pulse', 'bg-red-100', 'border-red-500', 'text-red-500', 'hover:bg-red-50');
+          voiceBtn.classList.add('border-green-500', 'text-green-500', 'hover:bg-green-50');
+          voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg"></i>';
+          voiceBtn.title = 'Nhập bằng giọng nói';
           
           // Only fill input if we should (not stopped by sendMessage)
           if (voiceShouldFillInput && finalTranscript.trim()) {
@@ -6632,21 +6612,17 @@
       console.log('⏹️ Stopping voice recognition (send triggered)...');
       voiceShouldFillInput = false;  // Prevent onend from filling input after send
       currentRecognition.abort();  // ✅ Changed from stop() to abort() for immediate stop
-      currentRecognition = null;
       
-      // Reset voice button UI
+      // ✅ Reset voice button UI immediately
       const voiceBtn = document.getElementById('voice-input-btn');
       if (voiceBtn) {
-        voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
-        voiceBtn.classList.add('bg-white');
-        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+        voiceBtn.classList.remove('animate-pulse', 'bg-red-100', 'border-red-500', 'text-red-500', 'hover:bg-red-50');
+        voiceBtn.classList.add('border-green-500', 'text-green-500', 'hover:bg-green-50');
+        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg"></i>';
+        voiceBtn.title = 'Nhập bằng giọng nói';
       }
       
-      // ✅ Hide stop button
-      const stopBtn = document.getElementById('voice-stop-btn');
-      if (stopBtn) {
-        stopBtn.classList.add('hidden');
-      }
+      currentRecognition = null;
     }
     
     console.log('🔍 currentImageData exists?', !!currentImageData);

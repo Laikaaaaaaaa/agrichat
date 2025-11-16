@@ -71,10 +71,11 @@ class ImageRequestHandler:
             try:
                 is_request, confidence = image_classifier.predict(message)
                 logging.info(f"🤖 ML prediction: {is_request} (confidence: {confidence:.2%}) for: '{message}'")
-                if confidence > 0.5:  # Lowered threshold from 0.6 to 0.5
+                # Increased threshold to 0.70 to reduce false positives
+                if confidence > 0.70:
                     return is_request
                 else:
-                    logging.info(f"⚠️ Confidence {confidence:.2%} below threshold 50%, falling back to rule-based")
+                    logging.info(f"⚠️ Confidence {confidence:.2%} below threshold 70%, falling back to rule-based")
             except Exception as e:
                 logging.warning(f"⚠️ ML prediction failed: {e}, falling back to rule-based")
         
@@ -86,24 +87,65 @@ class ImageRequestHandler:
     def _rule_based_detection(self, message: str) -> bool:
         """
         Rule-based fallback detection (nếu ML thất bại)
+        More strict - require explicit image request indicators
         """
-        message_lower = message.lower()
+        message_lower = message.lower().strip()
         
-        # STEP 1: Kiểm tra hard keywords
-        all_keywords = (
-            self.image_keywords + self.livestock_keywords
-        )
+        # STEP 0: Reject common short messages that shouldn't be image requests
+        short_messages = ['hello', 'hi', 'hey', 'thanks', 'ok', 'yes', 'no', 
+                         'được', 'vâng', 'xin chào', 'chào', 'alo', 'cảm ơn',
+                         'được thôi', 'ok được', 'được rồi']
+        if message_lower in short_messages:
+            logging.debug(f"🚫 Rejected common non-image message: '{message_lower}'")
+            return False
         
-        for keyword in all_keywords:
-            if keyword in message_lower:
-                logging.debug(f"🖼️ Found hard keyword '{keyword}' in message")
+        # STEP 1: Hard keywords - but must be strong indicators
+        # Require keyword to start the message or follow specific patterns
+        strong_image_keywords = [
+            'tìm ảnh', 'tim anh', 'xem ảnh', 'xem anh', 'xem hình', 'xem hinh',
+            'coi ảnh', 'coi anh', 'coi hình', 'coi hinh',
+            'show', 'image', 'picture', 'photo',
+            'cho ảnh', 'cho anh', 'cho hình', 'cho hinh',
+            'lấy ảnh', 'lay anh', 'lấy hình', 'lay hinh',
+            'gửi ảnh', 'gui anh', 'gửi hình', 'gui hinh',
+            'hiển thị ảnh', 'hien thi anh', 'hiển thị hình', 'hien thi hinh',
+            'tìm hình', 'tim hinh', 'kiếm ảnh', 'kiem anh',
+        ]
+        
+        for keyword in strong_image_keywords:
+            # Match at start or after spaces/punctuation
+            if message_lower.startswith(keyword + ' ') or \
+               message_lower.startswith(keyword) or \
+               f' {keyword} ' in message_lower or \
+               message_lower.endswith(f' {keyword}'):
+                logging.debug(f"🖼️ Found strong image keyword '{keyword}' in message")
                 return True
         
-        # STEP 2: Action + Object pattern matching
-        has_action = any(action in message_lower for action in self.action_words)
-        has_image_object = any(obj in message_lower for obj in self.image_objects)
+        # STEP 2: Livestock/statistics keywords (require explicit context)
+        livestock_keywords = [
+            'số lượng gia súc', 'so luong gia suc',
+            'tỷ lệ gia súc', 'ty le gia suc',
+            'phân bố gia súc', 'phan bo gia suc',
+            'thống kê nông nghiệp', 'thong ke nong nghiep',
+            'dữ liệu chăn nuôi', 'du lieu chan nuoi',
+            'livestock data', 'agricultural statistics'
+        ]
         
-        if has_action and has_image_object:
+        for keyword in livestock_keywords:
+            if keyword in message_lower:
+                logging.debug(f"🖼️ Found livestock keyword '{keyword}' in message")
+                return True
+        
+        # STEP 3: Only match action + object if both are VERY explicit
+        # This prevents false positives like "what do I need to show in the image"
+        action_words = ['show', 'tìm', 'tim', 'xem', 'coi', 'find', 'search', 'display']
+        image_objects = ['ảnh', 'anh', 'hình', 'hinh', 'photo', 'image', 'picture', 'chart', 'graph']
+        
+        has_strong_action = any(f' {action} ' in f' {message_lower} ' for action in action_words)
+        has_image_object = any(f' {obj} ' in f' {message_lower} ' for obj in image_objects)
+        
+        # Require BOTH and message must be short/direct (typical image request)
+        if has_strong_action and has_image_object and len(message_lower) < 100:
             logging.debug(f"🖼️ Detected image intent via action+object pattern")
             return True
         

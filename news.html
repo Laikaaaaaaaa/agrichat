@@ -693,9 +693,9 @@
       }, 5000);
     });
 
-    // Fetch Vietnamese RSS feeds - OPTIMIZED: Load only what's needed
+    // Fetch Vietnamese RSS feeds - PROGRESSIVE LOADING
     async function loadVietnameseNews() {
-      console.log('🚀 Đang tải tin tức Việt Nam (chỉ load khi cần)...');
+      console.log('🚀 Đang tải tin tức Việt Nam (progressive loading)...');
       
       try {
         // Prioritize agricultural feeds first
@@ -708,22 +708,22 @@
         
         console.log(`📋 Ưu tiên ${agricultureFeeds.length} nguồn nông nghiệp, ${otherFeeds.length} nguồn khác`);
         
-        // LOAD ALL FEEDS (not just first 5) - tất cả 20 feeds
-        const initialFeeds = prioritizedFeeds;
-        console.log(`⚡ Load tất cả ${initialFeeds.length} nguồn...`);
+        // BATCH 1: Load only first 5 feeds for speed
+        const batch1Feeds = prioritizedFeeds.slice(0, 5);
+        console.log(`⚡ Batch 1: Load ${batch1Feeds.length} nguồn đầu tiên...`);
         
-        // Store full feed list for later loading
-        window.remainingFeeds = [];
+        // Store remaining feeds for later batches
+        window.remainingFeeds = prioritizedFeeds.slice(5);
         window.allPrioritizedFeeds = prioritizedFeeds;
         
-        // Load all feeds in parallel
-        const feedPromises = initialFeeds.map(feed => loadSingleFeed(feed));
-        const results = await Promise.all(feedPromises);
+        // Load batch 1 feeds in parallel
+        const feedPromises = batch1Feeds.map(feed => loadSingleFeed(feed));
+        const results = await Promise.allSettled(feedPromises);
         
-        // Collect all articles
-        results.forEach(items => {
-          if (items && items.length > 0) {
-            allLoadedArticles = [...allLoadedArticles, ...items];
+        // Collect articles from batch 1
+        results.forEach(result => {
+          if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
+            allLoadedArticles = [...allLoadedArticles, ...result.value];
           }
         });
         
@@ -735,9 +735,10 @@
         });
         
         vietnameseNews = [...allLoadedArticles];
-        loadedFeedsCount = initialFeeds.length;
+        loadedFeedsCount = batch1Feeds.length;
         
-        console.log(`✅ Đã load ${loadedFeedsCount} nguồn, có ${vietnameseNews.length} bài`);
+        console.log(`✅ Batch 1 xong: ${vietnameseNews.length} bài từ ${loadedFeedsCount} nguồn`);
+        console.log(`📦 Còn ${window.remainingFeeds.length} feeds chờ load`);
         
       } catch (error) {
         console.error('❌ Lỗi tải tin:', error);
@@ -894,19 +895,20 @@
       isLoading = true;
       updateHeaderStatus('Đang tải thêm tin tức...', true);
       
-      // Load next 3 feeds
-      const nextBatch = window.remainingFeeds.slice(0, 3);
-      window.remainingFeeds = window.remainingFeeds.slice(3);
+      // Load next batch of feeds (5 feeds at a time)
+      const nextBatch = window.remainingFeeds.slice(0, 5);
+      window.remainingFeeds = window.remainingFeeds.slice(5);
       
       console.log(`📦 Load thêm ${nextBatch.length} nguồn (còn ${window.remainingFeeds.length})`);
       
+      // Use Promise.allSettled() for better performance - doesn't wait for all to complete
       const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
-      const results = await Promise.all(feedPromises);
+      const results = await Promise.allSettled(feedPromises);
       
-      // Add new articles
-      results.forEach(items => {
-        if (items && items.length > 0) {
-          allLoadedArticles = [...allLoadedArticles, ...items];
+      // Add new articles from successful results
+      results.forEach(result => {
+        if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
+          allLoadedArticles = [...allLoadedArticles, ...result.value];
         }
       });
       

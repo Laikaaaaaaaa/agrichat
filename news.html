@@ -764,53 +764,103 @@
     
     // Load a single RSS feed - UỨU TIÊN rss2json, bỏ /api/rss-parse
     async function loadSingleFeed(feed) {
-      console.log(`📥 Đang tải: ${feed.name} (${feed.url})`);
+      console.log(`📥 Đang tải: ${feed.name} từ backend Python...`);
       
-      // **ƯU TIÊN**: Dùng rss2json trực tiếp thay vì /api/rss-parse
-      // Vì trên web công khai /api/rss-parse có thể không hoạt động
+      try {
+        // Gọi backend Python API để load RSS
+        const response = await fetch(`/api/fetch-rss-feeds?url=${encodeURIComponent(feed.url)}`, {
+          timeout: 15000,
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          console.warn(`   ⚠️ Backend trả về ${response.status}, fallback sang rss2json...`);
+          return await loadSingleFeedFallback(feed);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.items || data.items.length === 0) {
+          console.warn(`   ⚠️ ${feed.name}: không có bài viết từ backend`);
+          return await loadSingleFeedFallback(feed);
+        }
+        
+        // Chuyển đổi format từ backend
+        const newsItems = data.items.map(item => {
+          let description = item.description || '';
+          if (description) {
+            description = description.replace(/<[^>]*>/g, '').substring(0, 300);
+          }
+          
+          return {
+            title: item.title || '',
+            description: description || 'Không có mô tả',
+            url: item.link || '',
+            urlToImage: item.thumbnail || item.image || getImageFromItem(item, feed.name),
+            publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
+            source: { name: feed.name },
+            content: item.content || description,
+            category: feed.category,
+            isVietnamese: true,
+            priority: feed.category === 'agriculture' ? 1 : 2,
+            guid: item.guid || item.link
+          };
+        });
+        
+        if (newsItems.length > 0) {
+          console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ backend)`);
+          return newsItems;
+        }
+        
+      } catch (error) {
+        console.warn(`   ⚠️ Backend error: ${error.message}, fallback sang rss2json...`);
+      }
+      
+      // Fallback to rss2json if backend fails
+      return await loadSingleFeedFallback(feed);
+    }
+    
+    // Fallback function để dùng rss2json nếu backend fail
+    async function loadSingleFeedFallback(feed) {
+      console.log(`   🔄 Fallback: ${feed.name} dùng rss2json...`);
+      
       const rssServices = [
-        // Primary: api.rss2json.com
         {
           url: `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=99`,
           name: 'rss2json.com'
         },
-        // Backup: rss2json.com
         {
           url: `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=99`,
           name: 'rss2json.com (backup)'
         }
       ];
       
-      // Thử từng service
       for (const service of rssServices) {
         try {
-          console.log(`   🔗 Thử ${service.name}...`);
+          console.log(`     🔗 Thử ${service.name}...`);
           const response = await fetch(service.url, { 
             timeout: 8000,
             headers: { 'Accept': 'application/json' }
           });
           
           if (!response.ok) {
-            console.warn(`   ⚠️ ${service.name} trả về ${response.status}`);
+            console.warn(`     ⚠️ ${service.name} trả về ${response.status}`);
             continue;
           }
           
           const data = await response.json();
           
-          // Kiểm tra status từ rss2json
           if (data.status !== 'ok') {
-            console.warn(`   ⚠️ ${service.name} status: ${data.status}`);
+            console.warn(`     ⚠️ ${service.name} status: ${data.status}`);
             continue;
           }
           
           if (!data.items || data.items.length === 0) {
-            console.warn(`   ⚠️ ${feed.name}: không có bài viết`);
+            console.warn(`     ⚠️ ${feed.name}: không có bài viết`);
             continue;
           }
           
-          // Chuyển đổi format
           const newsItems = data.items.map(item => {
-            // Xóa HTML tags từ description
             let description = item.description || '';
             if (description) {
               description = description.replace(/<[^>]*>/g, '').substring(0, 300);
@@ -832,17 +882,16 @@
           });
           
           if (newsItems.length > 0) {
-            console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ ${service.name})`);
+            console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ rss2json fallback)`);
             return newsItems;
           }
           
         } catch (error) {
-          console.warn(`   ⚠️ ${service.name} lỗi:`, error.message);
+          console.warn(`     ⚠️ ${service.name} lỗi: ${error.message}`);
           continue;
         }
       }
       
-      // Nếu cả 2 service đều fail
       console.error(`❌ Không tải được ${feed.name}`);
       return [];
     }

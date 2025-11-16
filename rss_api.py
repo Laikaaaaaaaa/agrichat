@@ -68,9 +68,6 @@ class RSSNewsAPI:
             {"name": "Tuổi Trẻ - Tổng hợp", "url": "https://tuoitre.vn/rss/", "category": "agriculture", "filter": True},
             {"name": "VietnamNet - Tổng hợp", "url": "https://vietnamnet.vn/rss/", "category": "agriculture", "filter": True},
             {"name": "Thanh Niên - Tổng hợp", "url": "https://thanhnien.vn/rss/", "category": "agriculture", "filter": True},
-            
-            # Dân Trí - Đời sống
-            {"name": "Dân Trí - Đời sống", "url": "https://dantri.com.vn/rss/doi-song.rss", "category": "agriculture", "filter": True},
         ]
 
     def is_agriculture_related(self, title, description):

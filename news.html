@@ -953,48 +953,55 @@
       }
       
       isLoading = true;
-      updateHeaderStatus('Đang tải thêm tin tức...', true);
       
-      // Load next batch of feeds (5 feeds at a time)
-      const nextBatch = window.remainingFeeds.slice(0, 5);
-      window.remainingFeeds = window.remainingFeeds.slice(5);
-      
-      console.log(`📦 Load thêm ${nextBatch.length} nguồn: ${nextBatch.map(f => f.name).join(', ')}`);
-      
-      // Use Promise.allSettled() for better performance
-      const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
-      const results = await Promise.allSettled(feedPromises);
-      
-      // Add new articles from successful results
-      results.forEach(result => {
-        if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
-          allLoadedArticles = [...allLoadedArticles, ...result.value];
-        }
-      });
-      
-      // Remove duplicates
-      allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-      
-      // SHUFFLE by source để xen kẽ báo
-      allLoadedArticles = shuffleBySource(allLoadedArticles);
-      
-      vietnameseNews = [...allLoadedArticles];
-      loadedFeedsCount += nextBatch.length;
-      
-      // Clear cache to force refresh
-      categoryCache = {
-        all: [],
-        agriculture: [],
-        technology: [],
-        climate: [],
-        livestock: []
-      };
-      
-      console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài (xen kẽ ngẫu nhiên)`);
-      updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
-      
-      isLoading = false;
-      return true;
+      try {
+        updateHeaderStatus('Đang tải thêm tin tức...', true);
+        
+        // Load next batch of feeds (5 feeds at a time)
+        const nextBatch = window.remainingFeeds.slice(0, 5);
+        window.remainingFeeds = window.remainingFeeds.slice(5);
+        
+        console.log(`📦 Load thêm ${nextBatch.length} nguồn: ${nextBatch.map(f => f.name).join(', ')}`);
+        
+        // Use Promise.allSettled() for better performance
+        const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
+        const results = await Promise.allSettled(feedPromises);
+        
+        // Add new articles from successful results
+        results.forEach(result => {
+          if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
+            allLoadedArticles = [...allLoadedArticles, ...result.value];
+          }
+        });
+        
+        // Remove duplicates
+        allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        
+        // SHUFFLE by source để xen kẽ báo
+        allLoadedArticles = shuffleBySource(allLoadedArticles);
+        
+        vietnameseNews = [...allLoadedArticles];
+        loadedFeedsCount += nextBatch.length;
+        
+        // Clear cache to force refresh
+        categoryCache = {
+          all: [],
+          agriculture: [],
+          technology: [],
+          climate: [],
+          livestock: []
+        };
+        
+        console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài (xen kẽ ngẫu nhiên)`);
+        updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+        
+        return true;
+      } catch (error) {
+        console.error('❌ Error in loadMoreFeeds:', error);
+        return false;
+      } finally {
+        isLoading = false;
+      }
     }
 
     // Extract default image based on feed/category
@@ -1932,6 +1939,9 @@
         if (currentDisplayCount < filteredArticles.length) {
           console.log(`📄 Hiển thị thêm 10 bài từ cache (${currentDisplayCount}/${filteredArticles.length})`);
           displayNews(filteredArticles, true); // Append mode
+          spinner?.classList.add('hidden');
+          loadMoreText.textContent = 'Tải thêm tin tức';
+          isLoading = false;
           return;
         }
         

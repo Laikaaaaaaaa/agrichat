@@ -4617,6 +4617,7 @@
       closeDataSidebar, dataSidebarToggle;
   
   let currentImageData = null;
+  let currentRecognition = null;  // Store active speech recognition object for stopping
   const currentMode = 'normal';
   let dataSidebarEnabled = true; // Track if data sidebar should auto-show
   let lastDataCategory = null; // Store last data category for toggle button
@@ -6315,7 +6316,8 @@
     try {
       const recognition = new SpeechRecognition();
       
-      // ✅ Cấu hình tối ưu cho Tiếng Việt
+      // Store recognition object globally so we can stop it when needed
+      currentRecognition = recognition;
       recognition.lang = 'vi-VN'; // Tiếng Việt
       recognition.continuous = true; // Tiếp tục ghi âm cho phép nói lâu
       recognition.interimResults = true; // Hiển thị kết quả tạm thời
@@ -6415,6 +6417,22 @@
 
   async function sendMessage() {
     console.log('🚀 ========== SENDMESSAGE START ==========');
+    
+    // ⏹️ Stop any active voice recording
+    if (currentRecognition) {
+      console.log('⏹️ Stopping voice recognition...');
+      currentRecognition.stop();
+      currentRecognition = null;
+      
+      // Reset voice button UI
+      const voiceBtn = document.getElementById('voice-input-btn');
+      if (voiceBtn) {
+        voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
+        voiceBtn.classList.add('bg-white');
+        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+      }
+    }
+    
     console.log('🔍 currentImageData exists?', !!currentImageData);
     console.log('🔍 currentImageData length:', currentImageData?.length);
     console.log('🔍 currentImageData type:', typeof currentImageData);

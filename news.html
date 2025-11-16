@@ -362,7 +362,7 @@
     
     // Vietnamese RSS feeds for agriculture and related news
     const vietnameseRSSFeeds = [
-      // Nông nghiệp môi trường - NO FILTER (accept all)
+      // Nông nghiệp môi trường - NO FILTER (accept ALL - thời sự, kinh doanh, v.v. đều liên quan NN&MT)
       {
         name: "Nông nghiệp Môi trường - Chăn nuôi",
         url: "https://nongnghiepmoitruong.vn/chan-nuoi.rss",
@@ -383,8 +383,33 @@
         url: "https://nongnghiepmoitruong.vn/khoa-hoc---cong-nghe.rss",
         category: "technology"
       },
+      {
+        name: "Nông nghiệp Môi trường - Thị trường",
+        url: "https://nongnghiepmoitruong.vn/thi-truong.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Kinh doanh",
+        url: "https://nongnghiepmoitruong.vn/kinh-doanh.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Thời sự",
+        url: "https://nongnghiepmoitruong.vn/thoi-su.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Video",
+        url: "https://nongnghiepmoitruong.vn/video.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Tất cả",
+        url: "https://nongnghiepmoitruong.vn/rss",
+        category: "agriculture"
+      },
       
-      // VnExpress - FILTER required (chỉ nông nghiệp và khoa học)
+      // VnExpress - NO FILTER (load tất cả để có bài xen kẽ)
       {
         name: "VnExpress - Nông nghiệp",
         url: "https://vnexpress.net/tag/nong-nghiep.rss",
@@ -396,21 +421,14 @@
         category: "technology"
       },
       
-      // Tuổi Trẻ - FILTER required (chỉ khoa học)
+      // Tuổi Trẻ - NO FILTER
       {
         name: "Tuổi Trẻ - Khoa học",
         url: "https://tuoitre.vn/rss/khoa-hoc.rss",
         category: "technology"
       },
       
-      // Dân trí - FILTER required (chỉ nông nghiệp)
-      {
-        name: "Dân Trí - Nông nghiệp",
-        url: "https://dantri.com.vn/rss/nong-nghiep.rss",
-        category: "agriculture"
-      },
-      
-      // VietnamNet - FILTER required
+      // VietnamNet - NO FILTER
       {
         name: "VietnamNet - Khoa học",
         url: "https://vietnamnet.vn/rss/khoa-hoc.rss",
@@ -422,7 +440,7 @@
         category: "climate"
       },
       
-      // Zing News - FILTER required (chỉ khoa học)
+      // Zing News - NO FILTER
       {
         name: "Zing News - Khoa học",
         url: "https://zingnews.vn/rss/khoa-hoc.rss",

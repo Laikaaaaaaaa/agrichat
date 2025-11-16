@@ -3986,6 +3986,10 @@
             />
           </div>
 
+          <button id="voice-input-btn" class="flex-shrink-0 border-2 border-green-500 text-green-500 rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-sm hover:bg-green-50 active:scale-95 transition-all flex items-center justify-center" title="Nhập bằng giọng nói">
+            <i class="fas fa-microphone text-lg"></i>
+          </button>
+
           <button id="send-btn" class="flex-shrink-0 bg-green-500 text-white rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-md hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center">
             <i class="fas fa-paper-plane text-lg"></i>
           </button>
@@ -4667,6 +4671,18 @@
       });
     } else {
       console.error('❌ Send button not found!');
+    }
+
+    // Voice input button
+    const voiceInputBtn = document.getElementById('voice-input-btn');
+    if (voiceInputBtn) {
+      console.log('✅ Attaching click listener to voice input button');
+      voiceInputBtn.addEventListener('click', async () => {
+        console.log('🎤 Voice button clicked - starting speech recognition');
+        await handleVoiceInput();
+      });
+    } else {
+      console.warn('⚠️ Voice input button not found!');
     }
 
     // Remove image button
@@ -6272,6 +6288,129 @@
       displayFallbackChart('Lỗi kết nối: ' + error.message);
     }
   }
+
+  /**
+   * Xử lý nhập giọng nói với real-time display
+   * Sử dụng Web Speech API để ghi âm từ microphone
+   * Hiển thị từng từ ngay lập tức trong chat
+   */
+  async function handleVoiceInput() {
+    const voiceBtn = document.getElementById('voice-input-btn');
+    const messageInput = document.getElementById('message-input');
+    
+    if (!voiceBtn || !messageInput) {
+      console.error('❌ Voice button or message input not found');
+      return;
+    }
+
+    // Kiểm tra trình duyệt hỗ trợ Speech Recognition API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('❌ Trình duyệt của bạn không hỗ trợ tính năng nhập giọng nói.\n\nVui lòng sử dụng Chrome, Edge hoặc Safari.');
+      console.warn('⚠️ Speech Recognition API not supported');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      
+      // ✅ Cấu hình tối ưu cho Tiếng Việt
+      recognition.lang = 'vi-VN'; // Tiếng Việt
+      recognition.continuous = true; // Tiếp tục ghi âm cho phép nói lâu
+      recognition.interimResults = true; // Hiển thị kết quả tạm thời
+      recognition.maxAlternatives = 1;
+
+      let finalTranscript = '';
+      let lastResultIndex = -1;
+
+      // Bắt đầu ghi âm
+      recognition.onstart = () => {
+        voiceBtn.classList.add('animate-pulse', 'bg-green-100');
+        voiceBtn.classList.remove('bg-white');
+        voiceBtn.innerHTML = '<i class="fas fa-microphone-slash text-lg text-green-500 animate-pulse"></i>';
+        console.log('🎤 Bắt đầu ghi âm...');
+      };
+
+      // ✅ Xử lý kết quả real-time - hiển thị từng từ ngay lập tức
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+
+        // Lặp qua tất cả kết quả từ lastResultIndex
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+
+          if (event.results[i].isFinal) {
+            // Kết quả final - thêm vào finalTranscript
+            finalTranscript += transcript + ' ';
+          } else {
+            // Kết quả interim - hiển thị tạm thời
+            interimTranscript += transcript;
+          }
+        }
+
+        // ✅ Update input ngay lập tức mỗi lần nhận được kết quả
+        const displayText = finalTranscript + interimTranscript;
+        messageInput.value = displayText.trim();
+        
+        // Auto scroll input nếu text dài
+        messageInput.scrollLeft = messageInput.scrollWidth;
+        
+        console.log('🔤 Real-time update:', displayText.trim());
+      };
+
+      // Xử lý lỗi
+      recognition.onerror = (event) => {
+        console.error('❌ Speech recognition error:', event.error);
+        
+        let errorMsg = 'Lỗi nhận dạng giọng nói';
+        switch(event.error) {
+          case 'network':
+            errorMsg = '❌ Lỗi kết nối mạng';
+            break;
+          case 'audio-capture':
+            errorMsg = '❌ Không thể truy cập microphone. Kiểm tra quyền truy cập!';
+            break;
+          case 'not-allowed':
+            errorMsg = '❌ Bạn đã từ chối quyền truy cập microphone';
+            break;
+          case 'no-speech':
+            errorMsg = '❌ Không phát hiện giọng nói. Vui lòng thử lại!';
+            break;
+          case 'network-timeout':
+            errorMsg = '⏱️ Hết thời gian chờ. Thử lại!';
+            break;
+        }
+        
+        console.error(errorMsg);
+        voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
+        voiceBtn.classList.add('bg-white');
+        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+      };
+
+      // Kết thúc ghi âm
+      recognition.onend = () => {
+        voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
+        voiceBtn.classList.add('bg-white');
+        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+        
+        if (finalTranscript.trim()) {
+          console.log('✅ Kết quả nhận dạng:', finalTranscript.trim());
+          messageInput.value = finalTranscript.trim();
+          messageInput.focus();
+        } else {
+          console.log('ℹ️ Không có kết quả nhận dạng');
+        }
+      };
+
+      // Bắt đầu ghi âm
+      recognition.start();
+
+    } catch (error) {
+      console.error('❌ Error initializing speech recognition:', error);
+      alert('❌ Có lỗi xảy ra: ' + error.message);
+    }
+  }
+
 
   async function sendMessage() {
     console.log('🚀 ========== SENDMESSAGE START ==========');

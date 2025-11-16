@@ -22,6 +22,7 @@ from cryptography.fernet import Fernet
 from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh mới
 from modes import ModeManager  # Import mode manager
 from model_config import get_model_config  # Import model configuration
+from speech_processor import SpeechProcessor  # Import speech-to-text processor
 import auth  # Import authentication module
 from error_handlers import (
     handle_errors, ValidationError, NotFoundError, AuthenticationError,
@@ -387,6 +388,10 @@ class Api:
         # Initialize Image Search Engine
         logging.info("Khởi tạo Image Search Engine...")
         self.image_engine = ImageSearchEngine()
+        
+        # Initialize Speech Processor
+        logging.info("Khởi tạo Speech Processor...")
+        self.speech_processor = SpeechProcessor()
         
         # Initialize Short-term Memory (lưu trữ 30 cuộc hội thoại gần nhất - tăng từ 15)
         self.conversation_history = []
@@ -8023,5 +8028,106 @@ def service_unavailable(error):
     except:
         return f'<html><head><meta charset="utf-8"><title>503</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>503 - Dịch vụ không khả dụng</h1><p>Server đang bảo trì. Vui lòng quay lại sau.</p><a href="/">Quay về trang chủ</a></body></html>', 503
 
+
+# ==================== SPEECH-TO-TEXT API ====================
+
+@app.route('/api/speech/recognize', methods=['POST'])
+def speech_recognize():
+    """
+    API endpoint để nhận audio từ client và chuyển thành text
+    
+    Request body:
+    {
+        "audio": "<base64_encoded_audio>",
+        "language": "vi-VN",
+        "format": "wav|mp3|flac"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "text": "Nội dung được nhận diện",
+        "language": "vi-VN"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'audio' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Thiếu dữ liệu audio"
+            }), 400
+        
+        language = data.get('language', 'vi-VN')
+        
+        # Decode base64 audio
+        try:
+            import base64
+            from io import BytesIO
+            import wave
+            import speech_recognition as sr
+            
+            audio_data = base64.b64decode(data['audio'])
+            audio_buffer = BytesIO(audio_data)
+            
+            # Tạo recognizer instance
+            recognizer = sr.Recognizer()
+            recognizer.energy_threshold = 4000
+            
+            # Đọc audio từ buffer
+            with sr.AudioFile(audio_buffer) as source:
+                audio = recognizer.record(source)
+            
+            # Nhận diện
+            text = recognizer.recognize_google(audio, language=language)
+            
+            logging.info(f"✅ Speech recognition success: {text}")
+            return jsonify({
+                "success": True,
+                "text": text,
+                "language": language
+            })
+            
+        except sr.UnknownValueError:
+            logging.warning("❌ Could not understand audio")
+            return jsonify({
+                "success": False,
+                "error": "Không thể hiểu giọng nói"
+            }), 400
+            
+        except sr.RequestError as e:
+            logging.error(f"❌ Speech API error: {e}")
+            return jsonify({
+                "success": False,
+                "error": f"Lỗi API: {str(e)}"
+            }), 500
+            
+    except Exception as e:
+        logging.error(f"❌ Error in speech recognition API: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/speech/languages', methods=['GET'])
+def get_speech_languages():
+    """Lấy danh sách ngôn ngữ được hỗ trợ"""
+    try:
+        languages = api.speech_processor.get_supported_languages()
+        return jsonify({
+            "success": True,
+            "languages": languages
+        })
+    except Exception as e:
+        logging.error(f"❌ Error getting languages: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 if __name__ == '__main__':
     run_local()
+

@@ -364,8 +364,9 @@ limiter = Limiter(
 # 🔐 SECURITY: Strict session configuration
 app.secret_key = os.getenv('SECRET_KEY', 'agrisense-ai-secret-key-2024')  # Change this in production!
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7 days
-app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'  # Prevent CSRF attacks - stricter than Lax
-app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only (for production)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Changed from Strict to Lax for credentials: 'include' to work
+# Only use SECURE flag on production (HTTPS), allow HTTP on development
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('DYNO') is not None  # HTTPS only on Heroku, HTTP on localhost
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to session cookie
 app.config['SESSION_COOKIE_NAME'] = 'agrisense_secure_session'  # Custom secure session name
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Refresh session on each request for security

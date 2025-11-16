@@ -476,6 +476,7 @@
             headers: {
               'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               conversations: conversations
             })
@@ -6551,6 +6552,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
                 headers: {
                   'Content-Type': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                   message: imagePrompt,
                   image_data: imageData,
@@ -6659,6 +6661,7 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             headers: {
               'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               message: msg,
               mode: currentMode

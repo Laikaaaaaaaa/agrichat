@@ -45,7 +45,7 @@ class RSSNewsAPI:
         ]
         
         self.vietnamese_feeds = [
-            # Nông nghiệp môi trường - NO FILTER (accept ALL - thời sự, kinh doanh, v.v. đều liên quan NN&MT)
+            # Nông nghiệp môi trường ONLY - 9 feeds
             {"name": "Nông nghiệp Môi trường - Chăn nuôi", "url": "https://nongnghiepmoitruong.vn/chan-nuoi.rss", "category": "livestock", "filter": False},
             {"name": "Nông nghiệp Môi trường - Tái cơ cấu", "url": "https://nongnghiepmoitruong.vn/tai-co-cau-nong-nghiep.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Khuyến nông", "url": "https://nongnghiepmoitruong.vn/khuyen-nong.rss", "category": "agriculture", "filter": False},
@@ -55,33 +55,6 @@ class RSSNewsAPI:
             {"name": "Nông nghiệp Môi trường - Thời sự", "url": "https://nongnghiepmoitruong.vn/thoi-su.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Video", "url": "https://nongnghiepmoitruong.vn/video.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Tất cả", "url": "https://nongnghiepmoitruong.vn/rss", "category": "agriculture", "filter": False},
-            
-            # VnExpress - NO FILTER (load tất cả để có bài xen kẽ)
-            {"name": "VnExpress - Nông nghiệp", "url": "https://vnexpress.net/tag/nong-nghiep.rss", "category": "agriculture", "filter": False},
-            {"name": "VnExpress - Khoa học", "url": "https://vnexpress.net/rss/khoa-hoc.rss", "category": "technology", "filter": False},
-            
-            # Tuổi Trẻ - NO FILTER
-            {"name": "Tuổi Trẻ - Khoa học", "url": "https://tuoitre.vn/rss/khoa-hoc.rss", "category": "technology", "filter": False},
-            
-            # VietnamNet - NO FILTER
-            {"name": "VietnamNet - Khoa học", "url": "https://vietnamnet.vn/rss/khoa-hoc.rss", "category": "technology", "filter": False},
-            {"name": "VietnamNet - Môi trường", "url": "https://vietnamnet.vn/rss/moi-truong.rss", "category": "climate", "filter": False},
-            
-            # Zing News - NO FILTER
-            {"name": "Zing News - Khoa học", "url": "https://zingnews.vn/rss/khoa-hoc.rss", "category": "technology", "filter": False},
-            
-            # COA (Cộng đồng Nông nghiệp Hữu Cơ) - NO FILTER
-            {"name": "COA - Tin tức", "url": "https://coa.org.vn/vi/news/rss/Tin-tuc/", "category": "agriculture", "filter": False},
-            {"name": "COA - Tất cả", "url": "https://coa.org.vn/vi/news/rss/", "category": "agriculture", "filter": False},
-            {"name": "COA - Nông nghiệp hữu cơ", "url": "https://coa.org.vn/vi/news/rss/nong-nghiep-huu-co/", "category": "agriculture", "filter": False},
-            {"name": "COA - Chứng nhận hữu cơ", "url": "https://coa.org.vn/vi/news/rss/chung-nhan-huu-co/", "category": "agriculture", "filter": False},
-            
-            # Ban Quản Lý Dự Án Dạo Công Nghiệp và Phát Triển Nông Thôn - Cà Mau
-            {"name": "Cà Mau - Các dự án triển khai", "url": "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47983&catname=cac-du-an-trien-khai&rec=50&sub=F&id=1396", "category": "agriculture", "filter": False},
-            
-            # VEPF (Vietnam Environment Protection Fund) - NO FILTER
-            {"name": "VEPF - Tin tức", "url": "https://www.vepf.vn/vi/rss/tin-tuc-vepftpdhmy.rss", "category": "climate", "filter": False},
-            {"name": "VEPF - Tin môi trường", "url": "https://www.vepf.vn/vi/rss/tin-moi-truong-vepfpw4e5j.rss", "category": "climate", "filter": False},
         ]
 
     def is_agriculture_related(self, title, description):

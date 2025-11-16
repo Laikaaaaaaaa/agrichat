@@ -4003,6 +4003,10 @@
           <button id="voice-input-btn" class="flex-shrink-0 border-2 border-green-500 text-green-500 rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-sm hover:bg-green-50 active:scale-95 transition-all flex items-center justify-center" title="Nhập bằng giọng nói">
             <i class="fas fa-microphone text-lg"></i>
           </button>
+          <!-- ✅ Voice stop button - shown when recording -->
+          <button id="voice-stop-btn" class="hidden flex-shrink-0 border-2 border-red-500 text-red-500 rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-sm hover:bg-red-50 active:scale-95 transition-all flex items-center justify-center" title="Dừng ghi âm">
+            <i class="fas fa-stop-circle text-lg"></i>
+          </button>
 
           <button id="send-btn" class="flex-shrink-0 bg-green-500 text-white rounded-xl px-3 py-2.5 md:px-4 md:py-3 shadow-md hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center">
             <i class="fas fa-paper-plane text-lg"></i>
@@ -4708,6 +4712,34 @@
       });
     } else {
       console.warn('⚠️ Voice input button not found!');
+    }
+    
+    // ✅ Voice stop button listener
+    const voiceStopBtn = document.getElementById('voice-stop-btn');
+    if (voiceStopBtn) {
+      console.log('✅ Attaching click listener to voice stop button');
+      voiceStopBtn.addEventListener('click', () => {
+        console.log('⏹️ Stop button clicked - stopping speech recognition');
+        if (currentRecognition) {
+          voiceShouldFillInput = false;
+          currentRecognition.abort();
+          currentRecognition = null;
+          
+          // Reset UI immediately
+          const stopBtn = document.getElementById('voice-stop-btn');
+          if (stopBtn) {
+            stopBtn.classList.add('hidden');
+          }
+          if (voiceInputBtn) {
+            voiceInputBtn.classList.remove('animate-pulse', 'bg-green-100');
+            voiceInputBtn.classList.add('bg-white');
+            voiceInputBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+          }
+          console.log('⏹️ Speech recognition stopped');
+        }
+      });
+    } else {
+      console.warn('⚠️ Voice stop button not found!');
     }
 
     // Remove image button
@@ -6450,6 +6482,12 @@
 
       // Bắt đầu ghi âm
       recognition.onstart = () => {
+        // ✅ Show stop button, hide mic button
+        const stopBtn = document.getElementById('voice-stop-btn');
+        if (stopBtn) {
+          stopBtn.classList.remove('hidden');
+        }
+        
         voiceBtn.classList.add('animate-pulse', 'bg-green-100');
         voiceBtn.classList.remove('bg-white');
         voiceBtn.innerHTML = '<i class="fas fa-microphone-slash text-lg text-green-500 animate-pulse"></i>';
@@ -6478,19 +6516,15 @@
         }
 
         // ✅ Update input ngay lập tức mỗi lần nhận được kết quả
-        const displayText = finalTranscript + interimTranscript;
-        
-        // ✅ Áp dụng lọc lặp từ trên frontend
-        const cleanedText = removeWordRepetition(displayText.trim());
-        messageInput.value = cleanedText;
+        // ⚡ OPTIMIZED: Skip deduplication during real-time for faster display
+        const displayText = (finalTranscript + interimTranscript).trim();
+        messageInput.value = displayText;
         
         // Auto scroll input nếu text dài
         messageInput.scrollLeft = messageInput.scrollWidth;
         
         console.log('📊 Event results count:', event.results.length);
-        console.log('📊 Final:', finalTranscript.trim());
-        console.log('📊 Interim:', interimTranscript.trim());
-        console.log('🔤 Real-time update:', cleanedText);
+        console.log('⚡ Real-time display (no filter):', displayText);
       };
 
       // Xử lý lỗi
@@ -6524,25 +6558,32 @@
 
       // Kết thúc ghi âm
       recognition.onend = () => {
+        // ✅ Hide stop button, show mic button
+        const stopBtn = document.getElementById('voice-stop-btn');
+        if (stopBtn) {
+          stopBtn.classList.add('hidden');
+        }
+        
         voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
         voiceBtn.classList.add('bg-white');
         voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
         
         // Only fill input if we should (not stopped by sendMessage)
         if (voiceShouldFillInput && finalTranscript.trim()) {
-          // ✅ Áp dụng lọc lặp từ lần cuối
+          // ✅ Áp dụng lọc lặp từ CHỈ khi kết thúc (tối ưu hóa)
           const cleanedFinal = removeWordRepetition(finalTranscript.trim());
-          console.log('✅ Kết quả nhận dạng:', cleanedFinal);
+          console.log('✅ Kết quả nhận dạng (cleaned):', cleanedFinal);
           messageInput.value = cleanedFinal;
           messageInput.focus();
         } else if (!voiceShouldFillInput) {
-          console.log('ℹ️ Voice stopped by message send - not filling input');
+          console.log('ℹ️ Voice stopped by user - not filling input');
         } else {
           console.log('ℹ️ Không có kết quả nhận dạng');
         }
         
         // Reset flag for next voice input
         voiceShouldFillInput = true;
+        currentRecognition = null;
       };
 
       // Bắt đầu ghi âm
@@ -6579,9 +6620,9 @@
     
     // ⏹️ Stop any active voice recording
     if (currentRecognition) {
-      console.log('⏹️ Stopping voice recognition...');
+      console.log('⏹️ Stopping voice recognition (send triggered)...');
       voiceShouldFillInput = false;  // Prevent onend from filling input after send
-      currentRecognition.stop();
+      currentRecognition.abort();  // ✅ Changed from stop() to abort() for immediate stop
       currentRecognition = null;
       
       // Reset voice button UI
@@ -6590,6 +6631,12 @@
         voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
         voiceBtn.classList.add('bg-white');
         voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+      }
+      
+      // ✅ Hide stop button
+      const stopBtn = document.getElementById('voice-stop-btn');
+      if (stopBtn) {
+        stopBtn.classList.add('hidden');
       }
     }
     

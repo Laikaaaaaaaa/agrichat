@@ -283,10 +283,9 @@
       </div>
 
       <div class="text-center mt-6 pt-4 border-t border-gray-100">
-        <button id="load-more" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-sm flex items-center gap-2 mx-auto">
+        <button id="load-more" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-sm">
           <i class="fas fa-plus mr-2"></i>
-          <span id="load-more-text">Tải thêm tin tức</span>
-          <i id="load-more-spinner" class="fas fa-spinner fa-spin hidden"></i>
+          Tải thêm tin tức
         </button>
       </div>
     </main>
@@ -1921,15 +1920,7 @@
         return;
       }
       
-      isLoading = true; // Set flag immediately
-      
-      // Show loading spinner on button
-      const loadMoreBtn = document.getElementById('load-more');
-      const spinner = document.getElementById('load-more-spinner');
-      const loadMoreText = document.getElementById('load-more-text');
-      
-      spinner?.classList.remove('hidden');
-      loadMoreText.textContent = 'Đang tải...';
+      isLoading = true;
       
       try {
         // Get current filtered articles for this category
@@ -1939,9 +1930,6 @@
         if (currentDisplayCount < filteredArticles.length) {
           console.log(`📄 Hiển thị thêm 10 bài từ cache (${currentDisplayCount}/${filteredArticles.length})`);
           displayNews(filteredArticles, true); // Append mode
-          spinner?.classList.add('hidden');
-          loadMoreText.textContent = 'Tải thêm tin tức';
-          isLoading = false;
           return;
         }
         
@@ -1982,10 +1970,7 @@
           document.getElementById('load-more').classList.add('hidden');
         }
       } finally {
-        // Always hide spinner and restore button state
         isLoading = false;
-        spinner?.classList.add('hidden');
-        loadMoreText.textContent = 'Tải thêm tin tức';
       }
     }
 

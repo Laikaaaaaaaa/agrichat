@@ -708,15 +708,15 @@
         
         console.log(`📋 Ưu tiên ${agricultureFeeds.length} nguồn nông nghiệp, ${otherFeeds.length} nguồn khác`);
         
-        // LOAD ONLY FIRST 5 FEEDS for initial display (~ 50-100 articles)
-        const initialFeeds = prioritizedFeeds.slice(0, 5);
-        console.log(`⚡ Load ${initialFeeds.length} nguồn đầu tiên...`);
+        // LOAD ALL FEEDS (not just first 5) - tất cả 20 feeds
+        const initialFeeds = prioritizedFeeds;
+        console.log(`⚡ Load tất cả ${initialFeeds.length} nguồn...`);
         
         // Store full feed list for later loading
-        window.remainingFeeds = prioritizedFeeds.slice(5);
+        window.remainingFeeds = [];
         window.allPrioritizedFeeds = prioritizedFeeds;
         
-        // Load initial feeds in parallel
+        // Load all feeds in parallel
         const feedPromises = initialFeeds.map(feed => loadSingleFeed(feed));
         const results = await Promise.all(feedPromises);
         

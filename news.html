@@ -695,20 +695,23 @@
 
     // Fetch Vietnamese RSS feeds - PROGRESSIVE LOADING with random mix
     async function loadVietnameseNews() {
-      console.log('🚀 Đang tải tin tức Việt Nam (xáo trộn ngẫu nhiên)...');
+      console.log('🚀 Đang tải tin tức Việt Nam (ngẫu nhiên hoàn toàn)...');
       
       try {
-        // Load all Vietnamese feeds but display progressively
-        console.log(`📋 Load từ ${vietnameseRSSFeeds.length} nguồn...`);
+        // Shuffle all feeds FIRST để load ngẫu nhiên
+        let shuffledFeeds = shuffleArray([...vietnameseRSSFeeds]);
         
-        // Store all feeds for progressive loading
-        window.allFeeds = [...vietnameseRSSFeeds];
+        console.log(`📋 Load từ ${shuffledFeeds.length} nguồn (xáo trộn)...`);
+        
+        // Store shuffled feeds for progressive loading
+        window.allFeeds = shuffledFeeds;
         
         // Load first 5 feeds for initial display
         const initialBatch = window.allFeeds.slice(0, 5);
         window.remainingFeeds = window.allFeeds.slice(5);
         
-        console.log(`⚡ Batch 1: Load ${initialBatch.length} nguồn đầu tiên...`);
+        console.log(`⚡ Batch 1: Load ${initialBatch.length} nguồn...`);
+        console.log(`Các nguồn: ${initialBatch.map(f => f.name).join(', ')}`);
         
         // Load batch 1 feeds in parallel
         const feedPromises = initialBatch.map(feed => loadSingleFeed(feed));
@@ -724,13 +727,13 @@
         // Remove duplicates
         allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
         
-        // SHUFFLE articles from all sources randomly (xáo trộn)
-        allLoadedArticles = shuffleArray(allLoadedArticles);
+        // SHUFFLE articles by source randomly
+        allLoadedArticles = shuffleBySource(allLoadedArticles);
         
         vietnameseNews = [...allLoadedArticles];
         loadedFeedsCount = initialBatch.length;
         
-        console.log(`✅ Batch 1 xong: ${vietnameseNews.length} bài (xáo trộn từ ${loadedFeedsCount} nguồn)`);
+        console.log(`✅ Batch 1 xong: ${vietnameseNews.length} bài (ngẫu nhiên từ ${loadedFeedsCount} nguồn)`);
         console.log(`📦 Còn ${window.remainingFeeds.length} feeds chờ load`);
         
       } catch (error) {
@@ -738,7 +741,7 @@
       }
     }
     
-    // Shuffle array function - để xáo trộn bài từ các nguồn khác nhau
+    // Shuffle array function - xáo trộn ngẫu nhiên
     function shuffleArray(array) {
       const shuffled = [...array];
       for (let i = shuffled.length - 1; i > 0; i--) {
@@ -746,6 +749,32 @@
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
       return shuffled;
+    }
+    
+    // Shuffle by source - đảm bảo báo xen kẽ nhau
+    function shuffleBySource(articles) {
+      // Group articles by source
+      const bySource = {};
+      articles.forEach(article => {
+        const source = article.source || 'Unknown';
+        if (!bySource[source]) bySource[source] = [];
+        bySource[source].push(article);
+      });
+      
+      // Mix articles round-robin: lấy 1 từ báo A, 1 từ báo B, 1 từ báo C, etc.
+      const sources = Object.keys(bySource);
+      const result = [];
+      let maxLength = Math.max(...sources.map(s => bySource[s].length));
+      
+      for (let i = 0; i < maxLength; i++) {
+        for (const source of sources) {
+          if (bySource[source][i]) {
+            result.push(bySource[source][i]);
+          }
+        }
+      }
+      
+      return result;
     }
     
     // Load a single RSS feed - UỨU TIÊN rss2json, bỏ /api/rss-parse
@@ -902,7 +931,7 @@
       const nextBatch = window.remainingFeeds.slice(0, 5);
       window.remainingFeeds = window.remainingFeeds.slice(5);
       
-      console.log(`📦 Load thêm ${nextBatch.length} nguồn (còn ${window.remainingFeeds.length})`);
+      console.log(`📦 Load thêm ${nextBatch.length} nguồn: ${nextBatch.map(f => f.name).join(', ')}`);
       
       // Use Promise.allSettled() for better performance
       const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
@@ -918,8 +947,8 @@
       // Remove duplicates
       allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
       
-      // SHUFFLE again to mix articles from different sources
-      allLoadedArticles = shuffleArray(allLoadedArticles);
+      // SHUFFLE by source để xen kẽ báo
+      allLoadedArticles = shuffleBySource(allLoadedArticles);
       
       vietnameseNews = [...allLoadedArticles];
       loadedFeedsCount += nextBatch.length;
@@ -933,7 +962,7 @@
         livestock: []
       };
       
-      console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài (xáo trộn)`);
+      console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài (xen kẽ ngẫu nhiên)`);
       updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
       
       isLoading = false;

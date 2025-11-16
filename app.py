@@ -5286,18 +5286,16 @@ def demo_token_optimization():
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    """API endpoint for chat - Requires authentication"""
-    # 🔐 SECURITY: Check if user is authenticated
-    if 'user_id' not in session:
-        logging.warning("⚠️ Unauthorized chat attempt - No session user_id")
-        return jsonify({
-            "response": "❌ Vui lòng đăng nhập trước khi sử dụng chat", 
-            "success": False,
-            "error": "Unauthorized"
-        }), 401
+    """API endpoint for chat - Allow both authenticated and guest users"""
+    # Get user_id from session if logged in, otherwise use session ID as guest user
+    user_id = session.get('user_id') or session.get('session_id')
+    
+    if not user_id:
+        # Generate a session ID for guest users
+        user_id = f"guest_{int(time.time() * 1000)}"
+        session['session_id'] = user_id
     
     try:
-        user_id = session['user_id']
         logging.info(f"🔐 Chat API called by user {user_id}")
         
         data = request.json
@@ -5417,17 +5415,16 @@ def chat():
 
 @app.route('/api/chat/history/sync', methods=['POST'])
 def sync_chat_history():
-    """API endpoint to sync localStorage conversations to database when user logs in"""
-    # 🔐 SECURITY: Check if user is authenticated
-    if 'user_id' not in session:
-        logging.warning("⚠️ Unauthorized sync attempt - No session user_id")
-        return jsonify({
-            "success": False,
-            "error": "Unauthorized"
-        }), 401
+    """API endpoint to sync localStorage conversations to database - Allow guests and authenticated users"""
+    # Get user_id from session if logged in, otherwise use session ID as guest user
+    user_id = session.get('user_id') or session.get('session_id')
+    
+    if not user_id:
+        # Generate a session ID for guest users
+        user_id = f"guest_{int(time.time() * 1000)}"
+        session['session_id'] = user_id
     
     try:
-        user_id = session['user_id']
         data = request.json
         conversations = data.get('conversations', [])
         

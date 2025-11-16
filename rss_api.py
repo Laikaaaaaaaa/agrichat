@@ -56,38 +56,33 @@ class RSSNewsAPI:
             {"name": "Nông nghiệp Môi trường - Video", "url": "https://nongnghiepmoitruong.vn/video.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Tất cả", "url": "https://nongnghiepmoitruong.vn/rss", "category": "agriculture", "filter": False},
         
-            # Moitruong.net.vn - 5 feeds chuyên sâu về môi trường
+            # Moitruong.net.vn - 5 feeds
             {"name": "Môi trường - Biến đổi khí hậu", "url": "https://moitruong.net.vn/rss/tin-tuc/bien-doi-khi-hau", "category": "climate", "filter": False},
             {"name": "Môi trường - An ninh nguồn nước", "url": "https://moitruong.net.vn/rss/nuoc-va-cuoc-song/an-ninh-nguon-nuoc", "category": "climate", "filter": False},
             {"name": "Môi trường - Ô nhiễm", "url": "https://moitruong.net.vn/rss/moi-truong-tai-nguyen/o-nhiem-moi-truong", "category": "climate", "filter": False},
             {"name": "Môi trường - Vấn đề hôm nay", "url": "https://moitruong.net.vn/rss/tin-tuc/van-de-hom-nay", "category": "climate", "filter": False},
             {"name": "Môi trường - Kinh tế xanh", "url": "https://moitruong.net.vn/rss/kinh-te-xanh/chuyen-doi-xanh", "category": "climate", "filter": False},
             
-            # Báo lớn - Tổng hợp (có filter để lấy nội dung liên quan nông nghiệp)
-            {"name": "VnExpress - Tổng hợp", "url": "https://rss.vnexpress.net/", "category": "agriculture", "filter": True},
-            {"name": "Tuổi Trẻ - Tổng hợp", "url": "https://tuoitre.vn/rss/", "category": "agriculture", "filter": True},
-            {"name": "VietnamNet - Tổng hợp", "url": "https://vietnamnet.vn/rss/", "category": "agriculture", "filter": True},
-            {"name": "Thanh Niên - Tổng hợp", "url": "https://thanhnien.vn/rss/", "category": "agriculture", "filter": True},
+            # Báo lớn - 4 feeds
+            {"name": "VnExpress", "url": "https://rss.vnexpress.net/", "category": "agriculture", "filter": True},
+            {"name": "Tuổi Trẻ", "url": "https://tuoitre.vn/rss/", "category": "agriculture", "filter": True},
+            {"name": "VietnamNet", "url": "https://vietnamnet.vn/rss/", "category": "agriculture", "filter": True},
+            {"name": "Thanh Niên", "url": "https://thanhnien.vn/rss/", "category": "agriculture", "filter": True},
         ]
 
     def is_agriculture_related(self, title, description):
         """Check if article is related to agriculture/environment"""
         text = (title + ' ' + description).lower()
-        
-        # Check if any keyword matches
         for keyword in self.agriculture_keywords:
             if keyword in text:
                 return True
-        
         return False
     
     def filter_articles(self, articles, feed):
         """Filter articles based on feed configuration"""
         if not feed.get('filter', True):
-            # No filter needed for this feed
             return articles
         
-        # Filter articles to keep only agriculture/environment related ones
         filtered = []
         for article in articles:
             if self.is_agriculture_related(article.get('title', ''), article.get('description', '')):
@@ -119,42 +114,29 @@ class RSSNewsAPI:
         if not text:
             return ''
         import re
-        # Remove CDATA tags
         text = text.replace('<![CDATA[', '').replace(']]>', '')
-        # Remove HTML tags
         text = re.sub(r'<[^>]+>', '', text)
-        # Decode HTML entities
         import html
         text = html.unescape(text)
-        # Clean up whitespace
         text = ' '.join(text.split())
         return text
 
     def parse_rss_xml(self, xml_text):
-        """Parse RSS XML and extract items - handles both RSS 2.0 and Atom"""
+        """Parse RSS XML and extract items"""
         try:
             if not xml_text:
                 return []
             
-            # Try to parse XML
             try:
                 root = ET.fromstring(xml_text)
             except ET.ParseError as e:
-                logger.warning(f"XML parse error, trying fallback: {e}")
-                # Try with encoding fix
+                logger.warning(f"XML parse error: {e}")
                 xml_text = xml_text.encode('utf-8', errors='ignore').decode('utf-8')
                 root = ET.fromstring(xml_text)
             
-            namespaces = {
-                'content': 'http://purl.org/rss/1.0/modules/content/',
-                'atom': 'http://www.w3.org/2005/Atom',
-                'media': 'http://search.yahoo.com/mrss/',
-                '': 'http://www.w3.org/2005/Atom'
-            }
-            
             items = []
             
-            # Try RSS 2.0 format first
+            # RSS 2.0 format
             for item in root.findall('.//item'):
                 title_elem = item.find('title')
                 link_elem = item.find('link')
@@ -166,84 +148,35 @@ class RSSNewsAPI:
                 description = (desc_elem.text or '').strip() if desc_elem is not None else ''
                 pubdate = (pubdate_elem.text or '').strip() if pubdate_elem is not None else ''
                 
-                # Extract image from HTML description (for Dân Trí)
-                image_url = None
-                if '<img' in description.lower():
-                    import re
-                    img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', description, re.IGNORECASE)
-                    if img_match:
-                        image_url = img_match.group(1)
-                
-                # Clean HTML from text
                 title = self.clean_html_text(title)
                 description = self.clean_html_text(description)
-                description = description[:500]  # Limit length
+                description = description[:500]
                 
                 if title and link:
-                    article = {
+                    items.append({
                         'title': title,
                         'link': link,
                         'description': description,
                         'pubDate': pubdate,
-                    }
-                    # Add image if found
-                    if image_url:
-                        article['image'] = image_url
-                    
-                    items.append(article)
+                    })
             
-            # If no items found, try Atom format
-            if not items:
-                logger.info("No RSS items found, trying Atom format...")
-                for entry in root.findall('.//{http://www.w3.org/2005/Atom}entry'):
-                    title_elem = entry.find('{http://www.w3.org/2005/Atom}title')
-                    link_elem = entry.find('{http://www.w3.org/2005/Atom}link')
-                    summary_elem = entry.find('{http://www.w3.org/2005/Atom}summary')
-                    published_elem = entry.find('{http://www.w3.org/2005/Atom}published')
-                    
-                    title = (title_elem.text or '').strip() if title_elem is not None else ''
-                    link = link_elem.get('href', '') if link_elem is not None else ''
-                    description = (summary_elem.text or '').strip() if summary_elem is not None else ''
-                    pubdate = (published_elem.text or '').strip() if published_elem is not None else ''
-                    
-                    # Clean HTML
-                    title = self.clean_html_text(title)
-                    description = self.clean_html_text(description)
-                    description = description[:500]
-                    
-                    if title and link:
-                        items.append({
-                            'title': title,
-                            'link': link,
-                            'description': description,
-                            'pubDate': pubdate,
-                        })
-            
-            logger.info(f"✅ Parsed {len(items)} items from RSS/Atom")
+            logger.info(f"✅ Parsed {len(items)} items")
             return items
             
         except Exception as e:
             logger.warning(f"❌ Parse error: {e}")
-            import traceback
-            traceback.print_exc()
             return []
 
     def load_news_from_feeds(self, limit=50):
-        """Load news from multiple RSS feeds - loads from MANY feeds to get variety"""
+        """Load news from multiple RSS feeds"""
         all_news = []
         feeds_loaded = 0
         
-        # Prioritize agriculture feeds first for better distribution
-        sorted_feeds = sorted(self.vietnamese_feeds, 
-                            key=lambda f: (0 if f['category'] in ['agriculture', 'livestock', 'technology'] else 1))
-        
-        for feed in sorted_feeds:
-            # Load enough to reach limit (but continue to load from different feeds)
-            if len(all_news) >= limit * 2:  # Load 2x limit to ensure variety
+        for feed in self.vietnamese_feeds:
+            if len(all_news) >= limit * 2:
                 break
                 
             try:
-                # Check cache first
                 cache_key = f"feed_{feed['url']}"
                 cached = self.get_from_cache(cache_key)
                 
@@ -253,51 +186,25 @@ class RSSNewsAPI:
                     feeds_loaded += 1
                     continue
                 
-                # Fetch and parse
                 xml_text = self.fetch_rss_feed(feed['url'])
                 if xml_text:
                     items = self.parse_rss_xml(xml_text)
-                    
-                    # Apply filter if needed
                     items = self.filter_articles(items, feed)
-                    
-                    # Limit items per feed to ensure diversity
                     items = items[:30]
                     
-                    # Add category and source
                     for item in items:
                         item['category'] = feed['category']
                         item['source'] = feed['name']
                         item['isVietnamese'] = True
                     
-                    # Cache the results
                     self.set_cache(cache_key, items)
                     all_news.extend(items)
                     feeds_loaded += 1
-                    logger.info(f"✅ Loaded {len(items)} from {feed['name']} (category: {feed['category']})")
+                    logger.info(f"✅ Loaded {len(items)} from {feed['name']}")
                         
             except Exception as e:
                 logger.error(f"Error loading {feed['name']}: {e}")
                 continue
-        
-        # Sort by date (try to handle various date formats)
-        try:
-            def parse_date(date_str):
-                if not date_str:
-                    return datetime.now()
-                try:
-                    # Try ISO format first
-                    return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-                except:
-                    try:
-                        # Try RFC2822 format (RSS standard)
-                        return parsedate_to_datetime(date_str)
-                    except:
-                        return datetime.now()
-            
-            all_news.sort(key=lambda x: parse_date(x.get('pubDate', '')), reverse=True)
-        except Exception as e:
-            logger.warning(f"Error sorting by date: {e}")
         
         logger.info(f"📊 Loaded {len(all_news)} total articles from {feeds_loaded} feeds")
         return all_news[:limit]
@@ -314,10 +221,7 @@ class RSSNewsAPI:
 
     def set_cache(self, key, data):
         """Set cache"""
-        self.cache[key] = {
-            'data': data,
-            'timestamp': time.time()
-        }
+        self.cache[key] = {'data': data, 'timestamp': time.time()}
 
 # Create global instance
 news_api = RSSNewsAPI()
@@ -327,13 +231,7 @@ def get_news(limit=50):
     return news_api.load_news_from_feeds(limit)
 
 def get_news_by_category(category, limit=20):
-    """Get news by specific category - loads enough to fill the category"""
-    # Load 3x limit to ensure we get enough for the category
+    """Get news by specific category"""
     all_news = news_api.load_news_from_feeds(min(150, limit * 5))
-    
-    # Filter by category
     category_news = [item for item in all_news if item.get('category') == category]
-    
-    logger.info(f"🔍 Category '{category}': found {len(category_news)} from {len(all_news)} total")
-    
     return category_news[:limit]

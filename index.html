@@ -4352,6 +4352,9 @@
           const data = await response.json();
           
           if (data.success && data.user) {
+            // Check if this is a NEW login (was not logged in before)
+            const wasLoggedIn = isUserLoggedIn;
+            
             // User is logged in
             isUserLoggedIn = true;
             currentUserData = data.user; // Store user data
@@ -4375,6 +4378,12 @@
             // Update name and status
             userNameEl.textContent = userName;
             userStatusEl.textContent = data.user.email;
+            
+            // ✅ NEW: If just logged in (wasn't logged in before), start new conversation
+            if (!wasLoggedIn && window.chatHistoryManager) {
+              console.log('✅ User just logged in! Starting new conversation...');
+              window.chatHistoryManager.startNewConversation();
+            }
           } else {
             isUserLoggedIn = false;
             currentUserData = null;

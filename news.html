@@ -362,607 +362,112 @@
     
     // Vietnamese RSS feeds for agriculture and related news
     const vietnameseRSSFeeds = [
-      // Nông nghiệp môi trường
+      // Nông nghiệp môi trường - NO FILTER (accept all)
       {
-        name: 'Nông nghiệp Môi trường - Chăn nuôi',
-        url: 'https://nongnghiepmoitruong.vn/chan-nuoi.rss',
-        category: 'livestock'
+        name: "Nông nghiệp Môi trường - Chăn nuôi",
+        url: "https://nongnghiepmoitruong.vn/chan-nuoi.rss",
+        category: "livestock"
       },
       {
-        name: 'Nông nghiệp Môi trường - Tái cơ cấu',
-        url: 'https://nongnghiepmoitruong.vn/tai-co-cau-nong-nghiep.rss',
-        category: 'agriculture'
+        name: "Nông nghiệp Môi trường - Tái cơ cấu",
+        url: "https://nongnghiepmoitruong.vn/tai-co-cau-nong-nghiep.rss",
+        category: "agriculture"
       },
       {
-        name: 'Nông nghiệp Môi trường - Khuyến nông',
-        url: 'https://nongnghiepmoitruong.vn/khuyen-nong.rss',
-        category: 'agriculture'
+        name: "Nông nghiệp Môi trường - Khuyến nông",
+        url: "https://nongnghiepmoitruong.vn/khuyen-nong.rss",
+        category: "agriculture"
       },
       {
-        name: 'Nông nghiệp Môi trường - Khoa học Công nghệ',
-        url: 'https://nongnghiepmoitruong.vn/khoa-hoc---cong-nghe.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Nông nghiệp Môi trường - Thủy sản',
-        url: 'https://nongnghiepmoitruong.vn/thuy-san.rss',
-        category: 'agriculture'
-      },
-      {
-        name: 'Nông nghiệp Môi trường - Lâm nghiệp',
-        url: 'https://nongnghiepmoitruong.vn/lam-nghiep.rss',
-        category: 'agriculture'
-      },
-      {
-        name: 'Nông nghiệp Môi trường - Môi trường',
-        url: 'https://nongnghiepmoitruong.vn/cau-chuyen-moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'Nông nghiệp Môi trường - Khoáng sản',
-        url: 'https://nongnghiepmoitruong.vn/khoang-san.rss',
-        category: 'business'
-      },
-      {
-        name: 'Nông nghiệp Môi trường - Tài nguyên nước',
-        url: 'https://nongnghiepmoitruong.vn/tai-nguyen-nuoc.rss',
-        category: 'climate'
-      },
-      {
-        name: 'Nông nghiệp Môi trường - Kinh tế thị trường',
-        url: 'https://nongnghiepmoitruong.vn/kinh-te-thi-truong.rss',
-        category: 'economy'
-      },
-      {
-        name: 'Nông nghiệp Môi trường - Biến đổi khí hậu',
-        url: 'https://nongnghiepmoitruong.vn/bien-doi-khi-hau-moitruong.rss',
-        category: 'climate'
+        name: "Nông nghiệp Môi trường - KHCN",
+        url: "https://nongnghiepmoitruong.vn/khoa-hoc---cong-nghe.rss",
+        category: "technology"
       },
       
-      // VnExpress
+      // VnExpress - FILTER required (chỉ nông nghiệp và khoa học)
       {
-        name: 'VnExpress - Nông nghiệp',
-        url: 'https://vnexpress.net/tag/nong-nghiep.rss',
-        category: 'agriculture'
+        name: "VnExpress - Nông nghiệp",
+        url: "https://vnexpress.net/tag/nong-nghiep.rss",
+        category: "agriculture"
       },
       {
-        name: 'VnExpress - Nông nghiệp công nghệ cao',
-        url: 'https://vnexpress.net/tag/nong-nghiep-cong-nghe-cao.rss',
-        category: 'agriculture'
-      },
-      {
-        name: 'VnExpress - Nông nghiệp sạch',
-        url: 'https://vnexpress.net/topic/nong-nghiep-sach-21685.rss',
-        category: 'agriculture'
-      },
-      {
-        name: 'VnExpress - Khoa học',
-        url: 'https://vnexpress.net/rss/khoa-hoc.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VnExpress - Thời sự',
-        url: 'https://vnexpress.net/rss/thoi-su.rss',
-        category: 'news'
-      },
-      {
-        name: 'VnExpress - Kinh doanh',
-        url: 'https://vnexpress.net/rss/kinh-doanh.rss',
-        category: 'business'
-      },
-      {
-        name: 'VnExpress - Sức khỏe',
-        url: 'https://vnexpress.net/rss/suc-khoe.rss',
-        category: 'health'
-      },
-      {
-        name: 'VnExpress - Thế giới',
-        url: 'https://vnexpress.net/rss/the-gioi.rss',
-        category: 'world'
-      },
-      {
-        name: 'VnExpress - Giáo dục',
-        url: 'https://vnexpress.net/rss/giao-duc.rss',
-        category: 'education'
-      },
-      {
-        name: 'VnExpress - Pháp luật',
-        url: 'https://vnexpress.net/rss/phap-luat.rss',
-        category: 'law'
-      },
-      {
-        name: 'VnExpress - Môi trường',
-        url: 'https://vnexpress.net/rss/thoi-su/moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'VnExpress - Tin mới nhất',
-        url: 'https://vnexpress.net/rss/tin-moi-nhat.rss',
-        category: 'news'
-      },
-      {
-        name: 'VnExpress - Tin xem nhiều',
-        url: 'https://vnexpress.net/rss/tin-xem-nhieu.rss',
-        category: 'news'
-      },
-      {
-        name: 'VnExpress - Du lịch',
-        url: 'https://vnexpress.net/rss/du-lich.rss',
-        category: 'travel'
-      },
-      {
-        name: 'VnExpress - Khoa học Tự nhiên',
-        url: 'https://vnexpress.net/rss/khoa-hoc/tu-nhien.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VnExpress - Khoa học Ứng dụng',
-        url: 'https://vnexpress.net/rss/khoa-hoc/ung-dung.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VnExpress - Phát minh',
-        url: 'https://vnexpress.net/rss/khoa-hoc/phat-minh.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VnExpress - Khám phá',
-        url: 'https://vnexpress.net/rss/khoa-hoc/kham-pha.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VnExpress - Bảo vệ môi trường',
-        url: 'https://vnexpress.net/rss/khoa-hoc/bao-ve-moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'VnExpress - Nhà khoa học Việt',
-        url: 'https://vnexpress.net/rss/khoa-hoc/nha-khoa-hoc-viet.rss',
-        category: 'technology'
+        name: "VnExpress - Khoa học",
+        url: "https://vnexpress.net/rss/khoa-hoc.rss",
+        category: "technology"
       },
       
-      // Tuổi Trẻ
+      // Tuổi Trẻ - FILTER required (chỉ khoa học)
       {
-        name: 'Tuổi Trẻ - Khoa học',
-        url: 'https://tuoitre.vn/rss/khoa-hoc.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Tuổi Trẻ - Thời sự',
-        url: 'https://tuoitre.vn/rss/thoisu.rss',
-        category: 'news'
-      },
-      {
-        name: 'Tuổi Trẻ - Kinh tế',
-        url: 'https://tuoitre.vn/rss/kinhte.rss',
-        category: 'economy'
-      },
-      {
-        name: 'Tuổi Trẻ - Giáo dục',
-        url: 'https://tuoitre.vn/rss/giaoduc.rss',
-        category: 'education'
-      },
-      {
-        name: 'Tuổi Trẻ - Sức khỏe',
-        url: 'https://tuoitre.vn/rss/suckhoe.rss',
-        category: 'health'
-      },
-      {
-        name: 'Tuổi Trẻ - Thế giới',
-        url: 'https://tuoitre.vn/rss/thegioi.rss',
-        category: 'world'
-      },
-      {
-        name: 'Tuổi Trẻ - Chính trị',
-        url: 'https://tuoitre.vn/rss/chinhtri.rss',
-        category: 'politics'
-      },
-      {
-        name: 'Tuổi Trẻ - Văn hóa',
-        url: 'https://tuoitre.vn/rss/vanhoa.rss',
-        category: 'culture'
-      },
-      {
-        name: 'Tuổi Trẻ - Bạn đọc',
-        url: 'https://tuoitre.vn/rss/ban-doc.rss',
-        category: 'news'
-      },
-      {
-        name: 'Tuổi Trẻ - Nhịp sống trẻ',
-        url: 'https://tuoitre.vn/rss/nhip-song-tre.rss',
-        category: 'lifestyle'
-      },
-      {
-        name: 'Tuổi Trẻ - Bạn đọc làm báo',
-        url: 'https://tuoitre.vn/rss/ban-doc-lam-bao.rss',
-        category: 'news'
-      },
-      {
-        name: 'Tuổi Trẻ - Du lịch',
-        url: 'https://tuoitre.vn/rss/du-lich.rss',
-        category: 'travel'
-      },
-      {
-        name: 'Tuổi Trẻ - Môi trường',
-        url: 'https://tuoitre.vn/rss/thoi-su/moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'Tuổi Trẻ - Đời sống',
-        url: 'https://tuoitre.vn/rss/doi-song.rss',
-        category: 'lifestyle'
-      },
-      {
-        name: 'Tuổi Trẻ - Tin mới nhất',
-        url: 'https://tuoitre.vn/rss/tin-moi-nhat.rss',
-        category: 'news'
-      },
-      {
-        name: 'Tuổi Trẻ - Pháp luật',
-        url: 'https://tuoitre.vn/rss/phap-luat.rss',
-        category: 'law'
-      },
-      {
-        name: 'Tuổi Trẻ - Nhịp sống số',
-        url: 'https://tuoitre.vn/rss/nhip-song-so.rss',
-        category: 'technology'
+        name: "Tuổi Trẻ - Khoa học",
+        url: "https://tuoitre.vn/rss/khoa-hoc.rss",
+        category: "technology"
       },
       
-      // Dân trí
+      // Dân trí - FILTER required (chỉ nông nghiệp)
       {
-        name: 'Dân trí - Sức khỏe',
-        url: 'https://dantri.com.vn/rss/suc-khoe.rss',
-        category: 'health'
-      },
-      {
-        name: 'Dân trí - Kinh doanh',
-        url: 'https://dantri.com.vn/rss/kinh-doanh.rss',
-        category: 'business'
-      },
-      {
-        name: 'Dân trí - Giáo dục',
-        url: 'https://dantri.com.vn/rss/giao-duc.rss',
-        category: 'education'
-      },
-      {
-        name: 'Dân trí - Thế giới',
-        url: 'https://dantri.com.vn/rss/the-gioi.rss',
-        category: 'world'
-      },
-      {
-        name: 'Dân trí - Thời sự',
-        url: 'https://dantri.com.vn/rss/thoi-su.rss',
-        category: 'news'
-      },
-      {
-        name: 'Dân trí - Khoa học Công nghệ',
-        url: 'https://dantri.com.vn/rss/khoa-hoc-cong-nghe.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Dân trí - Nhịp sống trẻ',
-        url: 'https://dantri.com.vn/rss/nhip-song-tre.rss',
-        category: 'lifestyle'
-      },
-      {
-        name: 'Dân trí - Đời sống',
-        url: 'https://dantri.com.vn/rss/doi-song.rss',
-        category: 'lifestyle'
-      },
-      {
-        name: 'Dân trí - Văn hóa',
-        url: 'https://dantri.com.vn/rss/van-hoa.rss',
-        category: 'culture'
-      },
-      {
-        name: 'Dân trí - Nông nghiệp',
-        url: 'https://dantri.com.vn/rss/nong-nghiep.rss',
-        category: 'agriculture'
-      },
-      {
-        name: 'Dân trí - Bạn đọc',
-        url: 'https://dantri.com.vn/rss/ban-doc.rss',
-        category: 'news'
+        name: "Dân Trí - Nông nghiệp",
+        url: "https://dantri.com.vn/rss/nong-nghiep.rss",
+        category: "agriculture"
       },
       
-      // VietnamNet
+      // VietnamNet - FILTER required
       {
-        name: 'VietnamNet - Khoa học',
-        url: 'https://vietnamnet.vn/rss/khoa-hoc.rss',
-        category: 'technology'
+        name: "VietnamNet - Khoa học",
+        url: "https://vietnamnet.vn/rss/khoa-hoc.rss",
+        category: "technology"
       },
       {
-        name: 'VietnamNet - Môi trường',
-        url: 'https://vietnamnet.vn/rss/moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'VietnamNet - Thời sự',
-        url: 'https://vietnamnet.vn/rss/thoi-su.rss',
-        category: 'news'
-      },
-      {
-        name: 'VietnamNet - Kinh doanh',
-        url: 'https://vietnamnet.vn/rss/kinh-doanh.rss',
-        category: 'business'
-      },
-      {
-        name: 'VietnamNet - Sức khỏe',
-        url: 'https://vietnamnet.vn/rss/suc-khoe.rss',
-        category: 'health'
-      },
-      {
-        name: 'VietnamNet - Giáo dục',
-        url: 'https://vietnamnet.vn/rss/giao-duc.rss',
-        category: 'education'
-      },
-      {
-        name: 'VietnamNet - Bạn đọc',
-        url: 'https://vietnamnet.vn/rss/ban-doc.rss',
-        category: 'news'
-      },
-      {
-        name: 'VietnamNet - Du lịch',
-        url: 'https://vietnamnet.vn/rss/du-lich.rss',
-        category: 'travel'
-      },
-      {
-        name: 'VietnamNet - Thế giới',
-        url: 'https://vietnamnet.vn/rss/the-gioi.rss',
-        category: 'world'
-      },
-      {
-        name: 'VietnamNet - Công nghệ',
-        url: 'https://vietnamnet.vn/rss/cong-nghe.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VietnamNet - Nhịp sống số',
-        url: 'https://vietnamnet.vn/rss/nhip-song-so.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VietnamNet - Startup',
-        url: 'https://vietnamnet.vn/rss/nhip-song-so/startup.rss',
-        category: 'business'
-      },
-      {
-        name: 'VietnamNet - Cuộc sống số',
-        url: 'https://vietnamnet.vn/rss/nhip-song-so/cuoc-song-so.rss',
-        category: 'technology'
-      },
-      {
-        name: 'VietnamNet - Khoa học số',
-        url: 'https://vietnamnet.vn/rss/nhip-song-so/khoa-hoc.rss',
-        category: 'technology'
+        name: "VietnamNet - Môi trường",
+        url: "https://vietnamnet.vn/rss/moi-truong.rss",
+        category: "climate"
       },
       
-      // Zing News
+      // Zing News - FILTER required (chỉ khoa học)
       {
-        name: 'Zing News - RSS Chính',
-        url: 'https://zingnews.vn/rss.html',
-        category: 'news'
-      },
-      {
-        name: 'Zing News - Kinh doanh',
-        url: 'https://zingnews.vn/rss/kinh-doanh.rss',
-        category: 'business'
-      },
-      {
-        name: 'Zing News - Sức khỏe',
-        url: 'https://zingnews.vn/rss/suc-khoe.rss',
-        category: 'health'
-      },
-      {
-        name: 'Zing News - Khoa học',
-        url: 'https://zingnews.vn/rss/khoa-hoc.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Zing News - Thế giới',
-        url: 'https://zingnews.vn/rss/the-gioi.rss',
-        category: 'world'
-      },
-      {
-        name: 'Zing News - Giáo dục',
-        url: 'https://zingnews.vn/rss/giao-duc.rss',
-        category: 'education'
-      },
-      {
-        name: 'Zing News - Thời sự',
-        url: 'https://zingnews.vn/rss/thoi-su.rss',
-        category: 'news'
-      },
-      {
-        name: 'Zing News - Du lịch',
-        url: 'https://zingnews.vn/rss/du-lich.rss',
-        category: 'travel'
-      },
-      {
-        name: 'Zing News - Công nghệ',
-        url: 'https://zingnews.vn/rss/cong-nghe.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Zing News - Nhịp sống',
-        url: 'https://zingnews.vn/rss/nhip-song.rss',
-        category: 'lifestyle'
-      },
-      {
-        name: 'Zing News - Môi trường',
-        url: 'https://zingnews.vn/rss/moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'Zing News - Văn hóa',
-        url: 'https://zingnews.vn/rss/van-hoa.rss',
-        category: 'culture'
-      },
-      {
-        name: 'Zing News - Đời sống',
-        url: 'https://zingnews.vn/rss/doi-song.rss',
-        category: 'lifestyle'
-      },
-      {
-        name: 'Zing News - Nông nghiệp',
-        url: 'https://zingnews.vn/rss/nong-nghiep.rss',
-        category: 'agriculture'
+        name: "Zing News - Khoa học",
+        url: "https://zingnews.vn/rss/khoa-hoc.rss",
+        category: "technology"
       },
       
-      // Thanh Niên
+      // COA (Cộng đồng Nông nghiệp Hữu Cơ) - NO FILTER
       {
-        name: 'Thanh Niên - Kinh tế',
-        url: 'https://thanhnien.vn/rss/kinh-te.rss',
-        category: 'economy'
+        name: "COA - Tin tức",
+        url: "https://coa.org.vn/vi/news/rss/Tin-tuc/",
+        category: "agriculture"
       },
       {
-        name: 'Thanh Niên - Đời sống',
-        url: 'https://thanhnien.vn/rss/doi-song.rss',
-        category: 'lifestyle'
+        name: "COA - Tất cả",
+        url: "https://coa.org.vn/vi/news/rss/",
+        category: "agriculture"
       },
       {
-        name: 'Thanh Niên - Thế giới',
-        url: 'https://thanhnien.vn/rss/the-gioi.rss',
-        category: 'world'
+        name: "COA - Nông nghiệp hữu cơ",
+        url: "https://coa.org.vn/vi/news/rss/nong-nghiep-huu-co/",
+        category: "agriculture"
       },
       {
-        name: 'Thanh Niên - Sức khỏe',
-        url: 'https://thanhnien.vn/rss/suc-khoe.rss',
-        category: 'health'
-      },
-      {
-        name: 'Thanh Niên - Khoa học',
-        url: 'https://thanhnien.vn/rss/khoa-hoc.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Thanh Niên - Thời sự',
-        url: 'https://thanhnien.vn/rss/thoi-su.rss',
-        category: 'news'
-      },
-      {
-        name: 'Thanh Niên - Công nghệ',
-        url: 'https://thanhnien.vn/rss/cong-nghe.rss',
-        category: 'technology'
-      },
-      {
-        name: 'Thanh Niên - Giáo dục',
-        url: 'https://thanhnien.vn/rss/giao-duc.rss',
-        category: 'education'
-      },
-      {
-        name: 'Thanh Niên - Văn hóa',
-        url: 'https://thanhnien.vn/rss/van-hoa.rss',
-        category: 'culture'
-      },
-      {
-        name: 'Thanh Niên - Nhịp sống trẻ',
-        url: 'https://thanhnien.vn/rss/nhip-song-tre.rss',
-        category: 'lifestyle'
-      },
-      {
-        name: 'Thanh Niên - Môi trường',
-        url: 'https://thanhnien.vn/rss/moi-truong.rss',
-        category: 'climate'
-      },
-      {
-        name: 'Thanh Niên - Tiêu dùng thông minh',
-        url: 'https://thanhnien.vn/rss/tieu-dung-thong-minh.rss',
-        category: 'lifestyle'
+        name: "COA - Chứng nhận hữu cơ",
+        url: "https://coa.org.vn/vi/news/rss/chung-nhan-huu-co/",
+        category: "agriculture"
       },
       
-      // Additional major news sources
+      // Ban Quản Lý Dự Án Dạo Công Nghiệp và Phát Triển Nông Thôn - Cà Mau
       {
-        name: 'Việt Nam Hội nhập',
-        url: 'https://vietnamhoinhap.vn/rss',
-        category: 'news'
-      },
-      {
-        name: 'Trải nghiệm số',
-        url: 'https://trainghiemso.vn/feed/',
-        category: 'technology'
-      },
-      {
-        name: 'Việt Báo',
-        url: 'https://vietbao.vn/rss',
-        category: 'news'
-      },
-      {
-        name: 'Soha',
-        url: 'https://soha.vn/rss.htm',
-        category: 'news'
-      },
-      {
-        name: '24h',
-        url: 'https://24h.com.vn/guest/RSS/',
-        category: 'news'
-      },
-      {
-        name: 'CafeF - Tài chính Ngân hàng',
-        url: 'https://cafef.vn/rss/tai-chinh-ngan-hang.rss',
-        category: 'business'
-      },
-      {
-        name: 'CafeF - Nông nghiệp',
-        url: 'https://cafef.vn/rss/nong-nghiep.rss',
-        category: 'agriculture'
-      },
-      {
-        name: 'Nhân Dân',
-        url: 'https://nhandan.vn/rss',
-        category: 'news'
-      },
-      {
-        name: 'Báo Đầu tư',
-        url: 'https://baodautu.vn/rss/',
-        category: 'business'
+        name: "Cà Mau - Các dự án triển khai",
+        url: "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47983&catname=cac-du-an-trien-khai&rec=50&sub=F&id=1396",
+        category: "agriculture"
       },
       
-      // Provincial newspapers
+      // VEPF (Vietnam Environment Protection Fund) - NO FILTER
       {
-        name: 'Báo Quảng Ninh',
-        url: 'https://baoquangninh.vn/rss/',
-        category: 'news'
+        name: "VEPF - Tin tức",
+        url: "https://www.vepf.vn/vi/rss/tin-tuc-vepftpdhmy.rss",
+        category: "climate"
       },
       {
-        name: 'Báo Hà Tĩnh',
-        url: 'https://baohatinh.vn/rss/',
-        category: 'news'
-      },
-      {
-        name: 'Báo Lâm Đồng',
-        url: 'https://baolamdong.vn/rss/',
-        category: 'news'
-      },
-      {
-        name: 'Báo Trà Vinh',
-        url: 'https://baotravinh.vn/rss/',
-        category: 'news'
-      },
-      {
-        name: 'Báo Đắk Lắk',
-        url: 'https://baodaklak.vn/rss/',
-        category: 'news'
-      },
-      {
-        name: 'Báo Nghệ An',
-        url: 'https://baonghean.vn/rss/',
-        category: 'news'
-      },
-      {
-        name: 'Báo Vĩnh Long',
-        url: 'https://baovinhlong.com.vn/rss/',
-        category: 'news'
-      },
-      {
-        name: 'Báo Bình Thuận',
-        url: 'https://baobinhthuan.com.vn/rss/',
-        category: 'news'
-      },
-      {
-        name: 'Báo Đồng Nai',
-        url: 'https://baodongnai.com.vn/rss/',
-        category: 'news'
+        name: "VEPF - Tin môi trường",
+        url: "https://www.vepf.vn/vi/rss/tin-moi-truong-vepfpw4e5j.rss",
+        category: "climate"
       }
     ];
     

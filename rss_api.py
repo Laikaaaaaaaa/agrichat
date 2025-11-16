@@ -45,7 +45,7 @@ class RSSNewsAPI:
         ]
         
         self.vietnamese_feeds = [
-            # Nông nghiệp môi trường ONLY - 9 feeds
+            # Nông nghiệp môi trường - 9 feeds
             {"name": "Nông nghiệp Môi trường - Chăn nuôi", "url": "https://nongnghiepmoitruong.vn/chan-nuoi.rss", "category": "livestock", "filter": False},
             {"name": "Nông nghiệp Môi trường - Tái cơ cấu", "url": "https://nongnghiepmoitruong.vn/tai-co-cau-nong-nghiep.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Khuyến nông", "url": "https://nongnghiepmoitruong.vn/khuyen-nong.rss", "category": "agriculture", "filter": False},
@@ -55,23 +55,22 @@ class RSSNewsAPI:
             {"name": "Nông nghiệp Môi trường - Thời sự", "url": "https://nongnghiepmoitruong.vn/thoi-su.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Video", "url": "https://nongnghiepmoitruong.vn/video.rss", "category": "agriculture", "filter": False},
             {"name": "Nông nghiệp Môi trường - Tất cả", "url": "https://nongnghiepmoitruong.vn/rss", "category": "agriculture", "filter": False},
-            
-            # Báo lớn - Môi trường / Nông nghiệp
-            {"name": "VnExpress - Môi trường", "url": "https://vnexpress.net/rss/moi-truong.rss", "category": "climate", "filter": False},
-            {"name": "VnExpress - Nông nghiệp", "url": "https://vnexpress.net/tag/nong-nghiep.rss", "category": "agriculture", "filter": False},
-            {"name": "Tuổi Trẻ - Môi trường", "url": "https://tuoitre.vn/rss/moi-truong.rss", "category": "climate", "filter": False},
-            {"name": "Dân Trí - Môi trường", "url": "https://dantri.com.vn/rss/moi-truong.rss", "category": "climate", "filter": False},
-            {"name": "VietnamNet - Môi trường", "url": "https://vietnamnet.vn/rss/moi-truong.rss", "category": "climate", "filter": False},
-            
-            # Moitruong.net.vn - 5 feeds chuyên sâu
+        
+            # Moitruong.net.vn - 5 feeds chuyên sâu về môi trường
             {"name": "Môi trường - Biến đổi khí hậu", "url": "https://moitruong.net.vn/rss/tin-tuc/bien-doi-khi-hau", "category": "climate", "filter": False},
             {"name": "Môi trường - An ninh nguồn nước", "url": "https://moitruong.net.vn/rss/nuoc-va-cuoc-song/an-ninh-nguon-nuoc", "category": "climate", "filter": False},
             {"name": "Môi trường - Ô nhiễm", "url": "https://moitruong.net.vn/rss/moi-truong-tai-nguyen/o-nhiem-moi-truong", "category": "climate", "filter": False},
             {"name": "Môi trường - Vấn đề hôm nay", "url": "https://moitruong.net.vn/rss/tin-tuc/van-de-hom-nay", "category": "climate", "filter": False},
             {"name": "Môi trường - Kinh tế xanh", "url": "https://moitruong.net.vn/rss/kinh-te-xanh/chuyen-doi-xanh", "category": "climate", "filter": False},
             
+            # Báo lớn - Tổng hợp (có filter để lấy nội dung liên quan nông nghiệp)
+            {"name": "VnExpress - Tổng hợp", "url": "https://rss.vnexpress.net/", "category": "agriculture", "filter": True},
+            {"name": "Tuổi Trẻ - Tổng hợp", "url": "https://tuoitre.vn/rss/", "category": "agriculture", "filter": True},
+            {"name": "VietnamNet - Tổng hợp", "url": "https://vietnamnet.vn/rss/", "category": "agriculture", "filter": True},
+            {"name": "Thanh Niên - Tổng hợp", "url": "https://thanhnien.vn/rss/", "category": "agriculture", "filter": True},
+            
             # Dân Trí - Đời sống
-            {"name": "Dân Trí - Đời sống", "url": "https://dantri.com.vn/rss/doi-song.rss", "category": "agriculture", "filter": False},
+            {"name": "Dân Trí - Đời sống", "url": "https://dantri.com.vn/rss/doi-song.rss", "category": "agriculture", "filter": True},
         ]
 
     def is_agriculture_related(self, title, description):

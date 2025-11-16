@@ -8420,6 +8420,45 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       let weather = null;
 
       if (!weather && Number.isFinite(lat) && Number.isFinite(lon)) {
+        // ✅ TRY BACKEND API FIRST - Get weather + precise location (Nominatim reverse geocoding)
+        console.log('🔄 Fetching from backend /api/weather for precise location...');
+        try {
+          const backendResponse = await fetchWithTimeout(`/api/weather?lat=${lat}&lon=${lon}`, {}, 6000);
+          if (backendResponse.ok) {
+            const backendData = await backendResponse.json();
+            if (backendData?.success) {
+              console.log('✅ Backend weather + location:', backendData);
+              // Update city/country from backend (more accurate via Nominatim)
+              city = backendData.location_name || city;
+              country = backendData.location_country || country;
+              // Map backend response fields to our format
+              weather = {
+                condition: backendData.condition || backendData.description,
+                temp: backendData.temp || backendData.temperature,
+                feels_like: backendData.feels_like,
+                humidity: backendData.humidity,
+                wind_kph: backendData.wind_kph || backendData.wind_speed,
+                wind_degree: backendData.wind_degree,
+                wind_dir: backendData.wind_dir,
+                wind_dir_vi: backendData.wind_dir_vi,
+                precip_mm: backendData.precip_mm || backendData.precipitation,
+                cloud: backendData.cloud,
+                visibility_km: backendData.visibility_km,
+                pressure_mb: backendData.pressure_mb,
+                icon: backendData.icon,
+                source: backendData.source || 'backend',
+                last_updated: backendData.last_updated,
+                location_name: city,
+                location_country: country
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Backend API failed, trying Open-Meteo...', e);
+        }
+      }
+
+      if (!weather && Number.isFinite(lat) && Number.isFinite(lon)) {
         // Try Open-Meteo
         weather = await tryOpenMeteo(lat, lon);
       }
@@ -8433,6 +8472,14 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
         console.log('✅ Weather data obtained:', weather.source, weather.temp + '°C');
         const resolvedCity = weather.location_name || city || 'Vị trí của bạn';
         const resolvedCountry = weather.location_country || country || 'VN';
+        
+        // ✅ Save resolved location for fallback
+        localStorage.setItem('agrisense_last_location', JSON.stringify({
+          name: resolvedCity,
+          country: resolvedCountry,
+          timestamp: Date.now()
+        }));
+        console.log('💾 Saved location:', resolvedCity, resolvedCountry);
 
         renderWeatherDisplay(weatherEl, {
           city: resolvedCity,

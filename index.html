@@ -4723,19 +4723,21 @@
         if (currentRecognition) {
           voiceShouldFillInput = false;
           currentRecognition.abort();
-          currentRecognition = null;
           
-          // Reset UI immediately
-          const stopBtn = document.getElementById('voice-stop-btn');
-          if (stopBtn) {
-            stopBtn.classList.add('hidden');
-          }
-          if (voiceInputBtn) {
-            voiceInputBtn.classList.remove('animate-pulse', 'bg-green-100');
-            voiceInputBtn.classList.add('bg-white');
-            voiceInputBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
-          }
-          console.log('⏹️ Speech recognition stopped');
+          // ✅ Force reset UI immediately (don't wait for onend)
+          setTimeout(() => {
+            const stopBtn = document.getElementById('voice-stop-btn');
+            if (stopBtn) {
+              stopBtn.classList.add('hidden');
+            }
+            if (voiceInputBtn) {
+              voiceInputBtn.classList.remove('animate-pulse', 'bg-green-100');
+              voiceInputBtn.classList.add('bg-white');
+              voiceInputBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+            }
+            currentRecognition = null;
+            console.log('✅ Voice UI reset completed');
+          }, 0);
         }
       });
     } else {
@@ -6558,32 +6560,39 @@
 
       // Kết thúc ghi âm
       recognition.onend = () => {
-        // ✅ Hide stop button, show mic button
-        const stopBtn = document.getElementById('voice-stop-btn');
-        if (stopBtn) {
-          stopBtn.classList.add('hidden');
-        }
+        console.log('🔔 onend triggered, currentRecognition is null?', currentRecognition === null);
         
-        voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
-        voiceBtn.classList.add('bg-white');
-        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
-        
-        // Only fill input if we should (not stopped by sendMessage)
-        if (voiceShouldFillInput && finalTranscript.trim()) {
-          // ✅ Áp dụng lọc lặp từ CHỈ khi kết thúc (tối ưu hóa)
-          const cleanedFinal = removeWordRepetition(finalTranscript.trim());
-          console.log('✅ Kết quả nhận dạng (cleaned):', cleanedFinal);
-          messageInput.value = cleanedFinal;
-          messageInput.focus();
-        } else if (!voiceShouldFillInput) {
-          console.log('ℹ️ Voice stopped by user - not filling input');
+        // ✅ Only reset UI if recognition wasn't already stopped by user
+        if (currentRecognition !== null) {
+          // ✅ Hide stop button, show mic button
+          const stopBtn = document.getElementById('voice-stop-btn');
+          if (stopBtn) {
+            stopBtn.classList.add('hidden');
+          }
+          
+          voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
+          voiceBtn.classList.add('bg-white');
+          voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
+          
+          // Only fill input if we should (not stopped by sendMessage)
+          if (voiceShouldFillInput && finalTranscript.trim()) {
+            // ✅ Áp dụng lọc lặp từ CHỈ khi kết thúc (tối ưu hóa)
+            const cleanedFinal = removeWordRepetition(finalTranscript.trim());
+            console.log('✅ Kết quả nhận dạng (cleaned):', cleanedFinal);
+            messageInput.value = cleanedFinal;
+            messageInput.focus();
+          } else if (!voiceShouldFillInput) {
+            console.log('ℹ️ Voice stopped by user - not filling input');
+          } else {
+            console.log('ℹ️ Không có kết quả nhận dạng');
+          }
+          
+          // Reset flag for next voice input
+          voiceShouldFillInput = true;
+          currentRecognition = null;
         } else {
-          console.log('ℹ️ Không có kết quả nhận dạng');
+          console.log('ℹ️ onend: Already reset by user (abort), skipping duplicate reset');
         }
-        
-        // Reset flag for next voice input
-        voiceShouldFillInput = true;
-        currentRecognition = null;
       };
 
       // Bắt đầu ghi âm

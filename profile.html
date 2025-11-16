@@ -1365,6 +1365,17 @@
     let hashtags = [];
     let userPosts = [];  // Store user posts for access in edit modal
     
+    // 🔄 Redirect loop detection
+    function trackRedirectToLogin() {
+      const count = parseInt(sessionStorage.getItem('login_redirect_count') || '0');
+      sessionStorage.setItem('login_redirect_count', count + 1);
+      console.log('🔄 Redirect count:', count + 1);
+    }
+    
+    function resetRedirectCount() {
+      sessionStorage.setItem('login_redirect_count', '0');
+    }
+    
     // Helper function to make API calls with credentials
     function apiCall(url, options = {}) {
       return fetch(url, {
@@ -1863,6 +1874,7 @@
         // Check if we got a valid user or if not authenticated
         if (!currentUserData.success || !currentUserData.user) {
           console.error('Profile load failed:', currentUserData);
+          trackRedirectToLogin();
           window.location.href = '/login';
           return;
         }
@@ -1925,6 +1937,7 @@
         showAlert('Lỗi tải profile: ' + error.message, 'error');
         // Only redirect if it's actually an auth error, otherwise wait for user action
         setTimeout(() => {
+          trackRedirectToLogin();
           window.location.href = '/login';
         }, 2000);
       }
@@ -4390,11 +4403,13 @@
         if (!data.success || !data.user) {
           // Session expired or user logged out - redirect to login
           console.log('⚠️ Session invalid, redirecting to login');
+          trackRedirectToLogin();
           window.location.href = '/login';
         }
       } catch (error) {
         console.error('❌ Error checking session:', error);
         // On error, assume session is invalid for security
+        trackRedirectToLogin();
         window.location.href = '/login';
       }
     }

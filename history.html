@@ -437,7 +437,7 @@
     <header>
         <div class="header-container">
             <div class="header-left">
-                <button onclick="goBack()" class="back-btn">
+                <button onclick="handleBackButton()" class="back-btn">
                     <i class="fas fa-arrow-left"></i>
                 </button>
                 <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="logo-img">
@@ -953,6 +953,19 @@
         return;
     }
 
+    function handleBackButton() {
+      // Check for redirect loop
+      const redirectCount = parseInt(sessionStorage.getItem('login_redirect_count') || '0');
+      if (redirectCount > 2) {
+        sessionStorage.removeItem('login_redirect_count');
+        console.log('🔄 Redirect loop detected, going to home');
+        window.location.href = 'index.html';
+      } else {
+        console.log('✅ No loop detected, going back');
+        window.history.back();
+      }
+    }
+
     function goBack() {
         window.location.href = 'index.html';
     }
@@ -1028,6 +1041,8 @@
             
             if (!data.success || !data.user) {
                 console.warn('⚠️ User not authenticated, redirecting to login...');
+                const count = parseInt(sessionStorage.getItem('login_redirect_count') || '0');
+                sessionStorage.setItem('login_redirect_count', count + 1);
                 window.location.href = '/login';
                 return;  // Stop execution
             }
@@ -1035,6 +1050,8 @@
             console.log('✅ User authenticated:', data.user.username);
         } catch (error) {
             console.error('❌ Authentication check failed:', error);
+            const count = parseInt(sessionStorage.getItem('login_redirect_count') || '0');
+            sessionStorage.setItem('login_redirect_count', count + 1);
             window.location.href = '/login';
             return;
         }
@@ -1083,11 +1100,15 @@
             if (!data.success || !data.user) {
                 // Session expired or user logged out - redirect to login
                 console.log('⚠️ Session invalid, redirecting to login');
+                const count = parseInt(sessionStorage.getItem('login_redirect_count') || '0');
+                sessionStorage.setItem('login_redirect_count', count + 1);
                 window.location.href = '/login';
             }
         } catch (error) {
             console.error('❌ Error checking session:', error);
             // On error, assume session is invalid for security
+            const count = parseInt(sessionStorage.getItem('login_redirect_count') || '0');
+            sessionStorage.setItem('login_redirect_count', count + 1);
             window.location.href = '/login';
         }
     }

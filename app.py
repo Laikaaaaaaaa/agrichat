@@ -5165,6 +5165,70 @@ def news():
     return send_from_directory(HERE, 'news.html')
 
 
+@app.route('/api/classify-article', methods=['POST'])
+def classify_article():
+    """Classify article into category using ML"""
+    try:
+        from news_classifier import classify_article as ml_classify
+        
+        data = request.json or {}
+        title = data.get('title', '')
+        description = data.get('description', '')
+        content = data.get('content', '')
+        
+        if not title and not description and not content:
+            return jsonify({
+                'success': False,
+                'message': 'Vui lòng cung cấp ít nhất tiêu đề hoặc nội dung'
+            }), 400
+        
+        # Classify using ML
+        result = ml_classify(title=title, description=description, content=content)
+        
+        return jsonify({
+            'success': True,
+            'classification': result
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error classifying article: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/classify-articles', methods=['POST'])
+def classify_articles():
+    """Classify multiple articles"""
+    try:
+        from news_classifier import classify_articles as ml_classify_batch
+        
+        data = request.json or {}
+        articles = data.get('articles', [])
+        
+        if not articles or not isinstance(articles, list):
+            return jsonify({
+                'success': False,
+                'message': 'Vui lòng cung cấp danh sách bài viết'
+            }), 400
+        
+        # Classify using ML
+        results = ml_classify_batch(articles)
+        
+        return jsonify({
+            'success': True,
+            'articles': results
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error classifying articles: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/rss-feed', methods=['POST'])
 def get_rss_feed():
     """Parse RSS feed directly without using rss2json conversion service"""

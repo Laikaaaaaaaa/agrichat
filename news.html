@@ -2092,6 +2092,11 @@
         if (!articleExists) {
           const newsCard = createNewsCard(article, startIndex + index);
           gridContainer.appendChild(newsCard);
+          
+          // 🤖 Asynchronously update with ML classification (non-blocking)
+          updateCardWithMLClassification(newsCard, article).catch(err => {
+            console.warn('⚠️ ML update error:', err);
+          });
         }
       });
 
@@ -2156,7 +2161,7 @@
         <div class="relative">
           <img src="${imageUrl}" alt="${article.title}" class="w-full h-40 md:h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI'">
           <div class="absolute top-3 left-3">
-            <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm">
+            <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm category-badge">
               ${sourceFlag} ${displayCategory}
             </span>
           </div>
@@ -2193,7 +2198,76 @@
       return card;
     }
 
-    function getCategoryFromArticle(article) {
+    // 🤖 Async ML Classification for cards already displayed
+    async function updateCardWithMLClassification(card, article) {
+      try {
+        const mlCategory = await classifyArticleWithML(article);
+        
+        // Update the category badge if it changed
+        const badge = card.querySelector('.category-badge');
+        if (badge) {
+          const sourceFlag = badge.textContent.includes('🇻🇳') ? '🇻🇳' : '🌍';
+          const oldCategory = badge.textContent.replace(sourceFlag, '').trim();
+          
+          if (oldCategory !== mlCategory) {
+            badge.textContent = `${sourceFlag} ${mlCategory}`;
+            badge.style.transition = 'all 0.3s ease';
+            badge.style.opacity = '0.7';
+            setTimeout(() => {
+              badge.style.opacity = '1';
+            }, 150);
+            
+            console.log(`🤖 Updated category: "${oldCategory}" → "${mlCategory}"`);
+            
+            // Update card's data attributes for filtering
+            card.dataset.category = mlCategory.toLowerCase();
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to update ML classification:', error);
+      }
+    }
+
+    // 🤖 ML Classification cache
+    const classificationCache = {};
+
+    async function classifyArticleWithML(article) {
+      // Check cache first
+      const cacheKey = (article.title || '').substring(0, 50);
+      if (classificationCache[cacheKey]) {
+        return classificationCache[cacheKey];
+      }
+
+      try {
+        const response = await fetch('/api/classify-article', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: article.title || '',
+            description: article.description || '',
+            content: article.content || ''
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.classification) {
+            const displayCategory = data.classification.display_category || 'Khác';
+            classificationCache[cacheKey] = displayCategory;
+            return displayCategory;
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ ML classification error, using fallback:', error);
+      }
+
+      // Fallback to rule-based if ML fails
+      return getCategoryFromArticleFallback(article);
+    }
+
+    function getCategoryFromArticleFallback(article) {
       const text = (article.title + ' ' + article.description).toLowerCase();
       
       for (const [category, keywords] of Object.entries(categoryKeywords)) {
@@ -2209,6 +2283,12 @@
       }
       
       return 'Tin tức';
+    }
+
+    function getCategoryFromArticle(article) {
+      // Return fallback immediately for display
+      // ML classification happens asynchronously in background
+      return getCategoryFromArticleFallback(article);
     }
 
     async function loadMoreNews() {

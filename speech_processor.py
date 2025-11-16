@@ -2,13 +2,15 @@
 Speech-to-Text Processor for AgriSense AI
 Xử lý chuyển đổi giọng nói thành văn bản
 Tối ưu hóa cho Tiếng Việt
+✅ Enhanced: Word repetition filtering + Mobile optimization
 """
 
 import speech_recognition as sr
 import logging
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import json
 import os
+import re
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,16 +18,16 @@ logger = logging.getLogger(__name__)
 class SpeechProcessor:
     """
     Xử lý chuyển đổi audio input thành text
-    Tối ưu hóa cho Tiếng Việt
+    Tối ưu hóa cho Tiếng Việt + Lọc lặp từ + Tối ưu mobile
     """
     
     def __init__(self):
         """Khởi tạo speech recognizer với cấu hình tối ưu"""
         self.recognizer = sr.Recognizer()
         
-        # ✅ Tối ưu cho môi trường ồn ào
+        # ✅ Tối ưu cho môi trường ồn ào (Mobile + Desktop)
         self.recognizer.dynamic_energy_threshold = True
-        self.recognizer.energy_threshold = 3000  # Giảm từ 4000 để nhạy hơn
+        self.recognizer.energy_threshold = 3000  # Tối ưu cho mobile
         self.recognizer.dynamic_energy_adjustment_damping = 0.15
         self.recognizer.dynamic_energy_ratio = 1.5
         
@@ -33,7 +35,115 @@ class SpeechProcessor:
         self.recognizer.phrase_time_limit = 60  # Cho phép nói lâu hơn
         self.recognizer.non_speaking_duration = 0.3  # Giảm để detect pauses tốt hơn
         
-    def recognize_from_microphone(self, language: str = 'vi-VN', timeout: int = 10) -> Tuple[bool, str]:
+        # ✅ Vietnamese stopwords for duplicate filtering
+        self.vietnamese_stopwords = {
+            'à', 'ạ', 'ai', 'an', 'à', 'anh', 'ba', 'bác', 'bạn', 'bị', 'bởi',
+            'cả', 'các', 'cánh', 'có', 'cô', 'cơ', 'cùng', 'cuộc', 'cái',
+            'da', 'dã', 'đã', 'đại', 'đâu', 'để', 'đi', 'được', 'đó', 'đội',
+            'em', 'ếu', 'ệu', 'e',
+            'gì', 'giai', 'gần', 'gây',
+            'hà', 'hại', 'hầu', 'hơn', 'hư', 'hủy',
+            'ích', 'lại', 'làm', 'là', 'lấy', 'lên', 'lẻ', 'lết', 'lô',
+            'mà', 'man', 'mặt', 'một', 'mới', 'mục', 'mỹ',
+            'nà', 'này', 'nên', 'nếu', 'như', 'người', 'nhu', 'nó', 'nơi', 'nữa',
+            'ở', 'ông', 'ông', 'ơi',
+            'phải', 'phía', 'phục',
+            'quá', 'quanh', 'quân', 'quế', 'quý',
+            'rằng', 'rất', 'rồi', 'rõ', 'ru',
+            'sách', 'sai', 'sau', 'sáy', 'sếp', 'sinh', 'số', 'su',
+            'tà', 'tại', 'tam', 'tập', 'tất', 'tầng', 'tầu', 'tế', 'thách', 'thành',
+            'thấy', 'thế', 'thêm', 'theo', 'thích', 'thieu', 'thông', 'thì',
+            'ti', 'tính', 'tò', 'tờ', 'tối', 'tôi', 'trăng', 'trước', 'trừ',
+            'từ', 'từng', 'tương', 'tự',
+            'và', 'văn', 'vậy', 'vé', 'vẽ', 'về', 'vì', 'việc', 'viên', 'vô',
+            'vu', 'vụ', 'vui', 'vừa',
+            'xa', 'xảy', 'xây', 'xin', 'xinh', 'xong', 'xử',
+            'yêu',
+            'ý', 'yên'
+        }
+        
+    def remove_word_repetition(self, text: str, min_confidence: float = 0.6) -> str:
+        """
+        ✅ Xóa lặp từ trong kết quả nhận dạng
+        Giải quyết vấn đề "lặp từ" khi nói trên mobile
+        
+        Args:
+            text (str): Text input từ speech recognition
+            min_confidence (float): Ngưỡng confidence tối thiểu
+        
+        Returns:
+            str: Text đã xóa lặp từ
+        """
+        if not text or not isinstance(text, str):
+            return text
+        
+        # ✅ Xóa khoảng trắng thừa
+        text = ' '.join(text.split())
+        
+        # ✅ Tách từ
+        words = text.lower().split()
+        if not words:
+            return text
+        
+        # ✅ Lọc lặp từ liên tiếp
+        filtered_words = [words[0]]
+        for i in range(1, len(words)):
+            current = words[i]
+            prev = words[i-1]
+            
+            # ✅ Không thêm từ nếu nó giống từ trước (loại bỏ lặp liên tiếp)
+            if current != prev:
+                filtered_words.append(current)
+            else:
+                logger.info(f"🔁 Lọc từ lặp: '{current}'")
+        
+        # ✅ Xóa các "um", "ơi", "ní" lặp nhiều lần (artifacts)
+        filler_words = ['um', 'ơi', 'ní', 'nữa', 'cái', 'ạ', 'ơi', 'nhé', 'hả']
+        result_words = []
+        for i, word in enumerate(filtered_words):
+            if word in filler_words:
+                # Chỉ giữ nếu từ trước khác filler
+                if i == 0 or result_words[-1] not in filler_words:
+                    result_words.append(word)
+            else:
+                result_words.append(word)
+        
+        result = ' '.join(result_words)
+        
+        # ✅ Khôi phục casing gốc (nếu input là title case)
+        if text and text[0].isupper():
+            result = result[0].upper() + result[1:] if len(result) > 1 else result.upper()
+        
+        logger.info(f"✅ Cleaned: '{text}' → '{result}'")
+        return result
+    
+    def filter_consecutive_duplicates(self, words_list: List[str], max_consecutive: int = 1) -> List[str]:
+        """
+        ✅ Lọc nhiều từ lặp liên tiếp
+        
+        Args:
+            words_list: Danh sách từ
+            max_consecutive: Số lần lặp tối đa (mặc định = 1, không lặp)
+        
+        Returns:
+            Danh sách từ đã lọc
+        """
+        if not words_list:
+            return []
+        
+        filtered = [words_list[0]]
+        consecutive_count = 1
+        
+        for i in range(1, len(words_list)):
+            if words_list[i] == words_list[i-1]:
+                consecutive_count += 1
+                if consecutive_count <= max_consecutive:
+                    filtered.append(words_list[i])
+            else:
+                filtered.append(words_list[i])
+                consecutive_count = 1
+        
+        return filtered
         """
         Ghi âm từ microphone và chuyển thành text
         
@@ -95,6 +205,7 @@ class SpeechProcessor:
     def recognize_from_file(self, audio_file_path: str, language: str = 'vi-VN') -> Tuple[bool, str]:
         """
         Chuyển đổi file audio thành text
+        ✅ Áp dụng lọc lặp từ tự động
         
         Args:
             audio_file_path (str): Đường dẫn tới file audio
@@ -114,8 +225,12 @@ class SpeechProcessor:
             
             logger.info("🎵 Đang chuyển đổi...")
             text = self.recognizer.recognize_google(audio, language=language)
-            logger.info(f"✅ Kết quả: {text}")
-            return True, text
+            
+            # ✅ Áp dụng lọc lặp từ
+            cleaned_text = self.remove_word_repetition(text)
+            
+            logger.info(f"✅ Kết quả: {cleaned_text}")
+            return True, cleaned_text
             
         except Exception as e:
             logger.error(f"❌ Lỗi: {e}")

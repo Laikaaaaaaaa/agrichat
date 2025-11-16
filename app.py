@@ -8241,6 +8241,7 @@ def service_unavailable(error):
 def speech_recognize():
     """
     API endpoint để nhận audio từ client và chuyển thành text
+    ✅ ENHANCED: Word repetition filtering + Mobile optimization
     
     Request body:
     {
@@ -8252,7 +8253,7 @@ def speech_recognize():
     Response:
     {
         "success": true,
-        "text": "Nội dung được nhận diện",
+        "text": "Nội dung được nhận diện (đã lọc lặp từ)",
         "language": "vi-VN"
     }
     """
@@ -8277,9 +8278,18 @@ def speech_recognize():
             audio_data = base64.b64decode(data['audio'])
             audio_buffer = BytesIO(audio_data)
             
-            # Tạo recognizer instance
+            # ✅ Tạo recognizer instance tối ưu cho mobile
             recognizer = sr.Recognizer()
-            recognizer.energy_threshold = 4000
+            
+            # ✅ Cấu hình tối ưu mobile:
+            # - energy_threshold thấp hơn để nhạy hơn với giọng nói yếu
+            # - dynamic_energy_threshold để tự điều chỉnh với noise
+            recognizer.energy_threshold = 2500  # Tối ưu cho mobile (thấp hơn 4000)
+            recognizer.dynamic_energy_threshold = True
+            recognizer.dynamic_energy_adjustment_damping = 0.15
+            recognizer.dynamic_energy_ratio = 1.5
+            recognizer.phrase_time_limit = 60
+            recognizer.non_speaking_duration = 0.3
             
             # Đọc audio từ buffer
             with sr.AudioFile(audio_buffer) as source:
@@ -8288,10 +8298,13 @@ def speech_recognize():
             # Nhận diện
             text = recognizer.recognize_google(audio, language=language)
             
-            logging.info(f"✅ Speech recognition success: {text}")
+            # ✅ Áp dụng lọc lặp từ để xóa "lặp từ"
+            cleaned_text = api.speech_processor.remove_word_repetition(text)
+            
+            logging.info(f"✅ Speech recognition: '{text}' → Cleaned: '{cleaned_text}'")
             return jsonify({
                 "success": True,
-                "text": text,
+                "text": cleaned_text,
                 "language": language
             })
             

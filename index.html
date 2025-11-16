@@ -6315,9 +6315,59 @@
   }
 
   /**
-   * Xử lý nhập giọng nói với real-time display
+   * ✅ ENHANCED: Xóa lặp từ trong text
+   * Giải quyết vấn đề "lặp từ" khi nói trên mobile
+   */
+  function removeWordRepetition(text) {
+    if (!text || typeof text !== 'string') return text;
+    
+    // Xóa khoảng trắng thừa
+    text = text.trim().replace(/\s+/g, ' ');
+    
+    // Tách từ
+    const words = text.toLowerCase().split(' ');
+    if (words.length === 0) return text;
+    
+    // ✅ Lọc lặp từ liên tiếp
+    const filtered = [words[0]];
+    for (let i = 1; i < words.length; i++) {
+      if (words[i] !== words[i-1]) {
+        filtered.push(words[i]);
+      } else {
+        console.log(`🔁 Lọc từ lặp: '${words[i]}'`);
+      }
+    }
+    
+    // ✅ Xóa filler words lặp (um, ơi, ní, nữa, etc)
+    const fillerWords = ['um', 'ơi', 'ní', 'nữa', 'cái', 'ạ', 'nhé', 'hả', 'à', 'ơi'];
+    const final = [];
+    for (let i = 0; i < filtered.length; i++) {
+      const word = filtered[i];
+      if (fillerWords.includes(word)) {
+        // Chỉ thêm nếu từ trước không phải filler
+        if (i === 0 || !fillerWords.includes(filtered[i-1])) {
+          final.push(word);
+        }
+      } else {
+        final.push(word);
+      }
+    }
+    
+    let result = final.join(' ');
+    
+    // ✅ Khôi phục casing gốc
+    if (text && text[0] === text[0].toUpperCase() && text[0] !== text[0].toLowerCase()) {
+      result = result.charAt(0).toUpperCase() + result.slice(1);
+    }
+    
+    console.log(`✅ Cleaned text: '${text}' → '${result}'`);
+    return result;
+  }
+
+  /**
+   * ✅ Xử lý nhập giọng nói với real-time display
    * Sử dụng Web Speech API để ghi âm từ microphone
-   * Hiển thị từng từ ngay lập tức trong chat
+   * ENHANCED: Mobile optimization + Word repetition filtering
    */
   async function handleVoiceInput() {
     const voiceBtn = document.getElementById('voice-input-btn');
@@ -6342,9 +6392,18 @@
       // Store recognition object globally so we can stop it when needed
       currentRecognition = recognition;
       recognition.lang = 'vi-VN'; // Tiếng Việt
+      
+      // ✅ ENHANCED configuration cho mobile:
       recognition.continuous = true; // Tiếp tục ghi âm cho phép nói lâu
       recognition.interimResults = true; // Hiển thị kết quả tạm thời
-      recognition.maxAlternatives = 1;
+      recognition.maxAlternatives = 1; // Lấy kết quả tốt nhất
+      
+      // ✅ Mobile optimization - better accuracy on noisy environments
+      if (navigator.userAgentData?.mobile || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        console.log('📱 Mobile device detected - Applying mobile optimizations');
+        // Mobile devices often need longer pause handling
+        recognition.pauseAfterSpeech = 0.3;
+      }
 
       let finalTranscript = '';
       let lastResultIndex = -1;
@@ -6376,12 +6435,15 @@
 
         // ✅ Update input ngay lập tức mỗi lần nhận được kết quả
         const displayText = finalTranscript + interimTranscript;
-        messageInput.value = displayText.trim();
+        
+        // ✅ Áp dụng lọc lặp từ trên frontend
+        const cleanedText = removeWordRepetition(displayText.trim());
+        messageInput.value = cleanedText;
         
         // Auto scroll input nếu text dài
         messageInput.scrollLeft = messageInput.scrollWidth;
         
-        console.log('🔤 Real-time update:', displayText.trim());
+        console.log('🔤 Real-time update:', cleanedText);
       };
 
       // Xử lý lỗi
@@ -6421,8 +6483,10 @@
         
         // Only fill input if we should (not stopped by sendMessage)
         if (voiceShouldFillInput && finalTranscript.trim()) {
-          console.log('✅ Kết quả nhận dạng:', finalTranscript.trim());
-          messageInput.value = finalTranscript.trim();
+          // ✅ Áp dụng lọc lặp từ lần cuối
+          const cleanedFinal = removeWordRepetition(finalTranscript.trim());
+          console.log('✅ Kết quả nhận dạng:', cleanedFinal);
+          messageInput.value = cleanedFinal;
           messageInput.focus();
         } else if (!voiceShouldFillInput) {
           console.log('ℹ️ Voice stopped by message send - not filling input');

@@ -445,9 +445,14 @@
           localStorage.setItem('agrisense_chat_history', JSON.stringify(conversationsToSave));
           console.log(`✅ Đã lưu ${conversationsToSave.length} conversations vào localStorage`);
           
-          // ✅ Nếu đã đăng nhập, sync thêm lên database
+          // ✅ Nếu đã đăng nhập, sync ngay lên database (không chờ)
           if (isAuthenticated) {
-            this.syncToDatabase(conversationsToSave);
+            // Sync to database but don't wait for it (non-blocking)
+            this.syncToDatabase(conversationsToSave).then(() => {
+              console.log('✅ Database sync completed successfully');
+            }).catch(err => {
+              console.warn('⚠️ Database sync error (non-blocking):', err.message);
+            });
           }
         } catch (e) {
           console.error('❌ Lỗi lưu localStorage:', e);
@@ -3012,7 +3017,7 @@
           <li onclick="startNewChat()" class="hover:text-green-600 cursor-pointer p-2 rounded-lg hover:bg-green-50 transition-colors border-b border-gray-100 mb-2">
             <i class="fas fa-plus mr-2 text-green-600"></i><strong>Cuộc hội thoại mới</strong>
           </li>
-          <li onclick="window.location.href='history.html'" class="hover:text-green-600 cursor-pointer p-2 rounded-lg hover:bg-green-50 transition-colors">
+          <li onclick="goToHistory()" class="hover:text-green-600 cursor-pointer p-2 rounded-lg hover:bg-green-50 transition-colors">
             <i class="fas fa-history mr-2"></i>Lịch sử hội thoại
           </li>
         </ul>
@@ -6438,6 +6443,25 @@
     }
   }
 
+  // 💾 Sync and go to history
+  async function goToHistory() {
+    try {
+      console.log('📤 Syncing conversations before going to history...');
+      
+      // Force sync conversations immediately before navigating
+      if (window.chatHistoryManager) {
+        const conversations = window.chatHistoryManager.conversations;
+        // Wait for sync to complete
+        await window.chatHistoryManager.syncToDatabase(conversations);
+        console.log('✅ Sync completed, redirecting to history');
+      }
+    } catch (error) {
+      console.warn('⚠️ Sync error (non-blocking):', error.message);
+    }
+    
+    // Navigate to history regardless of sync result
+    window.location.href = 'history.html';
+  }
 
   async function sendMessage() {
     console.log('🚀 ========== SENDMESSAGE START ==========');

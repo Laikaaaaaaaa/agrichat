@@ -1914,6 +1914,8 @@
         return;
       }
       
+      isLoading = true; // Set flag immediately
+      
       // Show loading spinner on button
       const loadMoreBtn = document.getElementById('load-more');
       const spinner = document.getElementById('load-more-spinner');
@@ -1921,64 +1923,60 @@
       
       spinner?.classList.remove('hidden');
       loadMoreText.textContent = 'Đang tải...';
-      loadMoreBtn.disabled = true;
       
-      // Get current filtered articles for this category
-      const filteredArticles = categoryCache[currentCategory] || [];
-      
-      // Option 1: If we have more articles in current filter, show them
-      if (currentDisplayCount < filteredArticles.length) {
-        console.log(`📄 Hiển thị thêm 10 bài từ cache (${currentDisplayCount}/${filteredArticles.length})`);
-        displayNews(filteredArticles, true); // Append mode
+      try {
+        // Get current filtered articles for this category
+        const filteredArticles = categoryCache[currentCategory] || [];
         
-        // Hide spinner
-        spinner?.classList.add('hidden');
-        loadMoreText.textContent = 'Tải thêm tin tức';
-        loadMoreBtn.disabled = false;
-        return;
-      }
-      
-      // Option 2: If no more filtered articles, load more RSS feeds
-      if (window.remainingFeeds && window.remainingFeeds.length > 0) {
-        console.log('📡 Tải thêm RSS feeds...');
+        // Option 1: If we have more articles in current filter, show them
+        if (currentDisplayCount < filteredArticles.length) {
+          console.log(`📄 Hiển thị thêm 10 bài từ cache (${currentDisplayCount}/${filteredArticles.length})`);
+          displayNews(filteredArticles, true); // Append mode
+          return;
+        }
         
-        const hasNewFeeds = await loadMoreFeeds();
-        
-        if (hasNewFeeds) {
-          // Save current display count before clearing cache
-          const previousDisplayCount = currentDisplayCount;
+        // Option 2: If no more filtered articles, load more RSS feeds
+        if (window.remainingFeeds && window.remainingFeeds.length > 0) {
+          console.log('📡 Tải thêm RSS feeds...');
           
-          // Clear cache to force re-filter with new data
-          categoryCache[currentCategory] = [];
+          const hasNewFeeds = await loadMoreFeeds();
           
-          // Re-filter to get updated article list (DON'T display yet)
-          filterAndDisplayNews(true); // skipDisplay = true
-          
-          // Restore display count to continue from where we were
-          currentDisplayCount = previousDisplayCount;
-          
-          // Now display next batch from updated cache (this will append)
-          const filteredArticles = categoryCache[currentCategory] || [];
-          if (currentDisplayCount < filteredArticles.length) {
-            displayNews(filteredArticles, true); // Append mode
+          if (hasNewFeeds) {
+            // Save current display count before clearing cache
+            const previousDisplayCount = currentDisplayCount;
+            
+            // Clear cache to force re-filter with new data
+            categoryCache[currentCategory] = [];
+            
+            // Re-filter to get updated article list (DON'T display yet)
+            filterAndDisplayNews(true); // skipDisplay = true
+            
+            // Restore display count to continue from where we were
+            currentDisplayCount = previousDisplayCount;
+            
+            // Now display next batch from updated cache (this will append)
+            const filteredArticles = categoryCache[currentCategory] || [];
+            if (currentDisplayCount < filteredArticles.length) {
+              displayNews(filteredArticles, true); // Append mode
+            } else {
+              console.log('⚠️ Không có bài mới sau khi load feeds');
+            }
+            
+            console.log('✅ Đã tải và hiển thị tin mới');
           } else {
-            console.log('⚠️ Không có bài mới sau khi load feeds');
+            console.log('❌ Không còn nguồn RSS');
+            document.getElementById('load-more').classList.add('hidden');
           }
-          
-          console.log('✅ Đã tải và hiển thị tin mới');
         } else {
-          console.log('❌ Không còn nguồn RSS');
+          console.log('🏁 Đã hết tất cả tin tức');
           document.getElementById('load-more').classList.add('hidden');
         }
-      } else {
-        console.log('🏁 Đã hết tất cả tin tức');
-        document.getElementById('load-more').classList.add('hidden');
+      } finally {
+        // Always hide spinner and restore button state
+        isLoading = false;
+        spinner?.classList.add('hidden');
+        loadMoreText.textContent = 'Tải thêm tin tức';
       }
-      
-      // Hide spinner
-      spinner?.classList.add('hidden');
-      loadMoreText.textContent = 'Tải thêm tin tức';
-      loadMoreBtn.disabled = false;
     }
 
     // Enhanced search function to include Vietnamese news

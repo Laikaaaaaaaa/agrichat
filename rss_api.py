@@ -77,6 +77,32 @@ class RSSNewsAPI:
             # Zing News - FILTER required
             {"name": "Zing News - Kinh doanh", "url": "https://zingnews.vn/rss/kinh-doanh.rss", "category": "business", "filter": True},
             {"name": "Zing News - Khoa học", "url": "https://zingnews.vn/rss/khoa-hoc.rss", "category": "technology", "filter": True},
+            
+            # COA (Cộng đồng Nông nghiệp Hữu Cơ) - NO FILTER
+            {"name": "COA - Tin tức", "url": "https://coa.org.vn/vi/news/rss/Tin-tuc/", "category": "agriculture", "filter": False},
+            {"name": "COA - Tin tiêu điểm", "url": "https://coa.org.vn/vi/news/rss/tin-tieu-diem/", "category": "news", "filter": False},
+            {"name": "COA - Tất cả", "url": "https://coa.org.vn/vi/news/rss/", "category": "agriculture", "filter": False},
+            {"name": "COA - Nông nghiệp hữu cơ", "url": "https://coa.org.vn/vi/news/rss/nong-nghiep-huu-co/", "category": "agriculture", "filter": False},
+            {"name": "COA - Mua gì ở đâu", "url": "https://coa.org.vn/vi/news/rss/mua-gi-o-dau/", "category": "economy", "filter": False},
+            {"name": "COA - Chứng nhận hữu cơ", "url": "https://coa.org.vn/vi/news/rss/chung-nhan-huu-co/", "category": "agriculture", "filter": False},
+            
+            # Ban Quản Lý Dự Án Dạo Công Nghiệp và Phát Triển Nông Thôn - Cà Mau - NO FILTER
+            {"name": "Cà Mau - Đấu thầu", "url": "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47982&catname=dau-thau&rec=50&sub=F&id=1396", "category": "business", "filter": False},
+            {"name": "Cà Mau - Các dự án triển khai", "url": "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47983&catname=cac-du-an-trien-khai&rec=50&sub=F&id=1396", "category": "agriculture", "filter": False},
+            {"name": "Cà Mau - Tin tức sự kiện", "url": "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47985&catname=tin-tuc-su-kien&rec=50&sub=F&id=1396", "category": "news", "filter": False},
+            {"name": "Cà Mau - Ý kiến chỉ đạo điều hành", "url": "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47987&catname=y-kien-chi-dao-dieu-hanh&rec=50&sub=F&id=1396", "category": "policy", "filter": False},
+            {"name": "Cà Mau - Xử lý kiến nghị yêu cầu", "url": "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47988&catname=y-kien-xu-ly-kien-nghi-yeu-cau&rec=50&sub=F&id=1396", "category": "policy", "filter": False},
+            {"name": "Cà Mau - Thông tin khen thưởng xử phạt", "url": "https://banqldactnnptnt.camau.gov.vn/Rss.aspx?catid=47989&catname=thong-tin-khen-thuong-xu-phat&rec=50&sub=F&id=1396", "category": "news", "filter": False},
+            
+            # VEPF (Vietnam Environment Protection Fund) - NO FILTER
+            {"name": "VEPF - Tin tức", "url": "https://www.vepf.vn/vi/rss/tin-tuc-vepftpdhmy.rss", "category": "climate", "filter": False},
+            {"name": "VEPF - Tin hoạt động của Quỹ", "url": "https://www.vepf.vn/vi/rss/tin-hoat-dong-cua-quy-vepfhxka85.rss", "category": "news", "filter": False},
+            {"name": "VEPF - Tin hoạt động của Bộ", "url": "https://www.vepf.vn/vi/rss/tin-hoat-dong-cua-bo-vepfneohlj.rss", "category": "policy", "filter": False},
+            {"name": "VEPF - Tin môi trường", "url": "https://www.vepf.vn/vi/rss/tin-moi-truong-vepfpw4e5j.rss", "category": "climate", "filter": False},
+            {"name": "VEPF - Tin tức văn phòng GEF Việt Nam", "url": "https://www.vepf.vn/vi/rss/tin-tuc-van-phong-gef-viet-nam-vepfika39k.rss", "category": "news", "filter": False},
+            {"name": "VEPF - Hợp tác quốc tế & GEF", "url": "https://www.vepf.vn/vi/rss/hop-tac-quoc-te-gef-vepf8qn0yz.rss", "category": "policy", "filter": False},
+            {"name": "VEPF - Hợp tác quốc tế", "url": "https://www.vepf.vn/vi/rss/hop-tac-quoc-te-vepfp8dmgd.rss", "category": "policy", "filter": False},
+            {"name": "VEPF - Hỗ trợ khách hàng", "url": "https://www.vepf.vn/vi/rss/ho-tro-khach-hang-vepfkdhsra.rss", "category": "news", "filter": False},
         ]
 
     def is_agriculture_related(self, title, description):

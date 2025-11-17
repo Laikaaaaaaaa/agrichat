@@ -207,15 +207,11 @@ class RSSNewsAPI:
 
     def load_news_from_feeds(self, limit=50, offset=0):
         """
-        Load news from multiple RSS feeds (with concurrent fetching for speed)
+        Load news from multiple RSS feeds
         - Minimum: 50 articles
         - Maximum: 250 articles
-        - Load feeds in PARALLEL to avoid blocking
         - Include 'has_more' flag and notification
         """
-        import concurrent.futures
-        import threading
-        
         MIN_ARTICLES = 50
         MAX_ARTICLES = 250
         
@@ -227,74 +223,44 @@ class RSSNewsAPI:
         
         all_news = []
         feeds_loaded = 0
-        failed_feeds = 0
+        total_attempted = 0
         
-        # ✅ OPTIMIZATION: Load feeds in PARALLEL using ThreadPoolExecutor
-        # This prevents blocking on slow RSS feeds
-        def load_single_feed_worker(feed):
-            """Load a single RSS feed (called in thread pool)"""
+        for feed in self.vietnamese_feeds:
+            # Keep loading until we reach limit, even if it means loading extra
+            if len(all_news) >= limit * 1.5:  # Load 50% extra to ensure we hit minimum
+                break
+                
             try:
                 cache_key = f"feed_{feed['url']}"
                 cached = self.get_from_cache(cache_key)
                 
                 if cached:
                     logger.info(f"✅ Cache hit for {feed['name']}")
-                    return cached, True  # (items, is_cached)
+                    all_news.extend(cached)
+                    feeds_loaded += 1
+                    continue
                 
-                # Fetch RSS with timeout
-                xml_text = self.fetch_rss_feed(feed['url'], timeout=8)
+                xml_text = self.fetch_rss_feed(feed['url'])
                 if xml_text:
+                    # ✅ Pass feed config for special handling (e.g., Dân Trí image extraction)
                     items = self.parse_rss_xml(xml_text, feed_config=feed)
                     items = self.filter_articles(items, feed)
-                    items = items[:30]  # Get up to 30 per feed (we'll merge them)
+                    items = items[:50]  # Increased from 30 to 50 per feed
+                    total_attempted += len(items)
                     
                     for item in items:
                         item['category'] = feed['category']
                         item['source'] = feed['name']
                         item['isVietnamese'] = True
                     
-                    # Cache for next request
                     self.set_cache(cache_key, items)
-                    logger.info(f"✅ Loaded {len(items)} from {feed['name']}")
-                    return items, False
-                else:
-                    logger.warning(f"⚠️ Failed to fetch {feed['name']}")
-                    return [], False
-                    
-            except Exception as e:
-                logger.error(f"Error loading {feed['name']}: {e}")
-                return [], False
-        
-        # ✅ Load feeds concurrently (max 5 threads to avoid overwhelming network)
-        max_workers = min(5, len(self.vietnamese_feeds))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all feeds to thread pool
-            future_to_feed = {
-                executor.submit(load_single_feed_worker, feed): feed 
-                for feed in self.vietnamese_feeds
-            }
-            
-            # Collect results as they complete (not waiting for all)
-            for future in concurrent.futures.as_completed(future_to_feed):
-                items, is_cached = future.result()
-                if items:
                     all_news.extend(items)
                     feeds_loaded += 1
-                    logger.info(f"📊 Progress: {feeds_loaded} feeds loaded, {len(all_news)} total articles")
-                    
-                    # 🚀 EARLY RETURN: Once we have enough articles, return immediately
-                    # Don't wait for all feeds - client gets fast response
-                    if len(all_news) >= limit * 3:
-                        logger.info(f"⚡ Early return: {len(all_news)} articles loaded (enough for {limit})")
-                        break
-                else:
-                    failed_feeds += 1
-        
-        # Remove duplicates
-        all_news = list({article.get('title'): article 
-                        for article in all_news}.values())
-        
-        logger.info(f"📊 Feed loading complete: {len(all_news)} total articles, {feeds_loaded} feeds, {failed_feeds} failed")
+                    logger.info(f"✅ Loaded {len(items)} from {feed['name']}")
+                        
+            except Exception as e:
+                logger.error(f"Error loading {feed['name']}: {e}")
+                continue
         
         # Apply pagination with offset
         start_idx = offset
@@ -315,7 +281,7 @@ class RSSNewsAPI:
             notification = f"✅ Đã tải hết {len(all_news)} bài báo trong hệ thống"
             has_more = False
         
-        logger.info(f"📊 Returned {len(paginated_news)} articles from {len(all_news)} total (offset={offset}, has_more={has_more})")
+        logger.info(f"📊 Loaded {len(paginated_news)} articles from {len(all_news)} total (feeds={feeds_loaded}, has_more={has_more})")
         
         return {
             'articles': paginated_news,

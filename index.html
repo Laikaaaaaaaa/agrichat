@@ -8682,122 +8682,131 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     }
   };
   
-  // ⏰ AUTO-REFRESH: Update weather every 5 minutes (WITHOUT changing location)
+  // ⏰ AUTO-REFRESH: Update weather every 5 minutes
   window.weatherRefreshInterval = setInterval(async function() {
-    console.log('🔄 Auto-refreshing weather data (preserving location)...');
+    console.log('🔄 Auto-refreshing weather data...');
     const weatherEl = document.getElementById('weather-info');
     if (weatherEl && weatherEl.dataset.state !== 'loading') {
+      // Re-run the main weather initialization to get fresh data
+      clearWeatherCache();
       
-      try {
-        // ✅ IMPORTANT: Get current location from UI, NOT reset it
-        const currentLocationEl = document.getElementById('weather-main');
-        const currentLocationText = currentLocationEl?.textContent || '';
-        const locationMatch = currentLocationText.match(/—\s*(.+),\s*([^,]+)$/);
-        const currentLocation = locationMatch ? {
-          city: locationMatch[1].trim(),
-          country: locationMatch[2].trim()
-        } : null;
-        
-        console.log('📍 Current location from UI:', currentLocation);
-        
-        // Get cached location coordinates (Nominatim)
-        const cachedLocationStr = localStorage.getItem('agrisense_location_cache_v1');
-        const cachedLocation = cachedLocationStr ? JSON.parse(cachedLocationStr) : null;
-        
-        // Get cached geolocation coordinates (GPS)
-        const cachedGeoStr = localStorage.getItem('agrisense_cached_geolocation');
-        const cachedGeo = cachedGeoStr ? JSON.parse(cachedGeoStr) : null;
-        const GEO_CACHE_TTL = 90 * 60 * 1000; // 90 minutes
-        const now = Date.now();
-        
-        let lat = null, lon = null;
-        
-        // Try cached Nominatim first (most precise)
-        if (cachedLocation && (now - cachedLocation.timestamp) < GEO_CACHE_TTL) {
-          console.log('♻️ Using cached Nominatim location for weather update');
-          lat = cachedLocation.latitude;
-          lon = cachedLocation.longitude;
-        } 
-        // Try cached GPS second
-        else if (cachedGeo && (now - cachedGeo.timestamp) < GEO_CACHE_TTL) {
-          console.log('📍 Using cached GPS location for weather update');
-          lat = cachedGeo.latitude;
-          lon = cachedGeo.longitude;
-        }
-        // Try fresh geolocation only if we don't have recent cache
-        else if ('geolocation' in navigator) {
-          console.log('🆕 Requesting fresh geolocation for weather update...');
-          try {
-            const position = await new Promise((resolve, reject) => {
+      // Get last known location from localStorage as fallback
+      const lastLocationStr = localStorage.getItem('agrisense_last_location');
+      const lastLocation = lastLocationStr ? JSON.parse(lastLocationStr) : null;
+      
+      // Get cached geolocation coordinates if fresh (reuse instead of making new request every 5 min)
+      const cachedGeoStr = localStorage.getItem('agrisense_cached_geolocation');
+      const cachedGeo = cachedGeoStr ? JSON.parse(cachedGeoStr) : null;
+      const GEO_CACHE_TTL = 90 * 60 * 1000; // 90 minutes - sync with weather update interval
+      const now = Date.now();
+      const isGeoCacheFresh = cachedGeo && (now - cachedGeo.timestamp) < GEO_CACHE_TTL;
+      
+      let shouldUseGeolocation = isGeoCacheFresh || 'geolocation' in navigator;
+      
+      // Trigger weather update using the same logic as initial load
+      if (shouldUseGeolocation) {
+        try {
+          let position;
+          
+          if (isGeoCacheFresh) {
+            // Reuse cached geolocation coordinates if still fresh
+            console.log('📍 Using cached geolocation (fresh)');
+            position = {
+              coords: {
+                latitude: cachedGeo.latitude,
+                longitude: cachedGeo.longitude
+              }
+            };
+          } else {
+            // Request fresh geolocation
+            position = await new Promise((resolve, reject) => {
               navigator.geolocation.getCurrentPosition(
                 (pos) => resolve(pos),
                 (err) => reject(err),
-                { timeout: 5000, enableHighAccuracy: false, maximumAge: 30 * 60 * 1000 }
+                { timeout: 5000, enableHighAccuracy: false, maximumAge: 30 * 60 * 1000 }  // Accept cached position up to 30 minutes old
               );
             });
             
+            // Cache the geolocation coordinates for next refresh cycle
             if (position?.coords) {
-              lat = position.coords.latitude;
-              lon = position.coords.longitude;
-              
-              // Cache new coordinates
               localStorage.setItem('agrisense_cached_geolocation', JSON.stringify({
-                latitude: lat,
-                longitude: lon,
-                timestamp: now
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                timestamp: Date.now()
               }));
-              console.log('📍 Cached fresh geolocation:', lat, lon);
-            }
-          } catch (geoError) {
-            console.warn('⚠️ Fresh geolocation failed during auto-refresh:', geoError.message);
-            // Fall back to stored coordinates
-            if (cachedGeo) {
-              lat = cachedGeo.latitude;
-              lon = cachedGeo.longitude;
-              console.log('🔙 Falling back to cached GPS:', lat, lon);
+              console.log('📍 Cached new geolocation:', position.coords.latitude, position.coords.longitude);
             }
           }
-        }
-        
-        // If we have coordinates, update weather (keeping location fixed)
-        if (lat && lon) {
-          const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              // Update WEATHER ONLY, preserve LOCATION from UI
-              const mainEl = document.getElementById('weather-main');
-              const subEl = document.getElementById('weather-sub');
-              
-              if (mainEl) {
-                // Keep location part from before, only update weather description
-                const locationPart = currentLocation ? 
-                  `${data.description || 'Thời tiết'} — ${currentLocation.city}, ${currentLocation.country}` :
-                  `${data.description || 'Thời tiết'} — ${data.location_name || 'Vị trí của bạn'}, ${data.location_country || 'VN'}`;
-                mainEl.textContent = locationPart;
+          
+          if (position?.coords) {
+            const { latitude, longitude } = position.coords;
+            const response = await fetch(`/api/weather?lat=${latitude}&lon=${longitude}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                // Save this location as last known good location
+                localStorage.setItem('agrisense_last_location', JSON.stringify({
+                  name: data.location_name,
+                  country: data.location_country,
+                  timestamp: Date.now()
+                }));
+                
+                // Update weather display
+                const mainEl = document.getElementById('weather-main');
+                const subEl = document.getElementById('weather-sub');
+                if (mainEl) mainEl.textContent = `${data.description || 'Thời tiết'} — ${data.location_name || 'Vị trí của bạn'}, ${data.location_country || 'VN'}`;
+                if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('stat-temp').textContent = data.temperature ? `${data.temperature}°C` : '—';
+                document.getElementById('stat-hum').textContent = data.humidity ? `${data.humidity}%` : '—';
+                document.getElementById('stat-wind').textContent = data.wind_speed ? `${data.wind_speed} km/h` : '—';
+                document.getElementById('stat-precip').textContent = data.precipitation ? `${data.precipitation} mm` : '—';
+                console.log('✅ Weather updated successfully via geolocation');
               }
-              
-              if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()}`;
-              
-              // Update all weather stats
-              document.getElementById('stat-temp').textContent = data.temperature ? `${data.temperature}°C` : '—';
-              document.getElementById('stat-hum').textContent = data.humidity ? `${data.humidity}%` : '—';
-              document.getElementById('stat-wind').textContent = data.wind_speed ? `${data.wind_speed} km/h` : '—';
-              document.getElementById('stat-precip').textContent = data.precipitation ? `${data.precipitation} mm` : '—';
-              
-              console.log('✅ Weather updated (location preserved:', currentLocation?.city || 'unknown', ')');
             }
-          } else {
-            console.warn('⚠️ Weather API returned error during auto-refresh');
           }
-        } else {
-          console.warn('⚠️ No coordinates available for weather update during auto-refresh');
+        } catch (e) {
+          console.log('ℹ️ Geolocation failed, trying IP-based weather update...');
+          // Fallback to IP-based update
+          const ipWeather = await getWeatherByIP();
+          if (ipWeather && ipWeather.location_name) {
+            // ✅ NEW: Validate location - don't replace with 'Hồ Chí Minh' if we have a better location
+            const isLikelyFallback = (ipWeather.location_name === 'Hồ Chí Minh' || ipWeather.location_name === 'Ho Chi Minh City');
+            const shouldUseLastLocation = isLikelyFallback && lastLocation;
+            
+            const finalLocation = shouldUseLastLocation ? lastLocation.name : ipWeather.location_name;
+            const finalCountry = shouldUseLastLocation ? lastLocation.country : ipWeather.location_country;
+            
+            // ✅ Save successful location for next fallback
+            if (!isLikelyFallback) {
+              localStorage.setItem('agrisense_last_location', JSON.stringify({
+                name: ipWeather.location_name,
+                country: ipWeather.location_country,
+                timestamp: Date.now()
+              }));
+              console.log('💾 Saved IP location:', ipWeather.location_name);
+            }
+            
+            const mainEl = document.getElementById('weather-main');
+            const subEl = document.getElementById('weather-sub');
+            if (mainEl) mainEl.textContent = `${ipWeather.condition} — ${finalLocation}, ${finalCountry}`;
+            if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()}`;
+            document.getElementById('stat-temp').textContent = ipWeather.temp ? `${ipWeather.temp}°C` : '—';
+            document.getElementById('stat-hum').textContent = ipWeather.humidity ? `${ipWeather.humidity}%` : '—';
+            document.getElementById('stat-wind').textContent = ipWeather.wind_kph ? `${ipWeather.wind_kph} km/h` : '—';
+            document.getElementById('stat-precip').textContent = ipWeather.precip_mm ? `${ipWeather.precip_mm} mm` : '—';
+            console.log('✅ Weather updated via IP fallback, using:', shouldUseLastLocation ? 'last known location' : 'new IP location', finalLocation);
+          } else if (lastLocation) {
+            // Use cached location as ultimate fallback
+            console.log('⚠️ IP weather failed, using last known location:', lastLocation.name);
+            const mainEl = document.getElementById('weather-main');
+            const subEl = document.getElementById('weather-sub');
+            if (mainEl) mainEl.textContent = `Thời tiết — ${lastLocation.name}, ${lastLocation.country}`;
+            if (subEl) subEl.textContent = `Cập nhật: ${new Date().toLocaleTimeString()} (bản đệm)`;
+          }
         }
-      } catch (error) {
-        console.error('❌ Error in auto-refresh:', error);
       }
     }
-  }, 5 * 60 * 1000); // Every 5 minutes
+  }, 90 * 60 * 1000); // Every 90 minutes (1h30)
   
   // Old weather initialization removed - new weather widget is self-initializing
   

@@ -696,59 +696,43 @@
         // Call backend API to load news with pagination
         const url = `/api/load-news?limit=${API_BATCH_SIZE}&offset=${currentOffset}&category=${currentCategory === 'all' ? 'all' : currentCategory}`;
         
-        // ⏱️ Add timeout to prevent hanging if backend is slow
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+        const response = await fetch(url);
         
-        try {
-          const response = await fetch(url, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            console.error(`❌ API error: ${response.status}`);
-            throw new Error(`API returned ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          if (!data.success) {
-            console.error('❌ API returned failure:', data.error);
-            throw new Error(data.error || 'Unknown error');
-          }
-          
-          const articles = data.articles || [];
-          console.log(`✅ Loaded ${articles.length} articles from backend (total=${data.total})`);
-          
-          // Store pagination info
-          apiHasMore = data.has_more || false;
-          apiNotification = data.notification || null;
-          totalArticlesLoaded = data.total || 0;
-          
-          // Log notification if available
-          if (apiNotification) {
-            console.log(`📢 Backend notification: ${apiNotification}`);
-          }
-          
-          // Add articles to our main array
-          allLoadedArticles = [...allLoadedArticles, ...articles];
-          
-          // Remove duplicates
-          allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
-          
-          vietnameseNews = [...allLoadedArticles];
-          loadedFeedsCount += 1;
-          
-          console.log(`✅ Total loaded: ${vietnameseNews.length} articles (has_more=${apiHasMore})`);
-          
-        } catch (fetchError) {
-          clearTimeout(timeoutId);
-          if (fetchError.name === 'AbortError') {
-            console.error('❌ API request timeout (20s)');
-            throw new Error('Tải tin tức quá lâu. Vui lòng kiểm tra kết nối và thử lại.');
-          } else {
-            throw fetchError;
-          }
+        if (!response.ok) {
+          console.error(`❌ API error: ${response.status}`);
+          throw new Error(`API returned ${response.status}`);
         }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          console.error('❌ API returned failure:', data.error);
+          throw new Error(data.error || 'Unknown error');
+        }
+        
+        const articles = data.articles || [];
+        console.log(`✅ Loaded ${articles.length} articles from backend`);
+        
+        // Store pagination info
+        apiHasMore = data.has_more || false;
+        apiNotification = data.notification || null;
+        totalArticlesLoaded = data.total || 0;
+        
+        // Log notification if available
+        if (apiNotification) {
+          console.log(`📢 Backend notification: ${apiNotification}`);
+        }
+        
+        // Add articles to our main array
+        allLoadedArticles = [...allLoadedArticles, ...articles];
+        
+        // Remove duplicates
+        allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        
+        vietnameseNews = [...allLoadedArticles];
+        loadedFeedsCount += 1;
+        
+        console.log(`✅ Total loaded: ${vietnameseNews.length} articles (has_more=${apiHasMore})`);
         
       } catch (error) {
         console.error('❌ Lỗi tải tin:', error);

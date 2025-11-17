@@ -8031,6 +8031,20 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     // Watchdog: if still loading after a while, show error
     scheduleWeatherWatchdog(weatherEl);
 
+    // ✅ PRIORITY 0: Check if we have a VALID cached Nominatim location (within 90 min TTL)
+    // This prevents unnecessary GPS requests and respects Nominatim rate limits
+    const cachedLocation = readLocationCache();
+    if (cachedLocation) {
+      console.log('♻️ Using cached location from Nominatim (still valid):', cachedLocation);
+      // Use cached location without re-requesting geolocation
+      renderWeatherDisplay(weatherEl, {
+        city: cachedLocation,
+        country: 'Việt Nam',
+        cached_location: true
+      });
+      return;
+    }
+
     // PRIORITY 1: Try browser geolocation FIRST (most accurate - GPS/WiFi)
     // Use cached position if available (user already granted permission)
     const GEOLOCATION_TIMEOUT_MS = 30000;  // Increased from 15s to 30s - GPS needs time to acquire signal
@@ -8093,10 +8107,23 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
         } else {
           console.warn('📍 Geolocation unavailable:', geoError.message);
         }
-        console.log('🔄 Falling back to IP-based location...');
+        console.log('🔄 Falling back to cached/IP-based location...');
       }
     } else {
-      console.log('❌ Geolocation API not supported, using IP fallback');
+      console.log('❌ Geolocation API not supported, using cached/IP fallback');
+    }
+
+    // ✅ PRIORITY 1B: If GPS failed but we have cached location from previous GPS request, use it!
+    const lastLocationStr = localStorage.getItem('agrisense_last_location');
+    const lastLocation = lastLocationStr ? JSON.parse(lastLocationStr) : null;
+    if (lastLocation && lastLocation.name && lastLocation.name !== 'Vị trí của bạn') {
+      console.log('✅ Using last known good location from GPS:', lastLocation.name);
+      renderWeatherDisplay(weatherEl, {
+        city: lastLocation.name,
+        country: lastLocation.country || 'Việt Nam',
+        cached_location: true
+      });
+      return;
     }
 
     // PRIORITY 2: Fallback to IP-based weather lookup (less accurate but no permission needed)

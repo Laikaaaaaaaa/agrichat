@@ -6453,8 +6453,8 @@
       recognition.lang = 'vi-VN'; // Tiếng Việt
       
       // ✅ ENHANCED configuration cho mobile:
-      // ⚠️ IMPORTANT: Set continuous to FALSE for mobile to prevent duplication
-      recognition.continuous = false;  // ✅ FIXED: Was true, causing word repetition on mobile
+      // ⚠️ IMPORTANT: Set continuous to TRUE to prevent auto-cutoff during speech
+      recognition.continuous = true;  // ✅ Allow continuous speech without auto-stopping on silence
       recognition.interimResults = true; // Hiển thị kết quả tạm thời
       recognition.maxAlternatives = 1; // Lấy kết quả tốt nhất
       

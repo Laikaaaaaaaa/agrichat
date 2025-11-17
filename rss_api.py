@@ -205,13 +205,29 @@ class RSSNewsAPI:
             logger.warning(f"❌ Parse error: {e}")
             return []
 
-    def load_news_from_feeds(self, limit=50):
-        """Load news from multiple RSS feeds"""
+    def load_news_from_feeds(self, limit=50, offset=0):
+        """
+        Load news from multiple RSS feeds
+        - Minimum: 50 articles
+        - Maximum: 250 articles
+        - Include 'has_more' flag and notification
+        """
+        MIN_ARTICLES = 50
+        MAX_ARTICLES = 250
+        
+        # Ensure limit is within bounds
+        if limit < MIN_ARTICLES:
+            limit = MIN_ARTICLES
+        if limit > MAX_ARTICLES:
+            limit = MAX_ARTICLES
+        
         all_news = []
         feeds_loaded = 0
+        total_attempted = 0
         
         for feed in self.vietnamese_feeds:
-            if len(all_news) >= limit * 2:
+            # Keep loading until we reach limit, even if it means loading extra
+            if len(all_news) >= limit * 1.5:  # Load 50% extra to ensure we hit minimum
                 break
                 
             try:
@@ -229,7 +245,8 @@ class RSSNewsAPI:
                     # ✅ Pass feed config for special handling (e.g., Dân Trí image extraction)
                     items = self.parse_rss_xml(xml_text, feed_config=feed)
                     items = self.filter_articles(items, feed)
-                    items = items[:30]
+                    items = items[:50]  # Increased from 30 to 50 per feed
+                    total_attempted += len(items)
                     
                     for item in items:
                         item['category'] = feed['category']
@@ -245,8 +262,35 @@ class RSSNewsAPI:
                 logger.error(f"Error loading {feed['name']}: {e}")
                 continue
         
-        logger.info(f"📊 Loaded {len(all_news)} total articles from {feeds_loaded} feeds")
-        return all_news[:limit]
+        # Apply pagination with offset
+        start_idx = offset
+        end_idx = offset + limit
+        paginated_news = all_news[start_idx:end_idx]
+        
+        # Determine if there are more articles available
+        has_more = (end_idx < len(all_news))
+        is_insufficient = (len(paginated_news) < MIN_ARTICLES)
+        
+        notification = None
+        if is_insufficient and not has_more:
+            # We've loaded all available articles but it's less than 50
+            notification = f"⚠️ Chỉ có {len(all_news)} bài báo trong hệ thống. Hết báo!"
+            logger.warning(f"⚠️ Insufficient articles: only {len(all_news)} out of minimum {MIN_ARTICLES}")
+        elif end_idx >= len(all_news) and len(all_news) >= MIN_ARTICLES:
+            # We've reached the end with enough articles
+            notification = f"✅ Đã tải hết {len(all_news)} bài báo trong hệ thống"
+            has_more = False
+        
+        logger.info(f"📊 Loaded {len(paginated_news)} articles from {len(all_news)} total (feeds={feeds_loaded}, has_more={has_more})")
+        
+        return {
+            'articles': paginated_news,
+            'total': len(all_news),
+            'count': len(paginated_news),
+            'has_more': has_more,
+            'notification': notification,
+            'insufficient': is_insufficient
+        }
 
     def get_from_cache(self, key):
         """Get from cache if not expired"""
@@ -265,12 +309,34 @@ class RSSNewsAPI:
 # Create global instance
 news_api = RSSNewsAPI()
 
-def get_news(limit=50):
-    """Get news from all feeds"""
-    return news_api.load_news_from_feeds(limit)
+def get_news(limit=50, offset=0):
+    """Get news from all feeds with pagination"""
+    result = news_api.load_news_from_feeds(limit, offset)
+    return result
 
-def get_news_by_category(category, limit=20):
-    """Get news by specific category"""
-    all_news = news_api.load_news_from_feeds(min(150, limit * 5))
-    category_news = [item for item in all_news if item.get('category') == category]
-    return category_news[:limit]
+def get_news_by_category(category, limit=20, offset=0):
+    """Get news by specific category with pagination"""
+    result = news_api.load_news_from_feeds(min(250, limit * 5), offset=0)
+    articles = result['articles']
+    
+    # Filter by category
+    category_news = [item for item in articles if item.get('category') == category]
+    
+    # Apply pagination to filtered results
+    start_idx = offset
+    end_idx = offset + limit
+    paginated = category_news[start_idx:end_idx]
+    
+    has_more = (end_idx < len(category_news))
+    notification = None
+    
+    if len(paginated) < limit and not has_more and len(category_news) > 0:
+        notification = f"✅ Đã tải hết {len(category_news)} bài báo trong chuyên mục '{category}'"
+    
+    return {
+        'articles': paginated,
+        'total': len(category_news),
+        'count': len(paginated),
+        'has_more': has_more,
+        'notification': notification
+    }

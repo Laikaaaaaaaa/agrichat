@@ -7822,29 +7822,17 @@ def api_load_news():
     """
     Backend API to load news from Vietnamese RSS feeds
     This bypasses browser CORS restrictions
-    
-    Parameters:
-    - limit: Number of articles per page (default 50, min 50, max 250)
-    - offset: Pagination offset (default 0)
-    - category: Filter by category (default 'all')
     """
     try:
         limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
         category = request.args.get('category', 'all', type=str)
         
         from rss_api import get_news, get_news_by_category
         
         if category != 'all':
-            result = get_news_by_category(category, limit, offset)
+            articles = get_news_by_category(category, limit)
         else:
-            result = get_news(limit, offset)
-        
-        # Handle both dict and list returns for backward compatibility
-        articles = result.get('articles', result) if isinstance(result, dict) else result
-        has_more = result.get('has_more', False) if isinstance(result, dict) else False
-        notification = result.get('notification', None) if isinstance(result, dict) else None
-        total = result.get('total', len(articles)) if isinstance(result, dict) else len(articles)
+            articles = get_news(limit)
         
         # Convert datetime objects to strings for JSON serialization
         for article in articles:
@@ -7853,14 +7841,11 @@ def api_load_news():
             else:
                 article['pubDate'] = str(article.get('pubDate', ''))
         
-        logging.info(f"✅ API loaded {len(articles)} news articles (category={category}, offset={offset}, has_more={has_more})")
+        logging.info(f"✅ API loaded {len(articles)} news articles (category={category})")
         
         return jsonify({
             'success': True,
             'count': len(articles),
-            'total': total,
-            'has_more': has_more,
-            'notification': notification,
             'articles': articles
         })
     except Exception as e:
@@ -7868,8 +7853,7 @@ def api_load_news():
         return jsonify({
             'success': False,
             'error': str(e),
-            'articles': [],
-            'has_more': False
+            'articles': []
         }), 500
 
 

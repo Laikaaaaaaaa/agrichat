@@ -886,30 +886,45 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                     continue  # Try next service
 
         if not ip_data:
-            logging.info(
-                "ℹ️  Sử dụng vị trí mặc định cho thời tiết: %s, %s",
-                self.default_location.get("city"),
-                self.default_location.get("country")
-            )
-            ip_data = copy.deepcopy(self.default_location)
-            ip_meta["source"] = "default"
+            logging.warning("⚠️  IP lookup thất bại - không có dữ liệu. Không dùng fallback mặc định (HCM).")
+            logging.info("💡 Hãy dùng geolocation (GPS) hoặc yêu cầu người dùng cấp quyền vị trí.")
+            ip_data = None  # Không fallback tự động sang HCM
+            ip_meta["source"] = "none"
             ip_meta["cache_hit"] = False
-            self._ip_location_cache = {
-                "timestamp": now,
-                "data": copy.deepcopy(ip_data)
+            # Trả về thông báo lỗi thay vì fallback HCM mặc định
+            return {
+                "success": False,
+                "city": "Vị trí của bạn",
+                "country": "VN",
+                "message": "❌ Không thể xác định vị trí. Vui lòng cấp quyền truy cập vị trí để sử dụng tính năng thời tiết chính xác.",
+                "meta": {
+                    "location_source": "none",
+                    "location_cache_hit": False,
+                    "weather_source": None,
+                    "needs_geolocation": True
+                }
             }
 
-        city = ip_data.get("city") or ip_data.get("region") or self.default_location.get("city")
+        city = ip_data.get("city") or ip_data.get("region")
         country = ip_data.get("country_name") or ip_data.get("country") or "VN"
         lat = self._safe_float(ip_data.get("latitude"))
         lon = self._safe_float(ip_data.get("longitude"))
 
         if lat is None or lon is None:
-            logging.warning("⚠️  IP lookup thiếu toạ độ. Dùng giá trị mặc định.")
-            lat = self.default_location.get("latitude")
-            lon = self.default_location.get("longitude")
-            if ip_meta["source"] != "default":
-                ip_meta["source"] = f"{ip_meta['source'] or 'unknown'}+default"
+            logging.warning("⚠️  IP lookup thiếu toạ độ. Không có fallback HCM mặc định.")
+            # Trả về lỗi thay vì fallback tự động
+            return {
+                "success": False,
+                "city": city or "Vị trí của bạn",
+                "country": country,
+                "message": "❌ Không thể lấy toạ độ chính xác. Hãy cấp quyền truy cập vị trí GPS.",
+                "meta": {
+                    "location_source": ip_meta.get("source"),
+                    "location_cache_hit": ip_meta.get("cache_hit"),
+                    "weather_source": None,
+                    "needs_geolocation": True
+                }
+            }
 
         weather = None
 
@@ -5718,37 +5733,43 @@ def weather():
                             geo_data = geocode_resp.json()
                             address = geo_data.get('address', {})
                             
-                            # Extract Vietnamese address components with diacritics
-                            # Nominatim returns: city/town/village, county/district, state/province, country
-                            city = address.get('city') or address.get('town') or address.get('village')
-                            district = address.get('county') or address.get('district')
-                            province = address.get('state') or address.get('province')
+                            # Extract PRECISE Vietnamese address components (phường/xã/tỉnh/thành)
+                            # Nominatim returns: suburb/village (phường/xã), district (quận/huyện), state (tỉnh/TP)
+                            ward = address.get('suburb') or address.get('neighbourhood') or address.get('village')  # Phường/xã
+                            district = address.get('county') or address.get('district')  # Quận/huyện
+                            city = address.get('city') or address.get('town')  # Thành phố (if different from province)
+                            province = address.get('state') or address.get('province')  # Tỉnh/TP
                             country = address.get('country', 'Việt Nam')
                             
-                            # Build location display with Vietnamese format
-                            # Priority: City/District, Province
+                            # Build PRECISE location display with Vietnamese format
+                            # Priority: Phường/Xã, Quận/Huyện, Tỉnh/TP
                             location_parts = []
                             
-                            if city:
-                                location_parts.append(city)
-                            elif district:
+                            if ward:
+                                location_parts.append(ward)
+                            if district and district not in location_parts:
                                 location_parts.append(district)
-                            
                             if province and province not in location_parts:
                                 location_parts.append(province)
+                            elif city and city not in location_parts:
+                                location_parts.append(city)
                             
                             city_name = ', '.join(location_parts) if location_parts else None
                             country_name = country
                             
-                            logging.info(f"✅ Nominatim Reverse Geocoding: {city_name}, {country_name}")
+                            logging.info(f"✅ Nominatim Precise Geocoding (phường/xã/tỉnh): {city_name}, {country_name}")
                             
-                            # ✅ SAVE TO NOMINATIM CACHE (90 minutes)
+                            # ✅ SAVE TO NOMINATIM CACHE (90 minutes) - with ward-level detail
                             api._nominatim_cache[cache_key] = {
                                 'timestamp': now,
                                 'city_name': city_name,
-                                'country_name': country_name
+                                'country_name': country_name,
+                                'ward': ward,
+                                'district': district,
+                                'province': province,
+                                'raw_address': geo_data.get('display_name', '')
                             }
-                            logging.info(f"💾 Cached Nominatim result for {cache_key} (TTL: {api.nominatim_cache_ttl}s)")
+                            logging.info(f"💾 Cached detailed location: {ward} ({district}), {province} (TTL: {api.nominatim_cache_ttl}s)")
                         else:
                             logging.warning("⚠️ Nominatim API request failed")
                             

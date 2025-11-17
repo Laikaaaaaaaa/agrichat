@@ -8133,6 +8133,18 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
     if (ipWeather) {
       console.log('✅ Weather data loaded via IP lookup:', ipWeather);
       
+      // ❌ Check if backend returned "needs_geolocation" (meaning IP lookup failed)
+      if (ipWeather.meta?.needs_geolocation) {
+        console.warn('❌ IP lookup failed - backend asking for geolocation');
+        // Don't fallback to HCM - show error asking for location permission
+        renderWeatherError(weatherEl, 
+          '🔒 Vui lòng cấp quyền truy cập vị trí để xem thời tiết chính xác',
+          'Vị trí của bạn',
+          'Việt Nam'
+        );
+        return;
+      }
+      
       // ✅ Save location from IP lookup if it's not a fallback location
       const isNotFallback = (ipWeather.location_name !== 'Hồ Chí Minh' && ipWeather.location_name !== 'Ho Chi Minh City');
       if (isNotFallback) {

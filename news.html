@@ -694,9 +694,9 @@
         // Store shuffled feeds for progressive loading
         window.allFeeds = shuffledFeeds;
         
-        // Load first 5 feeds for initial display
-        const initialBatch = window.allFeeds.slice(0, 5);
-        window.remainingFeeds = window.allFeeds.slice(5);
+        // Load first 15 feeds for initial display (enough for 100+ articles)
+        const initialBatch = window.allFeeds.slice(0, 15);
+        window.remainingFeeds = window.allFeeds.slice(15);
         
         console.log(`⚡ Batch 1: Load ${initialBatch.length} nguồn...`);
         console.log(`Các nguồn: ${initialBatch.map(f => f.name).join(', ')}`);
@@ -931,31 +931,44 @@
       try {
         updateHeaderStatus('Đang tải thêm tin tức...', true);
         
-        // Load next batch of feeds (5 feeds at a time)
-        const nextBatch = window.remainingFeeds.slice(0, 5);
-        window.remainingFeeds = window.remainingFeeds.slice(5);
+        // Load next batch of feeds (5 feeds at a time) - keep trying until we get new articles
+        let articlesBeforeLoad = allLoadedArticles.length;
+        let feedsLoadedThisBatch = 0;
+        let maxAttemptsPerBatch = 10;  // Try up to 10 feeds to get new content
         
-        console.log(`📦 Load thêm ${nextBatch.length} nguồn: ${nextBatch.map(f => f.name).join(', ')}`);
-        
-        // Use Promise.allSettled() for better performance
-        const feedPromises = nextBatch.map(feed => loadSingleFeed(feed));
-        const results = await Promise.allSettled(feedPromises);
-        
-        // Add new articles from successful results
-        results.forEach(result => {
-          if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
-            allLoadedArticles = [...allLoadedArticles, ...result.value];
+        while (feedsLoadedThisBatch < 5 && window.remainingFeeds.length > 0 && feedsLoadedThisBatch < maxAttemptsPerBatch) {
+          const nextFeed = window.remainingFeeds.shift();  // Pop first remaining feed
+          
+          console.log(`📥 Loading feed: ${nextFeed.name}...`);
+          
+          try {
+            const articles = await loadSingleFeed(nextFeed);
+            
+            if (articles && articles.length > 0) {
+              console.log(`✅ Got ${articles.length} articles from ${nextFeed.name}`);
+              allLoadedArticles = [...allLoadedArticles, ...articles];
+              feedsLoadedThisBatch++;
+            } else {
+              console.log(`⚠️ ${nextFeed.name} returned no articles, skipping`);
+            }
+          } catch (err) {
+            console.warn(`❌ Error loading ${nextFeed.name}:`, err);
+            continue;  // Skip this feed and try next
           }
-        });
+        }
         
         // Remove duplicates
+        const beforeDedup = allLoadedArticles.length;
         allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        const afterDedup = allLoadedArticles.length;
+        
+        console.log(`📊 Deduplicated: ${beforeDedup} → ${afterDedup} articles`);
         
         // SHUFFLE by source để xen kẽ báo
         allLoadedArticles = shuffleBySource(allLoadedArticles);
         
         vietnameseNews = [...allLoadedArticles];
-        loadedFeedsCount += nextBatch.length;
+        loadedFeedsCount += feedsLoadedThisBatch;
         
         // Clear cache to force refresh
         categoryCache = {
@@ -966,10 +979,18 @@
           livestock: []
         };
         
-        console.log(`✅ Tổng ${loadedFeedsCount} nguồn, ${vietnameseNews.length} bài (xen kẽ ngẫu nhiên)`);
-        updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+        const newArticles = allLoadedArticles.length - articlesBeforeLoad;
+        console.log(`✅ Loaded ${feedsLoadedThisBatch} feeds, ${newArticles} new articles`);
+        console.log(`📊 Total: ${loadedFeedsCount} feeds, ${vietnameseNews.length} articles`);
         
-        return true;
+        if (newArticles > 0) {
+          updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+          return true;
+        } else {
+          console.log('⚠️ No new articles found, marking as no more content');
+          hasMoreNews = false;
+          return false;
+        }
       } catch (error) {
         console.error('❌ Error in loadMoreFeeds:', error);
         return false;
@@ -1703,7 +1724,13 @@
       console.log(`✅ Đã hiển thị ${totalDisplayed} bài (${currentDisplayCount}/${articles.length})`);
       
       // Show/hide load more button based on remaining articles
-      if (currentDisplayCount < articles.length || window.remainingFeeds?.length > 0) {
+      const hasMoreInFilter = currentDisplayCount < articles.length;
+      const hasMoreFeeds = window.remainingFeeds?.length > 0;
+      const hasMore = hasMoreInFilter || hasMoreFeeds;
+      
+      console.log(`🔘 Button logic: displayed=${currentDisplayCount}/${articles.length}, feeds=${window.remainingFeeds?.length || 0}, show=${hasMore}`);
+      
+      if (hasMore) {
         loadMoreBtn.classList.remove('hidden');
         loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed})`;
       } else {

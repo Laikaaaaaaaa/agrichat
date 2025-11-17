@@ -1613,6 +1613,30 @@ Từ chối nếu HOÀN TOÀN không liên quan nông nghiệp."""
             if message.lower().strip() in ['xem lịch sử', 'lịch sử', 'lich su', 'show history', 'history']:
                 return self.show_conversation_history()
             
+            # ✅ Kiểm tra câu hỏi về sáng lập/tác giả/người phát triển
+            creator_keywords = [
+                'ai sáng lập', 'ai sang lap', 'ai tạo ra', 'ai tao ra',
+                'ai phát triển', 'ai phat trien', 'ai viết', 'ai viet',
+                'ai lập trình', 'ai lap trinh', 'ai tác giả', 'ai tac gia',
+                'ai là tác giả', 'ai la tac gia', 'ai là người tạo', 'ai la nguoi tao',
+                'ai là người phát triển', 'ai la nguoi phat trien',
+                'ai là người sáng lập', 'ai la nguoi sang lap',
+                'ai là founder', 'ai la founder',
+                'creator là ai', 'creator la ai', 'founder là ai', 'founder la ai',
+                'tác giả là ai', 'tac gia la ai', 'người tạo là ai', 'nguoi tao la ai',
+                'người phát triển là ai', 'nguoi phat trien la ai',
+                'who created', 'who developed', 'who is the founder', 'who is the creator',
+                'creator', 'founder', 'developer', 'author'
+            ]
+            
+            message_lower = message.lower().strip()
+            is_creator_question = any(keyword in message_lower for keyword in creator_keywords)
+            
+            if is_creator_question:
+                logging.info(f"👨‍💼 Creator question detected: '{message}'")
+                self.add_to_conversation_history(message, "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾")
+                return "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾"
+            
             # Lấy ngữ cảnh từ lịch sử hội thoại
             conversation_context = self.get_conversation_context()
 
@@ -1620,7 +1644,6 @@ Từ chối nếu HOÀN TOÀN không liên quan nông nghiệp."""
             follow_up_keywords = ['thông tin thêm', 'chi tiết hơn', 'nói rõ hơn', 'thêm', 'nhiều hơn', 
                                  'cụ thể hơn', 'rõ ràng hơn', 'giải thích thêm', 'thông tin nhiều hơn',
                                  'cho thêm', 'bổ sung', 'mở rộng', 'nói rõ', 'cho biết thêm']
-            message_lower = message.lower().strip()
             is_follow_up = any(keyword in message_lower for keyword in follow_up_keywords)
             
             # Nếu là câu hỏi yêu cầu thêm thông tin và có lịch sử

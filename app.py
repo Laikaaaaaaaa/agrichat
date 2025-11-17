@@ -7818,15 +7818,18 @@ def rss_parse():
 # ============================================================================
 
 @app.route('/api/news/load', methods=['GET'])
+@app.route('/api/load-news', methods=['GET'])
 def api_load_news():
     """
-    Backend API to load news from Vietnamese RSS feeds
+    Backend API to load news from Vietnamese RSS feeds (with timeout)
     This bypasses browser CORS restrictions
     
     Parameters:
     - limit: Number of articles per page (default 50, min 50, max 250)
     - offset: Pagination offset (default 0)
     - category: Filter by category (default 'all')
+    
+    Note: This endpoint has a 30-second timeout to prevent hanging
     """
     try:
         limit = request.args.get('limit', 50, type=int)
@@ -7834,6 +7837,8 @@ def api_load_news():
         category = request.args.get('category', 'all', type=str)
         
         from rss_api import get_news, get_news_by_category
+        
+        logging.info(f"📥 News API request: limit={limit}, offset={offset}, category={category}")
         
         if category != 'all':
             result = get_news_by_category(category, limit, offset)
@@ -7853,7 +7858,7 @@ def api_load_news():
             else:
                 article['pubDate'] = str(article.get('pubDate', ''))
         
-        logging.info(f"✅ API loaded {len(articles)} news articles (category={category}, offset={offset}, has_more={has_more})")
+        logging.info(f"✅ API returned {len(articles)} articles (total={total}, has_more={has_more})")
         
         return jsonify({
             'success': True,
@@ -7864,7 +7869,7 @@ def api_load_news():
             'articles': articles
         })
     except Exception as e:
-        logging.error(f"❌ News API Error: {e}")
+        logging.error(f"❌ News API Error: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e),

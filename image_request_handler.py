@@ -71,11 +71,11 @@ class ImageRequestHandler:
             try:
                 is_request, confidence = image_classifier.predict(message)
                 logging.info(f"🤖 ML prediction: {is_request} (confidence: {confidence:.2%}) for: '{message}'")
-                # Increased threshold to 0.70 to reduce false positives
-                if confidence > 0.70:
+                # ⚠️ INCREASED threshold to 0.85 to reduce false positives significantly
+                if confidence > 0.85:
                     return is_request
                 else:
-                    logging.info(f"⚠️ Confidence {confidence:.2%} below threshold 70%, falling back to rule-based")
+                    logging.info(f"⚠️ Confidence {confidence:.2%} below threshold 85%, falling back to rule-based")
             except Exception as e:
                 logging.warning(f"⚠️ ML prediction failed: {e}, falling back to rule-based")
         
@@ -98,6 +98,19 @@ class ImageRequestHandler:
         if message_lower in short_messages:
             logging.debug(f"🚫 Rejected common non-image message: '{message_lower}'")
             return False
+        
+        # STEP 0B: ⚠️ REJECT messages with LEARNING/UNDERSTANDING intent (tìm hiểu, học, hiểu biết, tìm tòi)
+        learning_keywords = [
+            'tìm hiểu', 'tim hieu', 'học', 'hoc', 'học tập', 'hoc tap', 
+            'hiểu biết', 'hieu biet', 'tìm tòi', 'tim toi', 'khám phá', 'kham pha',
+            'tìm tòi', 'tìm kiếm thông tin', 'tim kiem thong tin', 'hỏi', 'hoi', 
+            'giải đáp', 'giai dap', 'giải thích', 'giai thich', 'nói chuyện', 'noi chuyen',
+            'trao đổi', 'trao doi', 'thảo luận', 'thao luan', 'bàn luận', 'ban luan'
+        ]
+        for keyword in learning_keywords:
+            if keyword in message_lower:
+                logging.debug(f"🚫 Rejected message with learning intent keyword '{keyword}': '{message}'")
+                return False
         
         # STEP 1: Hard keywords - but must be strong indicators
         # Require keyword to start the message or follow specific patterns
@@ -136,9 +149,21 @@ class ImageRequestHandler:
                 logging.debug(f"🖼️ Found livestock keyword '{keyword}' in message")
                 return True
         
-        # STEP 3: Only match action + object if both are VERY explicit
+        # STEP 3: REJECT "tìm" + agriculture word but WITHOUT explicit "ảnh/hình" 
+        # This prevents false positive for "tìm hiểu về nông nghiệp"
+        agriculture_words = ['nông', 'non', 'lúa', 'lua', 'ngô', 'ngo', 'cây', 'cay', 'chăn', 'chan']
+        if 'tìm' in message_lower or 'tim' in message_lower:
+            # Check if "tìm" is followed by agriculture word (not image word)
+            has_agri_word = any(agri in message_lower for agri in agriculture_words)
+            has_image_word = any(img in message_lower for img in ['ảnh', 'anh', 'hình', 'hinh', 'photo', 'image'])
+            
+            if has_agri_word and not has_image_word:
+                logging.debug(f"🚫 Rejected 'tìm' + agriculture word without explicit image keyword")
+                return False
+        
+        # STEP 4: Only match action + object if both are VERY explicit
         # This prevents false positives like "what do I need to show in the image"
-        action_words = ['show', 'tìm', 'tim', 'xem', 'coi', 'find', 'search', 'display']
+        action_words = ['show', 'display']  # Only keep truly unambiguous actions
         image_objects = ['ảnh', 'anh', 'hình', 'hinh', 'photo', 'image', 'picture', 'chart', 'graph']
         
         has_strong_action = any(f' {action} ' in f' {message_lower} ' for action in action_words)

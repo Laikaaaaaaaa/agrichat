@@ -1,21 +1,40 @@
 """
-Image Intent Classifier - ML-based approach
-Sử dụng machine learning để phát hiện yêu cầu hình ảnh với độ chính xác cao
+Image Intent Classifier - Advanced ML-based approach
+Sử dụng ensemble learning để phát hiện yêu cầu hình ảnh với độ chính xác cao
 """
 
 import logging
 import pickle
 import os
+import unicodedata
 from typing import Tuple
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+from sklearn.ensemble import VotingClassifier, RandomForestClassifier
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import StandardScaler
+
+
+class DiacriticsNormalizer:
+    """Normalize Vietnamese text by removing diacritics"""
+    
+    @staticmethod
+    def normalize(text):
+        """Remove diacritics from Vietnamese text"""
+        if not text:
+            return text
+        nfd = unicodedata.normalize('NFD', text)
+        return ''.join(ch for ch in nfd if unicodedata.category(ch) != 'Mn')
 
 
 class ImageIntentClassifier:
     """
-    Classifier để phát hiện yêu cầu hình ảnh sử dụng ML
-    Được huấn luyện trên các ví dụ yêu cầu ảnh thực tế
+    Advanced classifier để phát hiện yêu cầu hình ảnh sử dụng ensemble ML
+    - Kết hợp Naive Bayes, Logistic Regression, và SVM
+    - Hỗ trợ Vietnamese text normalization
+    - Training data mở rộng với negative examples từ learning intent
     """
     
     def __init__(self, model_path: str = None):
@@ -28,24 +47,36 @@ class ImageIntentClassifier:
         self.model_path = model_path or os.path.join(
             os.path.dirname(__file__), 
             'models', 
-            'image_intent_classifier.pkl'
+            'image_intent_classifier_v2.pkl'
         )
         self.model = None
         self.vectorizer = None
-        self.classifier = None
+        self.normalizer = DiacriticsNormalizer()
         self.trained = False
         
         # Nếu model tồn tại, load nó
         if os.path.exists(self.model_path):
             self._load_model()
         else:
-            self._init_default_model()
+            self._init_ensemble_model()
     
-    def _init_default_model(self):
-        """Khởi tạo model mặc định với training data"""
-        # Training data: (message, label) - 1 = image request, 0 = not image request
+    def _preprocess_text(self, text: str) -> str:
+        """
+        Tiền xử lý text: lowercase, normalize diacritics
+        """
+        if not text:
+            return text
+        text = text.lower().strip()
+        # Normalize Vietnamese diacritics
+        text = self.normalizer.normalize(text)
+        return text
+    
+    def _init_ensemble_model(self):
+        """Khởi tạo ensemble model với multiple classifiers"""
+        
+        # ✅ EXPANDED Training data: nhiều positive + negative examples hơn
         training_data = [
-            # Image requests - positive examples
+            # === POSITIVE: Image requests ===
             ("tìm ảnh con bò", 1),
             ("cho tôi hình ảnh về con bò", 1),
             ("show me pictures of rice", 1),
@@ -75,8 +106,41 @@ class ImageIntentClassifier:
             ("show me equipment images", 1),
             ("xem hình về mô hình canh tác", 1),
             ("tìm ảnh về kỹ thuật trồng trọt", 1),
+            ("ảnh con trâu đi", 1),
+            ("hình về cà chua", 1),
+            ("coi hình bệnh sâu ăn cây", 1),
+            ("xem ảnh sâu bệnh lúa", 1),
+            ("find rice disease images", 1),
+            ("ảnh về thuốc trừ sâu", 1),
+            ("hình minh họa nuôi cá", 1),
+            ("show cattle breeding", 1),
+            ("ảnh về lợn ăn cỏ", 1),
+            ("hình về bò sữa", 1),
+            ("tìm ảnh máy kéo", 1),
+            ("hiển thị ảnh khoai tây", 1),
+            ("ảnh về kỹ thuật canh tác", 1),
+            ("tìm hình về giống lúa", 1),
+            ("ảnh về vườn rau", 1),
+            ("hình ảnh cây cà chua khỏe mạnh", 1),
             
-            # Non-image requests - negative examples
+            # === NEGATIVE: Learning/Understanding intent (NOT image requests) ===
+            ("tìm hiểu về nông nghiệp", 0),
+            ("tim hieu ve nong nghiep", 0),
+            ("tôi muốn tìm hiểu về nông nghiệp", 0),
+            ("tôi muốn tìm hiểu cách trồng lúa", 0),
+            ("học về nuôi bò", 0),
+            ("học cách trồng ngô", 0),
+            ("tìm tòi về canh tác hiện đại", 0),
+            ("khám phá kỹ thuật nông nghiệp", 0),
+            ("tôi muốn hiểu biết về chăn nuôi", 0),
+            ("giải thích cho tôi về cà chua", 0),
+            ("hỏi về khoảng cách trồng lúa", 0),
+            ("trao đổi về mô hình nuôi cá", 0),
+            ("thảo luận về phân bón nào tốt", 0),
+            ("bàn luận về sâu bệnh trên cây", 0),
+            ("tôi muốn nói chuyện về nông sản", 0),
+            
+            # === NEGATIVE: Non-image questions ===
             ("bò ăn gì", 0),
             ("lúa trồng như thế nào", 0),
             ("ngô lúa khác gì nhau", 0),
@@ -103,30 +167,69 @@ class ImageIntentClassifier:
             ("đây là loài cây gì", 0),
             ("tính toán năng suất cây trồng", 0),
             ("phương pháp bảo quản nông sản", 0),
+            ("heo nên ăn gì", 0),
+            ("gà trống sản xuất trứng không", 0),
+            ("cây cà chua cần bao nhiêu ánh sáng", 0),
+            ("rau xà lách mọc bao lâu", 0),
+            ("cách bảo quản khoai tây", 0),
+            ("vườn rau nên trồng cây gì", 0),
         ]
         
-        # Tách messages và labels
-        messages = [msg for msg, _ in training_data]
-        labels = [label for _, label in training_data]
+        # Tiền xử lý training data
+        preprocessed_data = [
+            (self._preprocess_text(msg), label) for msg, label in training_data
+        ]
         
-        # Tạo pipeline: TfidfVectorizer + Naive Bayes
-        self.model = Pipeline([
+        messages = [msg for msg, _ in preprocessed_data]
+        labels = [label for _, label in preprocessed_data]
+        
+        # ✅ ENSEMBLE: Kết hợp nhiều feature extractors
+        feature_union = FeatureUnion([
+            # TF-IDF với unigrams + bigrams
             ('tfidf', TfidfVectorizer(
-                max_features=200,
-                ngram_range=(1, 2),  # Unigrams and bigrams
+                max_features=300,
+                ngram_range=(1, 2),
                 min_df=1,
-                max_df=1.0,
+                max_df=0.9,
                 lowercase=True,
                 token_pattern=r'(?u)\b\w+\b'
             )),
-            ('classifier', MultinomialNB(alpha=0.1))
+            # Count vectorizer cho character-level n-grams
+            ('char_ngrams', TfidfVectorizer(
+                max_features=200,
+                analyzer='char',
+                ngram_range=(2, 3),
+                lowercase=True,
+            )),
         ])
         
+        # ✅ VOTING CLASSIFIER: Kết hợp 3 models
+        self.model = VotingClassifier(
+            estimators=[
+                ('nb', Pipeline([
+                    ('features', feature_union),
+                    ('clf', MultinomialNB(alpha=0.5))
+                ])),
+                ('lr', Pipeline([
+                    ('features', feature_union),
+                    ('scaler', StandardScaler(with_mean=False)),
+                    ('clf', LogisticRegression(max_iter=200, C=1.0, class_weight='balanced'))
+                ])),
+                ('svm', Pipeline([
+                    ('features', feature_union),
+                    ('scaler', StandardScaler(with_mean=False)),
+                    ('clf', LinearSVC(max_iter=2000, C=1.0, class_weight='balanced', random_state=42))
+                ]))
+            ],
+            voting='soft',
+            weights=[1, 1.5, 1.5]  # Cho SVM và LR trọng số cao hơn
+        )
+        
         # Huấn luyện model
-        logging.info("🤖 Training image intent classifier...")
+        logging.info(f"🤖 Training advanced ensemble image intent classifier with {len(training_data)} examples...")
         self.model.fit(messages, labels)
         self.trained = True
-        logging.info("✅ Model trained successfully")
+        logging.info("✅ Ensemble model trained successfully")
         
         # Lưu model
         self._save_model()
@@ -147,10 +250,10 @@ class ImageIntentClassifier:
             with open(self.model_path, 'rb') as f:
                 self.model = pickle.load(f)
             self.trained = True
-            logging.info(f"📂 Model loaded from {self.model_path}")
+            logging.info(f"📂 Ensemble model loaded from {self.model_path}")
         except Exception as e:
-            logging.warning(f"⚠️ Could not load model: {e}")
-            self._init_default_model()
+            logging.warning(f"⚠️ Could not load model: {e}, retraining...")
+            self._init_ensemble_model()
     
     def predict(self, message: str) -> Tuple[bool, float]:
         """
@@ -167,16 +270,19 @@ class ImageIntentClassifier:
             return False, 0.5
         
         try:
+            # Tiền xử lý
+            preprocessed = self._preprocess_text(message)
+            
             # Dự đoán
-            prediction = self.model.predict([message])[0]
+            prediction = self.model.predict([preprocessed])[0]
             
             # Lấy probability
-            probabilities = self.model.predict_proba([message])[0]
+            probabilities = self.model.predict_proba([preprocessed])[0]
             confidence = max(probabilities)  # Lấy xác suất cao nhất
             
             is_image_request = bool(prediction)
             
-            logging.debug(f"🤖 Prediction: {is_image_request} (confidence: {confidence:.2f}) for: '{message}'")
+            logging.debug(f"🤖 Ensemble prediction: {is_image_request} (confidence: {confidence:.2f}) for: '{message}'")
             
             return is_image_request, float(confidence)
         
@@ -211,14 +317,18 @@ class ImageIntentClassifier:
             logging.warning("⚠️ Empty training data")
             return
         
-        messages = [msg for msg, _ in training_data]
-        labels = [label for _, label in training_data]
+        preprocessed_data = [
+            (self._preprocess_text(msg), label) for msg, label in training_data
+        ]
         
-        logging.info(f"🔄 Retraining model with {len(training_data)} examples...")
+        messages = [msg for msg, _ in preprocessed_data]
+        labels = [label for _, label in preprocessed_data]
+        
+        logging.info(f"🔄 Retraining ensemble model with {len(training_data)} examples...")
         self.model.fit(messages, labels)
         self.trained = True
         self._save_model()
-        logging.info("✅ Model retrained and saved")
+        logging.info("✅ Ensemble model retrained and saved")
 
 
 # Khởi tạo singleton instance
@@ -245,3 +355,4 @@ def is_image_request(message: str, threshold: float = 0.5) -> Tuple[bool, float]
 def get_classifier():
     """Lấy classifier instance"""
     return image_classifier
+

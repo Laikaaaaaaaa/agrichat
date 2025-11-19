@@ -4642,6 +4642,7 @@
   let currentRecognition = null;  // Store active speech recognition object for stopping
   let voiceShouldFillInput = true;  // Flag to control whether onend should fill input
   let isVoiceRunning = false; // Prevent duplicate recognition instances
+  let lastMobileVoiceDisplay = ''; // Track last mobile transcript to avoid repeats
   const currentMode = 'normal';
   let dataSidebarEnabled = true; // Track if data sidebar should auto-show
   let lastDataCategory = null; // Store last data category for toggle button
@@ -6515,11 +6516,20 @@
 
           mobileResultIndex = event.results.length;
 
-          const displayText = (finalTranscript + interimTranscript).trim();
-          messageInput.value = displayText;
-          messageInput.scrollLeft = messageInput.scrollWidth;
+          let displayText = (finalTranscript + interimTranscript).trim();
+          // ✅ Aggressively remove repetitions in real-time for mobile
+          if (displayText) {
+            displayText = removeWordRepetition(displayText);
+          }
 
-          console.log('📱 Mobile Display:', displayText);
+          // Avoid re-rendering identical text to reduce flicker
+          if (displayText !== lastMobileVoiceDisplay) {
+            messageInput.value = displayText;
+            messageInput.scrollLeft = messageInput.scrollWidth;
+            lastMobileVoiceDisplay = displayText;
+          }
+
+          console.log('📱 Mobile Display (cleaned):', displayText);
         } else {
           // 💻 DESKTOP: Rebuild ALL interim for smooth display
           let interimTranscript = '';
@@ -6608,6 +6618,7 @@
           
           // Reset flag for next voice input
           voiceShouldFillInput = true;
+          lastMobileVoiceDisplay = '';
           currentRecognition = null;
         } else {
           console.log('ℹ️ onend: Already reset by user (abort), skipping duplicate reset');

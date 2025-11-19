@@ -4641,6 +4641,7 @@
   let currentImageData = null;
   let currentRecognition = null;  // Store active speech recognition object for stopping
   let voiceShouldFillInput = true;  // Flag to control whether onend should fill input
+  let isVoiceRunning = false; // Prevent duplicate recognition instances
   const currentMode = 'normal';
   let dataSidebarEnabled = true; // Track if data sidebar should auto-show
   let lastDataCategory = null; // Store last data category for toggle button
@@ -6478,8 +6479,8 @@
 
       let finalTranscript = '';
       let lastResultIndex = -1;
+      let mobileResultIndex = 0;
       let allTranscripts = [];  // ✅ Track all results to prevent duplication
-      let isVoiceRunning = false;  // ✅ Prevent multiple starts
 
       // Bắt đầu ghi âm
       recognition.onstart = () => {
@@ -6487,6 +6488,7 @@
         // ✅ CRITICAL: Reset finalTranscript at start to prevent accumulation
         finalTranscript = '';
         lastResultIndex = -1;
+        mobileResultIndex = 0;
         
         // ✅ Change button to red stop button
         voiceBtn.classList.add('animate-pulse', 'bg-red-100');
@@ -6500,57 +6502,45 @@
       // ✅ Xử lý kết quả real-time - hiển thị từng từ ngay lập tức
       recognition.onresult = (event) => {
         if (isMobile) {
-          // 📱 MOBILE: Rebuild finals completely from scratch every time
-          // This is the ONLY way to prevent repetition on Android
-          finalTranscript = '';
-          
-          // Rebuild finals from ALL results (only isFinal)
-          for (let i = 0; i < event.results.length; i++) {
+          // 📱 MOBILE: Only process NEW results since last event to avoid duplicates
+          let interimTranscript = '';
+
+          for (let i = mobileResultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
               finalTranscript += event.results[i][0].transcript.trim() + ' ';
-            }
-          }
-          
-          // Get ONLY the last interim (don't loop through all interim)
-          let interimTranscript = '';
-          if (event.results.length > 0) {
-            const lastResult = event.results[event.results.length - 1];
-            if (!lastResult.isFinal) {
-              interimTranscript = lastResult[0].transcript.trim();
+            } else if (i === event.results.length - 1) {
+              interimTranscript = event.results[i][0].transcript.trim();
             }
           }
 
-          // ✅ Display text on input
+          mobileResultIndex = event.results.length;
+
           const displayText = (finalTranscript + interimTranscript).trim();
           messageInput.value = displayText;
           messageInput.scrollLeft = messageInput.scrollWidth;
-          
-          console.log('📱 Mobile - Finals:', finalTranscript.trim(), 'Interim:', interimTranscript);
+
+          console.log('📱 Mobile Display:', displayText);
         } else {
           // 💻 DESKTOP: Rebuild ALL interim for smooth display
-          // This avoids the "stuck characters" issue
           let interimTranscript = '';
-          
-          // Add new finals only
+
           for (let i = Math.max(0, lastResultIndex + 1); i < event.results.length; i++) {
             if (event.results[i].isFinal) {
               finalTranscript += event.results[i][0].transcript.trim() + ' ';
               lastResultIndex = i;
             }
           }
-          
-          // Rebuild ALL interim from index 0 to get smooth display
+
           for (let i = 0; i < event.results.length; i++) {
             if (!event.results[i].isFinal && i > lastResultIndex) {
               interimTranscript += event.results[i][0].transcript;
             }
           }
 
-          // ✅ Display text on input - smooth without stuck characters
           const displayText = (finalTranscript + interimTranscript).trim();
           messageInput.value = displayText;
           messageInput.scrollLeft = messageInput.scrollWidth;
-          
+
           console.log('💻 Laptop Display:', displayText);
         }
       };
@@ -6609,6 +6599,7 @@
             messageInput.focus();
             // ✅ IMPORTANT: Reset finalTranscript after using it
             finalTranscript = '';
+            mobileResultIndex = 0;
           } else if (!voiceShouldFillInput) {
             console.log('ℹ️ Voice stopped by user - not filling input');
           } else {

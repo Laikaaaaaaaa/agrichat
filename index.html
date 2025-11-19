@@ -6550,17 +6550,14 @@
 
         let displayText = (finalTranscript + interimTranscript).trim();
 
-        // ✅ STEP 3: Apply aggressive dedup to display text
-        if (displayText) {
-          displayText = removeWordRepetition(displayText);
-        }
-
-        // ✅ STEP 4: Display with redundancy check (prevent DOM thrashing)
+        // ✅ STEP 3: Display with redundancy check (prevent DOM thrashing)
+        // ⚠️ Skip removeWordRepetition on interim results - it's expensive!
+        // Only clean text when recognized speech ends (in onend handler)
         if (displayText !== lastMobileVoiceDisplay) {
           messageInput.value = displayText;
           messageInput.scrollLeft = messageInput.scrollWidth;
           lastMobileVoiceDisplay = displayText;
-          console.log('📝 Updated display:', displayText);
+          console.log('📝 Updated display (interim):', displayText);
         } else {
           console.log('⏭️ Display unchanged, skipping render');
         }

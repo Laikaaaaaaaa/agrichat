@@ -6480,8 +6480,6 @@
 
       let finalTranscript = '';
       let lastResultIndex = -1;
-      let mobileResultIndex = 0;
-      let allTranscripts = [];  // ✅ Track all results to prevent duplication
 
       // Bắt đầu ghi âm
       recognition.onstart = () => {
@@ -6489,7 +6487,6 @@
         // ✅ CRITICAL: Reset finalTranscript at start to prevent accumulation
         finalTranscript = '';
         lastResultIndex = -1;
-        mobileResultIndex = 0;
         
         // ✅ Change button to red stop button
         voiceBtn.classList.add('animate-pulse', 'bg-red-100');
@@ -6502,56 +6499,38 @@
 
       // ✅ Xử lý kết quả real-time - hiển thị từng từ ngay lập tức
       recognition.onresult = (event) => {
+        // 🔁 Unified processing for both devices: rebuild transcript every event
+        let interimTranscript = '';
+
+        for (let i = Math.max(0, lastResultIndex + 1); i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript.trim() + ' ';
+            lastResultIndex = i;
+          }
+        }
+
+        for (let i = lastResultIndex + 1; i < event.results.length; i++) {
+          if (!event.results[i].isFinal) {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        let displayText = (finalTranscript + interimTranscript).trim();
+
+        if (isMobile && displayText) {
+          displayText = removeWordRepetition(displayText);
+        }
+
         if (isMobile) {
-          // 📱 MOBILE: Only process NEW results since last event to avoid duplicates
-          let interimTranscript = '';
-
-          for (let i = mobileResultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript.trim();
-
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + ' ';
-              mobileResultIndex = i + 1;
-            } else {
-              interimTranscript = transcript; // Always take latest interim chunk
-            }
-          }
-
-          let displayText = (finalTranscript + interimTranscript).trim();
-          // ✅ Aggressively remove repetitions in real-time for mobile
-          if (displayText) {
-            displayText = removeWordRepetition(displayText);
-          }
-
-          // Avoid re-rendering identical text to reduce flicker
           if (displayText !== lastMobileVoiceDisplay) {
             messageInput.value = displayText;
             messageInput.scrollLeft = messageInput.scrollWidth;
             lastMobileVoiceDisplay = displayText;
           }
-
           console.log('📱 Mobile Display (cleaned):', displayText);
         } else {
-          // 💻 DESKTOP: Rebuild ALL interim for smooth display
-          let interimTranscript = '';
-
-          for (let i = Math.max(0, lastResultIndex + 1); i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript.trim() + ' ';
-              lastResultIndex = i;
-            }
-          }
-
-          for (let i = 0; i < event.results.length; i++) {
-            if (!event.results[i].isFinal && i > lastResultIndex) {
-              interimTranscript += event.results[i][0].transcript;
-            }
-          }
-
-          const displayText = (finalTranscript + interimTranscript).trim();
           messageInput.value = displayText;
           messageInput.scrollLeft = messageInput.scrollWidth;
-
           console.log('💻 Laptop Display:', displayText);
         }
       };
@@ -6610,7 +6589,6 @@
             messageInput.focus();
             // ✅ IMPORTANT: Reset finalTranscript after using it
             finalTranscript = '';
-            mobileResultIndex = 0;
           } else if (!voiceShouldFillInput) {
             console.log('ℹ️ Voice stopped by user - not filling input');
           } else {

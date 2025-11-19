@@ -27,9 +27,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
 
-  <!-- ✅ VoiceManager - Zero Repetition Voice Recognition -->
-  <script src="VoiceManager.js"></script>
-
   <script type="module">
     import { CameraManager } from './js/cameraManager.js';
     
@@ -6427,8 +6424,9 @@
   }
 
   /**
-   * ✅ Voice Input Handler - Dùng VoiceManager Class
-   * Hoàn toàn không lặp lời trên mobile
+   * ✅ Xử lý nhập giọng nói với real-time display
+   * Sử dụng Web Speech API để ghi âm từ microphone
+   * ENHANCED: Mobile optimization + Word repetition filtering
    */
   async function handleVoiceInput() {
     const voiceBtn = document.getElementById('voice-input-btn');
@@ -6439,12 +6437,54 @@
       return;
     }
 
-    // Khởi tạo VoiceManager nếu chưa có
-    if (!window.voiceManager) {
-      window.voiceManager = new VoiceManager();
+    // ✅ CRITICAL: Check if already recording to prevent duplicate instances
+    if (currentRecognition && isVoiceRunning) {
+      console.warn('⚠️ Voice already running, stopping it first');
+      currentRecognition.abort();
+      isVoiceRunning = false;
+      currentRecognition = null;
+      return;
+    }
+
+    // Kiểm tra trình duyệt hỗ trợ Speech Recognition API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('❌ Trình duyệt của bạn không hỗ trợ tính năng nhập giọng nói.\n\nVui lòng sử dụng Chrome, Edge hoặc Safari.');
+      console.warn('⚠️ Speech Recognition API not supported');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
       
-      // ✅ Thiết lập callbacks
-      window.voiceManager.onStart = () => {
+      // Store recognition object globally so we can stop it when needed
+      currentRecognition = recognition;
+      recognition.lang = 'vi-VN'; // Tiếng Việt
+      
+      // ✅ Detect mobile device first
+      const isMobile = navigator.userAgentData?.mobile || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // ✅ ENHANCED configuration cho mobile:
+      // ⚠️ IMPORTANT: Set continuous to TRUE to prevent auto-cutoff during speech
+      recognition.continuous = true;  // ✅ Allow continuous speech without auto-stopping on silence
+      // 📱 Enable interim results on all devices - now safe with lastResultIndex tracking
+      recognition.interimResults = true; // ✅ Show real-time transcription while speaking
+      recognition.maxAlternatives = 1; // Lấy kết quả tốt nhất
+      
+      // ✅ Mobile optimization
+      if (isMobile) {
+        console.log('📱 Mobile device detected');
+      }
+
+      let finalTranscript = '';
+      let lastResultIndex = -1;
+      let allTranscripts = [];  // ✅ Track all results to prevent duplication
+      let isVoiceRunning = false;  // ✅ Prevent multiple starts
+
+      // Bắt đầu ghi âm
+      recognition.onstart = () => {
+        isVoiceRunning = true;
+        // ✅ Change button to red stop button
         voiceBtn.classList.add('animate-pulse', 'bg-red-100');
         voiceBtn.classList.remove('border-green-500', 'text-green-500', 'hover:bg-green-50');
         voiceBtn.classList.add('border-red-500', 'text-red-500', 'hover:bg-red-50');
@@ -6453,51 +6493,110 @@
         console.log('🎤 Bắt đầu ghi âm...');
       };
 
-      window.voiceManager.onInterim = (text) => {
-        // Hiển thị real-time interim results
-        messageInput.value = text;
-        messageInput.scrollLeft = messageInput.scrollWidth;
-      };
-
-      window.voiceManager.onFinal = (finalText) => {
-        // Gửi final results (CHỈ GỌI 1 LẦN DUY NHẤT)
-        console.log('✅ Final text to send:', finalText);
-        messageInput.value = finalText;
-        messageInput.focus();
+      // ✅ Xử lý kết quả real-time - hiển thị từng từ ngay lập tức
+      recognition.onresult = (event) => {
+        // ✅ CRITICAL: Use event.resultIndex to only process NEW results
+        // This prevents the loop issue on mobile
+        let interimTranscript = '';
         
-        // ⚠️ Optional: Tự động gửi hoặc để user bấm send
-        // sendMessage();
+        // Process ONLY new results since last event (using event.resultIndex)
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript.trim();
+
+          if (event.results[i].isFinal) {
+            // Kết quả final - accumulate
+            finalTranscript += transcript + ' ';
+            console.log('✅ Final result:', transcript);
+          } else {
+            // Kết quả interim - hiển thị tạm thời
+            interimTranscript += transcript;
+          }
+        }
+
+        // ✅ Display text on input
+        const displayText = (finalTranscript + interimTranscript).trim();
+        messageInput.value = displayText;
+        messageInput.scrollLeft = messageInput.scrollWidth;
+        
+        console.log('📊 Display:', displayText, '(Final count:', (finalTranscript.match(/\s/g) || []).length + 1, ')');
       };
 
-      window.voiceManager.onError = (errorMsg) => {
-        console.error('❌', errorMsg);
-        // Optional: Show error to user
-        // alert(errorMsg);
+      // Xử lý lỗi
+      recognition.onerror = (event) => {
+        console.error('❌ Speech recognition error:', event.error);
+        
+        let errorMsg = 'Lỗi nhận dạng giọng nói';
+        switch(event.error) {
+          case 'network':
+            errorMsg = '❌ Lỗi kết nối mạng';
+            break;
+          case 'audio-capture':
+            errorMsg = '❌ Không thể truy cập microphone. Kiểm tra quyền truy cập!';
+            break;
+          case 'not-allowed':
+            errorMsg = '❌ Bạn đã từ chối quyền truy cập microphone';
+            break;
+          case 'no-speech':
+            errorMsg = '❌ Không phát hiện giọng nói. Vui lòng thử lại!';
+            break;
+          case 'network-timeout':
+            errorMsg = '⏱️ Hết thời gian chờ. Thử lại!';
+            break;
+        }
+        
+        console.error(errorMsg);
+        voiceBtn.classList.remove('animate-pulse', 'bg-green-100');
+        voiceBtn.classList.add('bg-white');
+        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg text-green-500"></i>';
       };
 
-      window.voiceManager.onEnd = () => {
-        voiceBtn.classList.remove('animate-pulse', 'bg-red-100', 'border-red-500', 'text-red-500', 'hover:bg-red-50');
-        voiceBtn.classList.add('border-green-500', 'text-green-500', 'hover:bg-green-50');
-        voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg"></i>';
-        voiceBtn.title = 'Nhập bằng giọng nói';
-        console.log('🛑 Kết thúc ghi âm');
+      // Kết thúc ghi âm
+      recognition.onend = () => {
+        console.log('🔔 Speech recognition ended');
+        isVoiceRunning = false;
+        
+        // ✅ CRITICAL: Do NOT auto-restart recognition in onend
+        // This prevents the infinite loop on mobile
+        
+        // ✅ Only reset UI if recognition wasn't already stopped by user
+        if (currentRecognition !== null) {
+          // ✅ Change button back to green microphone
+          voiceBtn.classList.remove('animate-pulse', 'bg-red-100', 'border-red-500', 'text-red-500', 'hover:bg-red-50');
+          voiceBtn.classList.add('border-green-500', 'text-green-500', 'hover:bg-green-50');
+          voiceBtn.innerHTML = '<i class="fas fa-microphone text-lg"></i>';
+          voiceBtn.title = 'Nhập bằng giọng nói';
+          
+          // Only fill input if we should (not stopped by sendMessage)
+          if (voiceShouldFillInput && finalTranscript.trim()) {
+            // ✅ Áp dụng lọc lặp từ CHỈ khi kết thúc (tối ưu hóa)
+            const cleanedFinal = removeWordRepetition(finalTranscript.trim());
+            console.log('✅ Kết quả nhận dạng (cleaned):', cleanedFinal);
+            messageInput.value = cleanedFinal;
+            messageInput.focus();
+            // ✅ IMPORTANT: Reset finalTranscript after using it
+            finalTranscript = '';
+          } else if (!voiceShouldFillInput) {
+            console.log('ℹ️ Voice stopped by user - not filling input');
+          } else {
+            console.log('ℹ️ Không có kết quả nhận dạng');
+          }
+          
+          // Reset flag for next voice input
+          voiceShouldFillInput = true;
+          currentRecognition = null;
+        } else {
+          console.log('ℹ️ onend: Already reset by user (abort), skipping duplicate reset');
+        }
       };
-    }
 
-    // ✅ Toggle voice (start/stop)
-    if (!window.voiceManager.isActive()) {
-      window.voiceManager.start();
-    } else {
-      window.voiceManager.stop();
+      // Bắt đầu ghi âm
+      recognition.start();
+
+    } catch (error) {
+      console.error('❌ Error initializing speech recognition:', error);
+      alert('❌ Có lỗi xảy ra: ' + error.message);
     }
   }
-
-  // ✅ Dọn dẹp khi page unload
-  window.addEventListener('beforeunload', () => {
-    if (window.voiceManager && window.voiceManager.isActive()) {
-      window.voiceManager.abort();
-    }
-  });
 
   // 💾 Sync and go to history
   async function goToHistory() {

@@ -6455,14 +6455,13 @@
       // ✅ ENHANCED configuration cho mobile:
       // ⚠️ IMPORTANT: Set continuous to TRUE to prevent auto-cutoff during speech
       recognition.continuous = true;  // ✅ Allow continuous speech without auto-stopping on silence
-      // 📱 On mobile, disable interim results to reduce repetition
-      const isMobile = navigator.userAgentData?.mobile || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      recognition.interimResults = !isMobile; // ✅ Desktop shows interim, mobile only shows final
+      // 📱 Enable interim results on all devices - now safe with lastResultIndex tracking
+      recognition.interimResults = true; // ✅ Show real-time transcription while speaking
       recognition.maxAlternatives = 1; // Lấy kết quả tốt nhất
       
-      // ✅ Mobile optimization - better accuracy on noisy environments
+      // ✅ Mobile optimization
       if (isMobile) {
-        console.log('📱 Mobile device detected - Applying mobile optimizations');
+        console.log('📱 Mobile device detected');
       }
 
       let finalTranscript = '';
@@ -6483,32 +6482,35 @@
       // ✅ Xử lý kết quả real-time - hiển thị từng từ ngay lập tức
       recognition.onresult = (event) => {
         let interimTranscript = '';
-
-        // ✅ CRITICAL FIX: Only process NEW results since last update
-        // This prevents repetition by only adding new words, not rebuilding from scratch
-        for (let i = Math.max(0, lastResultIndex + 1); i < event.results.length; i++) {
+        
+        // Process ALL results to get the latest interim text
+        for (let i = 0; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
 
           if (event.results[i].isFinal) {
-            // Kết quả final - thêm vào finalTranscript (accumulate, không rebuild)
-            finalTranscript += transcript + ' ';
-            lastResultIndex = i;
+            // Kết quả final - chỉ accumulate nếu là result mới
+            if (i > lastResultIndex) {
+              finalTranscript += transcript + ' ';
+              lastResultIndex = i;
+            }
           } else {
-            // Kết quả interim - hiển thị tạm thời
-            interimTranscript += transcript;
+            // Kết quả interim - accumulate từ index mới nhất cuối cùng
+            if (i >= lastResultIndex) {
+              interimTranscript += transcript;
+            }
           }
         }
 
         // ✅ Update input ngay lập tức mỗi lần nhận được kết quả mới
-        // ⚡ OPTIMIZED: Skip deduplication during real-time for faster display
+        // Display = all final results + current interim results
         const displayText = (finalTranscript + interimTranscript).trim();
         messageInput.value = displayText;
         
         // Auto scroll input nếu text dài
         messageInput.scrollLeft = messageInput.scrollWidth;
         
-        console.log('📊 Event results:', event.results.length, 'Processing from index:', Math.max(0, lastResultIndex + 1));
-        console.log('⚡ Real-time display:', displayText);
+        console.log('📊 Final results up to index:', lastResultIndex, 'Total results:', event.results.length);
+        console.log('⚡ Display:', displayText);
       };
 
       // Xử lý lỗi

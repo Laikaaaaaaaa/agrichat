@@ -6463,8 +6463,6 @@
       // ✅ Mobile optimization - better accuracy on noisy environments
       if (isMobile) {
         console.log('📱 Mobile device detected - Applying mobile optimizations');
-        // Mobile devices often need longer pause handling
-        recognition.pauseAfterSpeech = 0.3;
       }
 
       let finalTranscript = '';

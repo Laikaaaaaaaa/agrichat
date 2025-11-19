@@ -6479,14 +6479,26 @@
       }
 
       let finalTranscript = '';
-      let lastResultIndex = -1;
+      let processedResultsHashes = new Set(); // ✅ Track processed result content via hash
+
+      // ✅ Helper: Simple hash for content deduplication
+      function simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          const char = str.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash.toString(36);
+      }
 
       // Bắt đầu ghi âm
       recognition.onstart = () => {
         isVoiceRunning = true;
         // ✅ CRITICAL: Reset finalTranscript at start to prevent accumulation
         finalTranscript = '';
-        lastResultIndex = -1;
+        processedResultsHashes.clear(); // ✅ Reset dedup tracking
+        lastMobileVoiceDisplay = ''; // ✅ Reset display cache
         
         // ✅ Change button to red stop button
         voiceBtn.classList.add('animate-pulse', 'bg-red-100');
@@ -6499,39 +6511,58 @@
 
       // ✅ Xử lý kết quả real-time - hiển thị từng từ ngay lập tức
       recognition.onresult = (event) => {
-        // 🔁 Unified processing for both devices: rebuild transcript every event
+        // 🔁 Unified processing: REBUILD transcript from ALL finals (not append)
+        let newFinalParts = [];
         let interimTranscript = '';
 
-        for (let i = Math.max(0, lastResultIndex + 1); i < event.results.length; i++) {
+        // ✅ STEP 1: Collect all FINAL results with content-based dedup
+        for (let i = 0; i < event.results.length; i++) {
+          // ✅ Validation: Check result exists and has content
+          if (!event.results[i] || !event.results[i][0]) {
+            console.warn('⚠️ Invalid result at index', i);
+            continue;
+          }
+
+          const resultText = event.results[i][0].transcript.trim();
+          if (!resultText) continue; // Skip empty transcripts
+
           if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript.trim() + ' ';
-            lastResultIndex = i;
+            // ✅ Content-based dedup: Only add if we haven't seen this exact text
+            const textHash = simpleHash(resultText);
+            if (!processedResultsHashes.has(textHash)) {
+              newFinalParts.push(resultText);
+              processedResultsHashes.add(textHash);
+              console.log('✅ Added final:', resultText, '(hash:', textHash + ')');
+            } else {
+              console.log('⏭️ Skipped duplicate final:', resultText);
+            }
+          } else if (i === event.results.length - 1) {
+            // ✅ Only take latest interim result to avoid stale text
+            interimTranscript = resultText;
           }
         }
 
-        for (let i = lastResultIndex + 1; i < event.results.length; i++) {
-          if (!event.results[i].isFinal) {
-            interimTranscript += event.results[i][0].transcript;
-          }
+        // ✅ STEP 2: Rebuild finalTranscript from scratch (not append)
+        finalTranscript = newFinalParts.join(' ').trim();
+        if (finalTranscript && newFinalParts.length > 0) {
+          finalTranscript += ' '; // ✅ Ensure space after finals
         }
 
         let displayText = (finalTranscript + interimTranscript).trim();
 
-        if (isMobile && displayText) {
+        // ✅ STEP 3: Apply aggressive dedup to display text
+        if (displayText) {
           displayText = removeWordRepetition(displayText);
         }
 
-        if (isMobile) {
-          if (displayText !== lastMobileVoiceDisplay) {
-            messageInput.value = displayText;
-            messageInput.scrollLeft = messageInput.scrollWidth;
-            lastMobileVoiceDisplay = displayText;
-          }
-          console.log('📱 Mobile Display (cleaned):', displayText);
-        } else {
+        // ✅ STEP 4: Display with redundancy check (prevent DOM thrashing)
+        if (displayText !== lastMobileVoiceDisplay) {
           messageInput.value = displayText;
           messageInput.scrollLeft = messageInput.scrollWidth;
-          console.log('💻 Laptop Display:', displayText);
+          lastMobileVoiceDisplay = displayText;
+          console.log('📝 Updated display:', displayText);
+        } else {
+          console.log('⏭️ Display unchanged, skipping render');
         }
       };
 
@@ -6582,13 +6613,14 @@
           
           // Only fill input if we should (not stopped by sendMessage)
           if (voiceShouldFillInput && finalTranscript.trim()) {
-            // ✅ Áp dụng lọc lặp từ CHỈ khi kết thúc (tối ưu hóa)
+            // ✅ Apply final dedup as insurance before filling input
             const cleanedFinal = removeWordRepetition(finalTranscript.trim());
-            console.log('✅ Kết quả nhận dạng (cleaned):', cleanedFinal);
+            console.log('✅ Kết quả nhận dạng final (cleaned):', cleanedFinal);
             messageInput.value = cleanedFinal;
             messageInput.focus();
-            // ✅ IMPORTANT: Reset finalTranscript after using it
+            // ✅ Reset state after using it
             finalTranscript = '';
+            processedResultsHashes.clear();
           } else if (!voiceShouldFillInput) {
             console.log('ℹ️ Voice stopped by user - not filling input');
           } else {

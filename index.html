@@ -6507,14 +6507,15 @@
           let interimTranscript = '';
 
           for (let i = mobileResultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript.trim();
+
             if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript.trim() + ' ';
-            } else if (i === event.results.length - 1) {
-              interimTranscript = event.results[i][0].transcript.trim();
+              finalTranscript += transcript + ' ';
+              mobileResultIndex = i + 1;
+            } else {
+              interimTranscript = transcript; // Always take latest interim chunk
             }
           }
-
-          mobileResultIndex = event.results.length;
 
           let displayText = (finalTranscript + interimTranscript).trim();
           // ✅ Aggressively remove repetitions in real-time for mobile

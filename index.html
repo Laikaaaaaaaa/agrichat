@@ -6455,11 +6455,13 @@
       // ✅ ENHANCED configuration cho mobile:
       // ⚠️ IMPORTANT: Set continuous to TRUE to prevent auto-cutoff during speech
       recognition.continuous = true;  // ✅ Allow continuous speech without auto-stopping on silence
-      recognition.interimResults = true; // Hiển thị kết quả tạm thời
+      // 📱 On mobile, disable interim results to reduce repetition
+      const isMobile = navigator.userAgentData?.mobile || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      recognition.interimResults = !isMobile; // ✅ Desktop shows interim, mobile only shows final
       recognition.maxAlternatives = 1; // Lấy kết quả tốt nhất
       
       // ✅ Mobile optimization - better accuracy on noisy environments
-      if (navigator.userAgentData?.mobile || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      if (isMobile) {
         console.log('📱 Mobile device detected - Applying mobile optimizations');
         // Mobile devices often need longer pause handling
         recognition.pauseAfterSpeech = 0.3;
@@ -6484,24 +6486,22 @@
       recognition.onresult = (event) => {
         let interimTranscript = '';
 
-        // ✅ IMPORTANT: Rebuild from scratch each time to avoid duplication
-        // This is the key fix for mobile word repetition
-        finalTranscript = '';
-        
-        // Lặp qua TẤT CẢ kết quả (không chỉ từ lastResultIndex)
-        for (let i = 0; i < event.results.length; i++) {
+        // ✅ CRITICAL FIX: Only process NEW results since last update
+        // This prevents repetition by only adding new words, not rebuilding from scratch
+        for (let i = Math.max(0, lastResultIndex + 1); i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
 
           if (event.results[i].isFinal) {
-            // Kết quả final - thêm vào finalTranscript
+            // Kết quả final - thêm vào finalTranscript (accumulate, không rebuild)
             finalTranscript += transcript + ' ';
+            lastResultIndex = i;
           } else {
             // Kết quả interim - hiển thị tạm thời
             interimTranscript += transcript;
           }
         }
 
-        // ✅ Update input ngay lập tức mỗi lần nhận được kết quả
+        // ✅ Update input ngay lập tức mỗi lần nhận được kết quả mới
         // ⚡ OPTIMIZED: Skip deduplication during real-time for faster display
         const displayText = (finalTranscript + interimTranscript).trim();
         messageInput.value = displayText;
@@ -6509,8 +6509,8 @@
         // Auto scroll input nếu text dài
         messageInput.scrollLeft = messageInput.scrollWidth;
         
-        console.log('📊 Event results count:', event.results.length);
-        console.log('⚡ Real-time display (no filter):', displayText);
+        console.log('📊 Event results:', event.results.length, 'Processing from index:', Math.max(0, lastResultIndex + 1));
+        console.log('⚡ Real-time display:', displayText);
       };
 
       // Xử lý lỗi
@@ -6592,16 +6592,20 @@
       // Force sync conversations immediately before navigating
       if (window.chatHistoryManager) {
         const conversations = window.chatHistoryManager.conversations;
-        // Wait for sync to complete
-        await window.chatHistoryManager.syncToDatabase(conversations);
-        console.log('✅ Sync completed, redirecting to history');
+        // Wait for sync to complete (with timeout to prevent hanging)
+        const syncPromise = window.chatHistoryManager.syncToDatabase(conversations);
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 3000)); // 3 second timeout
+        
+        await Promise.race([syncPromise, timeoutPromise]);
+        console.log('✅ Sync completed (or timeout), redirecting to history');
       }
     } catch (error) {
-      console.warn('⚠️ Sync error (non-blocking):', error.message);
+      console.warn('⚠️ Sync error (continuing anyway):', error.message);
+    } finally {
+      // ALWAYS redirect, even if sync failed
+      console.log('🔄 Redirecting to history.html...');
+      window.location.href = 'history.html';
     }
-    
-    // Navigate to history regardless of sync result
-    window.location.href = 'history.html';
   }
 
   async function sendMessage() {

@@ -6452,6 +6452,9 @@
       currentRecognition = recognition;
       recognition.lang = 'vi-VN'; // Tiếng Việt
       
+      // ✅ Detect mobile device first
+      const isMobile = navigator.userAgentData?.mobile || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       // ✅ ENHANCED configuration cho mobile:
       // ⚠️ IMPORTANT: Set continuous to TRUE to prevent auto-cutoff during speech
       recognition.continuous = true;  // ✅ Allow continuous speech without auto-stopping on silence

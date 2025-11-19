@@ -6495,30 +6495,58 @@
 
       // ✅ Xử lý kết quả real-time - hiển thị từng từ ngay lập tức
       recognition.onresult = (event) => {
-        // ✅ CRITICAL: Use event.resultIndex to only process NEW results
-        // This prevents the loop issue on mobile
-        let interimTranscript = '';
-        
-        // Process ONLY new results since last event (using event.resultIndex)
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript.trim();
+        if (isMobile) {
+          // 📱 MOBILE: Use event.resultIndex to avoid repetition loop
+          // Process ONLY new results since last event
+          let interimTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript.trim();
 
-          if (event.results[i].isFinal) {
-            // Kết quả final - accumulate
-            finalTranscript += transcript + ' ';
-            console.log('✅ Final result:', transcript);
-          } else {
-            // Kết quả interim - hiển thị tạm thời
-            interimTranscript += transcript;
+            if (event.results[i].isFinal) {
+              // Kết quả final - accumulate
+              finalTranscript += transcript + ' ';
+            } else {
+              // Kết quả interim - chỉ lấy từ result cuối cùng để tránh lặp
+              if (i === event.results.length - 1) {
+                interimTranscript = transcript;
+              }
+            }
           }
-        }
 
-        // ✅ Display text on input
-        const displayText = (finalTranscript + interimTranscript).trim();
-        messageInput.value = displayText;
-        messageInput.scrollLeft = messageInput.scrollWidth;
-        
-        console.log('📊 Display:', displayText, '(Final count:', (finalTranscript.match(/\s/g) || []).length + 1, ')');
+          // ✅ Display text on input
+          const displayText = (finalTranscript + interimTranscript).trim();
+          messageInput.value = displayText;
+          messageInput.scrollLeft = messageInput.scrollWidth;
+          
+          console.log('📱 Mobile Display:', displayText);
+        } else {
+          // 💻 DESKTOP: Rebuild ALL interim for smooth display
+          // This avoids the "stuck characters" issue
+          let interimTranscript = '';
+          
+          // Add new finals only
+          for (let i = Math.max(0, lastResultIndex + 1); i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript.trim() + ' ';
+              lastResultIndex = i;
+            }
+          }
+          
+          // Rebuild ALL interim from index 0 to get smooth display
+          for (let i = 0; i < event.results.length; i++) {
+            if (!event.results[i].isFinal && i > lastResultIndex) {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+
+          // ✅ Display text on input - smooth without stuck characters
+          const displayText = (finalTranscript + interimTranscript).trim();
+          messageInput.value = displayText;
+          messageInput.scrollLeft = messageInput.scrollWidth;
+          
+          console.log('💻 Laptop Display:', displayText);
+        }
       };
 
       // Xử lý lỗi

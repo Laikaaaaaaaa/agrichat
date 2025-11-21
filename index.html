@@ -6643,7 +6643,7 @@
   }
 
   // 💾 Sync and go to history
-  async function goToHistory() {
+  window.goToHistory = async function() {
     try {
       console.log('📤 Syncing conversations before going to history...');
       
@@ -6664,7 +6664,7 @@
       console.log('🔄 Redirecting to history.html...');
       window.location.href = 'history.html';
     }
-  }
+  };
 
   async function sendMessage() {
     console.log('🚀 ========== SENDMESSAGE START ==========');

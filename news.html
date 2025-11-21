@@ -478,7 +478,9 @@
       'Đang tải tin tức...',
       'Chờ một chút nhé...',
       'Sắp xong rồi...',
-      ''
+      'Gần xong rồi, đừng rời đi nhé...',
+      'Đang xuất ra...',
+      'Xong ngay bây giờ...'
     ];
     let loadingMessageIndex = 0;
     let loadingMessageInterval = null;
@@ -602,6 +604,22 @@
     }
 
     // Enhanced duplicate detection for RSS feeds
+    // Filter articles to keep only those from last 7 days
+    function filterArticlesByDate(articles) {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentArticles = articles.filter(article => {
+        if (!article.publishedAt) return false;
+        
+        const publishDate = new Date(article.publishedAt);
+        return publishDate >= sevenDaysAgo;
+      });
+      
+      console.log(`📅 Lọc theo ngày: ${articles.length} bài → ${recentArticles.length} bài (từ 7 ngày trở lại)`);
+      return recentArticles;
+    }
+
     function removeDuplicatesFromFeed(articles) {
       const seen = new Set();
       const uniqueArticles = [];
@@ -820,6 +838,9 @@
           };
         });
         
+        // Filter to keep only recent articles (7 days)
+        newsItems = filterArticlesByDate(newsItems);
+        
         if (newsItems.length > 0) {
           console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ backend)`);
           return newsItems;
@@ -894,8 +915,10 @@
             };
           });
           
+          // Filter to keep only recent articles (7 days)
+          let filteredItems = filterArticlesByDate(newsItems);
+          
           // For Dân Trí, filter out articles without images
-          let filteredItems = newsItems;
           if (feed.name.includes('Dân Trí')) {
             const originalCount = filteredItems.length;
             filteredItems = filteredItems.filter(item => item.urlToImage && item.urlToImage.trim() !== '');
@@ -1592,7 +1615,8 @@
       console.log(`🔄 Tạo cache mới cho danh mục: ${currentCategory}`);
       
       // PRIORITIZE VIETNAMESE NEWS COMPLETELY - Always show Vietnamese first
-      let filteredNews = [...vietnameseNews];
+      // Filter by date first (7 days)
+      let filteredNews = filterArticlesByDate([...vietnameseNews]);
       
       // Only add English articles if Vietnamese news is insufficient (less than 50 articles)
       if (filteredNews.length < 50 && allNews.length > 0) {

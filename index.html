@@ -6515,9 +6515,9 @@
         let newFinalParts = [];
         let interimTranscript = '';
 
-        // ✅ STEP 1: Collect all FINAL results with content-based dedup
+        // STEP 1: Collect all FINAL results with content-based dedup
         for (let i = 0; i < event.results.length; i++) {
-          // ✅ Validation: Check result exists and has content
+          // Validation: Check result exists and has content
           if (!event.results[i] || !event.results[i][0]) {
             console.warn('⚠️ Invalid result at index', i);
             continue;

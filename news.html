@@ -473,6 +473,16 @@
     let allLoadedArticles = [];  // Tất cả bài đã load (chưa filter)
     const ARTICLES_PER_PAGE = 10;
     
+    // Animated loading messages
+    const loadingMessages = [
+      'Đang tải tin tức...',
+      'Chờ một chút nhé...',
+      'Sắp xong rồi...',
+      ''
+    ];
+    let loadingMessageIndex = 0;
+    let loadingMessageInterval = null;
+    
     // Cache cho từng danh mục để giảm lag
     let categoryCache = {
       all: [],
@@ -2242,10 +2252,54 @@
       document.getElementById('loading').classList.remove('hidden');
       document.getElementById('news-container').classList.add('hidden');
       document.getElementById('no-results').classList.add('hidden');
+      
+      // Start cycling loading messages
+      loadingMessageIndex = 0;
+      startLoadingMessageCycle();
     }
 
     function hideLoading() {
       document.getElementById('loading').classList.add('hidden');
+      
+      // Stop cycling loading messages
+      stopLoadingMessageCycle();
+    }
+
+    function startLoadingMessageCycle() {
+      // Clear any existing interval
+      if (loadingMessageInterval) {
+        clearInterval(loadingMessageInterval);
+      }
+      
+      // Update immediately with first message
+      updateLoadingMessage();
+      
+      // Cycle through messages every 2.5 seconds
+      loadingMessageInterval = setInterval(updateLoadingMessage, 2500);
+    }
+
+    function stopLoadingMessageCycle() {
+      if (loadingMessageInterval) {
+        clearInterval(loadingMessageInterval);
+        loadingMessageInterval = null;
+      }
+    }
+
+    function updateLoadingMessage() {
+      const message = loadingMessages[loadingMessageIndex];
+      const headerStatus = document.getElementById('header-status');
+      const loadingText = document.querySelector('#loading p');
+      
+      if (headerStatus) {
+        headerStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i>${message}`;
+      }
+      
+      if (loadingText) {
+        loadingText.textContent = message;
+      }
+      
+      // Move to next message
+      loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.length;
     }
 
     function showNoResults() {

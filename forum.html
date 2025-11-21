@@ -1008,7 +1008,27 @@
 
           <div class="mb-2 sm:mb-3">
             ${titleHTML}
-            <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${processContent(post.content)}</p>
+            ${(() => {
+              const truncated = truncatePostContent(post.content, post.id);
+              if (truncated.isTruncated) {
+                return `
+                  <div id="content-preview-${post.id}">
+                    <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${truncated.display}</p>
+                    <button onclick="togglePostExpand(${post.id})" class="mt-2 text-green-600 hover:text-green-700 font-semibold text-sm transition-colors">
+                      Xem thêm <i class="fas fa-chevron-down"></i>
+                    </button>
+                  </div>
+                  <div id="content-full-${post.id}" class="hidden">
+                    <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${truncated.full}</p>
+                    <button onclick="togglePostExpand(${post.id})" class="mt-2 text-green-600 hover:text-green-700 font-semibold text-sm transition-colors">
+                      Ẩn bớt <i class="fas fa-chevron-up"></i>
+                    </button>
+                  </div>
+                `;
+              } else {
+                return `<p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${truncated.display}</p>`;
+              }
+            })()}
           </div>
           
           ${imageHTML}
@@ -1111,6 +1131,60 @@
       });
       
       return processed;
+    }
+
+    // Truncate long posts and add "See more" button (Facebook-style)
+    const MAX_PREVIEW_CHARS = 280;
+    const MAX_PREVIEW_LINES = 4;
+    
+    function truncatePostContent(text, postId) {
+      if (!text) return { display: '', isTruncated: false };
+      
+      // Count lines (break on newline)
+      const lines = text.split('\n');
+      const exceedsLines = lines.length > MAX_PREVIEW_LINES;
+      
+      // Check if text exceeds char limit
+      const exceedsChars = text.length > MAX_PREVIEW_CHARS;
+      
+      if (!exceedsChars && !exceedsLines) {
+        return { display: processContent(text), isTruncated: false };
+      }
+      
+      // Truncate based on whichever comes first
+      let truncatedText = text;
+      
+      if (exceedsLines) {
+        truncatedText = lines.slice(0, MAX_PREVIEW_LINES).join('\n');
+      }
+      
+      if (exceedsChars && truncatedText.length > MAX_PREVIEW_CHARS) {
+        truncatedText = truncatedText.substring(0, MAX_PREVIEW_CHARS) + '...';
+      }
+      
+      const displayText = processContent(truncatedText);
+      const fullText = processContent(text);
+      
+      return { 
+        display: displayText,
+        full: fullText,
+        isTruncated: true,
+        postId: postId
+      };
+    }
+    
+    // Toggle post expand/collapse (Facebook-style)
+    function togglePostExpand(postId) {
+      const preview = document.getElementById(`content-preview-${postId}`);
+      const full = document.getElementById(`content-full-${postId}`);
+      
+      if (preview.classList.contains('hidden')) {
+        preview.classList.remove('hidden');
+        full.classList.add('hidden');
+      } else {
+        preview.classList.add('hidden');
+        full.classList.remove('hidden');
+      }
     }
     
     // Navigate to user profile

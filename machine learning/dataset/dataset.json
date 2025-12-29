@@ -1,0 +1,225 @@
+[
+  {
+    "id": "livestock.pig.leg_pain.rainy",
+    "domain": "livestock",
+    "specie": "heo",
+    "season": "mua",
+    "disease": "đau chân",
+    "symptoms": ["đi khập khiễng", "sưng khớp", "đau khi đứng dậy", "ngại vận động"],
+    "causes": ["nền chuồng ẩm", "trơn", "chấn thương", "thiếu khoáng"],
+    "advice": [
+      "Giữ nền chuồng khô ráo, chống trơn",
+      "Tách riêng con bị nặng để theo dõi",
+      "Bổ sung khoáng–vitamin theo hướng dẫn",
+      "Nếu sưng nóng/đi lại khó kéo dài, nên liên hệ bác sĩ thú y"
+    ],
+    "examples": [
+      "Heo nhà tôi đi khập khiễng mấy ngày nay, trời mưa liên tục, phải làm sao?",
+      "Heo bị sưng khớp chân sau, đứng dậy khó, nền chuồng hơi ướt.",
+      "Con heo lười đi lại, đau chân, có cách xử lý an toàn không?"
+    ],
+    "safety": {"urgent": false, "notes": ["Không tự ý dùng thuốc nếu không rõ nguyên nhân."]}
+  },
+  {
+    "id": "livestock.pig.diarrhea.rainy",
+    "domain": "livestock",
+    "specie": "heo",
+    "season": "mua",
+    "disease": "tiêu chảy",
+    "symptoms": ["phân lỏng", "mệt mỏi", "bỏ ăn", "mất nước"],
+    "causes": ["thức ăn ẩm mốc", "nhiễm khuẩn", "thay đổi thức ăn đột ngột", "nguồn nước bẩn"],
+    "advice": [
+      "Cho uống nước điện giải, đảm bảo đủ nước",
+      "Ngừng thức ăn nghi ngờ ẩm mốc, vệ sinh máng ăn/uống",
+      "Giữ chuồng ấm và khô",
+      "Nếu tiêu chảy kèm sốt/đi ngoài ra máu hoặc kéo dài >24–48h, nên gọi bác sĩ thú y"
+    ],
+    "examples": [
+      "Heo con bị tiêu chảy phân lỏng, mệt và bỏ ăn, tôi nên làm gì trước?",
+      "Trời mưa ẩm, heo đi phân loãng, có mùi, có cần điện giải không?",
+      "Heo bị tiêu chảy 2 ngày chưa khỏi, có nguy hiểm không?"
+    ],
+    "safety": {"urgent": true, "notes": ["Mất nước nhanh ở heo con – ưu tiên bù nước và theo dõi."]}
+  },
+  {
+    "id": "livestock.chicken.flu.dry",
+    "domain": "livestock",
+    "specie": "gà",
+    "season": "nang",
+    "disease": "cúm gà",
+    "symptoms": ["hắt hơi", "rũ cánh", "ủ rũ", "khó thở", "giảm ăn"],
+    "causes": ["virus", "tiếp xúc gà bệnh", "mật độ nuôi cao", "vệ sinh kém"],
+    "advice": [
+      "Cách ly đàn nghi bệnh, hạn chế tiếp xúc",
+      "Vệ sinh và sát trùng chuồng trại theo quy trình",
+      "Theo dõi tỷ lệ chết/khó thở để báo thú y địa phương",
+      "Tiêm vaccine phòng bệnh theo lịch (nếu đàn khỏe và đúng chỉ định)"
+    ],
+    "examples": [
+      "Gà nhà tôi hắt hơi, rũ cánh, ủ rũ, có phải cúm gà không?",
+      "Đàn gà khó thở và giảm ăn, tôi cần cách ly như thế nào?",
+      "Gà bị sổ mũi, thở khò khè, xử lý ra sao cho an toàn?"
+    ],
+    "safety": {"urgent": true, "notes": ["Bệnh truyền nhiễm – ưu tiên cách ly và liên hệ thú y."]}
+  },
+  {
+    "id": "livestock.cattle.fmd.any",
+    "domain": "livestock",
+    "specie": "bò",
+    "season": "bat_ky",
+    "disease": "lở mồm long móng",
+    "symptoms": ["chảy dãi", "loét miệng", "đi khập khiễng", "mụn nước quanh móng", "sốt"],
+    "causes": ["virus", "lây lan qua tiếp xúc", "dụng cụ chăn nuôi không khử trùng"],
+    "advice": [
+      "Cách ly con nghi bệnh và khử trùng khu vực",
+      "Hạn chế vận chuyển/di chuyển đàn",
+      "Liên hệ thú y để hướng dẫn điều trị và phòng dịch",
+      "Bổ sung thức ăn mềm, nước sạch để giảm đau khi ăn"
+    ],
+    "examples": [
+      "Bò chảy dãi nhiều, miệng bị loét và đi tập tễnh, có phải lở mồm long móng?",
+      "Bò bị sốt, quanh móng có mụn nước, nên xử lý thế nào?"
+    ],
+    "safety": {"urgent": true, "notes": ["Nguy cơ dịch – cần thông báo thú y."]}
+  },
+  {
+    "id": "aquaculture.shrimp.white_spot.rainy",
+    "domain": "aquaculture",
+    "specie": "tôm",
+    "season": "mua",
+    "disease": "đốm trắng",
+    "symptoms": ["đốm trắng trên vỏ", "bơi lờ đờ", "giảm ăn", "chết rải rác"],
+    "causes": ["virus", "sốc môi trường", "biến động độ mặn", "chất lượng nước kém"],
+    "advice": [
+      "Kiểm tra nhanh các chỉ số nước (pH, kiềm, độ mặn, NH3/NO2)",
+      "Giảm stress: ổn định môi trường, tránh thay nước đột ngột",
+      "Thu gom tôm chết, vệ sinh khu vực",
+      "Liên hệ kỹ thuật/thuỷ sản địa phương để xử lý phù hợp ao nuôi"
+    ],
+    "examples": [
+      "Tôm nổi đầu, bơi lờ đờ và có đốm trắng trên vỏ, trời mưa nhiều, xử lý sao?",
+      "Ao tôm giảm ăn và chết rải rác, nghi đốm trắng, nên kiểm tra gì trước?"
+    ],
+    "safety": {"urgent": true, "notes": ["Cần xử lý sớm theo hướng dẫn kỹ thuật địa phương."]}
+  },
+  {
+    "id": "crop.rice.blast.rainy",
+    "domain": "crop",
+    "specie": "lúa",
+    "season": "mua",
+    "disease": "đạo ôn",
+    "symptoms": ["đốm hình thoi trên lá", "cháy lá", "cổ bông bị thối", "lép hạt"],
+    "causes": ["nấm", "ẩm độ cao", "bón đạm nhiều", "mật độ dày"],
+    "advice": [
+      "Giảm bón đạm, cân đối NPK",
+      "Giữ ruộng thông thoáng, quản lý nước hợp lý",
+      "Theo dõi mức độ bệnh để lựa chọn biện pháp phù hợp",
+      "Nếu cần dùng thuốc BVTV, chỉ dùng theo nhãn hướng dẫn và khuyến cáo địa phương"
+    ],
+    "examples": [
+      "Lúa bị đốm hình thoi trên lá, lan nhanh khi trời mưa, có phải đạo ôn không?",
+      "Ruộng lúa cháy lá từng mảng, cổ bông thối, xử lý thế nào an toàn?"
+    ],
+    "safety": {"urgent": false, "notes": ["Ưu tiên biện pháp canh tác; thuốc chỉ theo khuyến cáo."]}
+  },
+  {
+    "id": "crop.rice.brown_planthopper.rainy",
+    "domain": "crop",
+    "specie": "lúa",
+    "season": "mua",
+    "disease": "rầy nâu",
+    "symptoms": ["cháy rầy", "lúa vàng rồi khô", "mật số rầy cao ở gốc"],
+    "causes": ["côn trùng", "bón đạm cao", "gieo sạ dày", "thời tiết ẩm"],
+    "advice": [
+      "Thăm đồng, xác định mật số rầy trước khi xử lý",
+      "Giữ mực nước phù hợp, tránh bón thừa đạm",
+      "Bảo vệ thiên địch",
+      "Nếu phun thuốc, tuân thủ nguyên tắc 4 đúng và khuyến cáo địa phương"
+    ],
+    "examples": [
+      "Lúa bị vàng và khô từng đám, thấy nhiều rầy ở gốc, có phải rầy nâu?",
+      "Ruộng lúa bị cháy rầy, cần làm gì trước khi phun thuốc?"
+    ],
+    "safety": {"urgent": false, "notes": ["Không phun khi mật số thấp; tránh lạm dụng thuốc."]}
+  },
+  {
+    "id": "crop.tomato.late_blight.rainy",
+    "domain": "crop",
+    "specie": "cà chua",
+    "season": "mua",
+    "disease": "sương mai",
+    "symptoms": ["đốm nâu trên lá", "mốc trắng mặt dưới lá", "thối quả", "lá rụng"],
+    "causes": ["nấm", "ẩm cao", "mưa kéo dài", "lá ướt ban đêm"],
+    "advice": [
+      "Tỉa lá, tăng thông thoáng, hạn chế tưới lên lá",
+      "Thu gom lá/quả bệnh và tiêu huỷ đúng cách",
+      "Luân canh và chọn giống chống chịu nếu có",
+      "Nếu dùng thuốc, tuân thủ nhãn và thời gian cách ly"
+    ],
+    "examples": [
+      "Cà chua bị đốm nâu lan nhanh sau mưa, mặt dưới lá có mốc trắng, là bệnh gì?",
+      "Cà chua thối quả và rụng lá, xử lý thế nào cho đúng?"
+    ],
+    "safety": {"urgent": false, "notes": ["Chú ý thời gian cách ly nếu dùng thuốc."]}
+  },
+  {
+    "id": "crop.chili.bacterial_wilt.hot",
+    "domain": "crop",
+    "specie": "ớt",
+    "season": "nang",
+    "disease": "héo xanh",
+    "symptoms": ["héo rũ ban ngày", "héo cả cây", "thân có dịch đục", "rễ thối"],
+    "causes": ["vi khuẩn", "đất nhiễm bệnh", "thoát nước kém", "vết thương rễ"],
+    "advice": [
+      "Nhổ bỏ cây bệnh nặng và xử lý tàn dư",
+      "Cải thiện thoát nước, tránh úng",
+      "Luân canh cây trồng không cùng họ",
+      "Ưu tiên giống/ghép chống chịu nếu có"
+    ],
+    "examples": [
+      "Ớt đang xanh tự nhiên héo rũ ban ngày rồi chết cả cây, có phải héo xanh không?",
+      "Vườn ớt bị héo hàng loạt, đất hơi ẩm, nên làm gì để giảm lây lan?"
+    ],
+    "safety": {"urgent": false, "notes": ["Khó trị dứt điểm; tập trung phòng và quản lý đất."]}
+  },
+  {
+    "id": "crop.mango.anthracnose.rainy",
+    "domain": "crop",
+    "specie": "xoài",
+    "season": "mua",
+    "disease": "thán thư",
+    "symptoms": ["đốm đen trên quả", "thối cuống", "rụng quả non", "đốm lá"],
+    "causes": ["nấm", "mưa ẩm", "vườn rậm", "vết thương cơ giới"],
+    "advice": [
+      "Tỉa cành tạo tán thông thoáng",
+      "Thu gom trái/rác bệnh, vệ sinh vườn",
+      "Bao trái (nếu phù hợp) để giảm nhiễm",
+      "Nếu phun thuốc, tuân thủ nhãn và thời gian cách ly"
+    ],
+    "examples": [
+      "Xoài bị đốm đen trên vỏ quả sau mưa, có phải thán thư không?",
+      "Xoài rụng quả non, cuống bị thối, cần xử lý sao?"
+    ],
+    "safety": {"urgent": false, "notes": ["Ưu tiên vệ sinh + thông thoáng + bao trái."]}
+  },
+  {
+    "id": "crop.citrus.greening.any",
+    "domain": "crop",
+    "specie": "cam",
+    "season": "bat_ky",
+    "disease": "vàng lá gân xanh",
+    "symptoms": ["lá vàng loang lổ", "gân lá xanh", "trái méo", "rụng lá", "cây suy"],
+    "causes": ["vi khuẩn", "bọ chổng cánh truyền bệnh", "cây giống nhiễm"],
+    "advice": [
+      "Tỉa bỏ cành bệnh nặng và quản lý nguồn giống sạch",
+      "Theo dõi và quản lý bọ chổng cánh theo khuyến cáo",
+      "Bón phân cân đối, tăng sức cây",
+      "Nếu cây nhiễm nặng kéo dài, cân nhắc tư vấn kỹ thuật địa phương"
+    ],
+    "examples": [
+      "Cây cam lá vàng loang lổ nhưng gân vẫn xanh, trái méo, có phải vàng lá gân xanh?",
+      "Cam bị vàng lá, rụng lá dần, nên kiểm tra gì?"
+    ],
+    "safety": {"urgent": false, "notes": ["Bệnh nguy hiểm, quản lý tổng hợp dài hạn."]}
+  }
+]

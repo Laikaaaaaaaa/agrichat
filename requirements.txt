@@ -10,3 +10,14 @@ numpy==2.2.6
 scikit-learn==1.5.2
 SpeechRecognition==3.10.0
 pydub==0.25.1
+# Optional (Transformer-based classifier / PhoBERT)
+# CPU-only torch on Windows can be large; consider installing from PyTorch official index.
+transformers==4.48.0
+datasets==2.21.0
+accelerate==1.1.1
+sentencepiece==0.2.0
+
+# Torch: pick ONE appropriate to your machine.
+# Example CPU (may vary):
+# torch==2.5.1
+pytest==8.3.4

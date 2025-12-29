@@ -17,18 +17,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
+import pickle
+import random
 import re
 import sys
 import time
 import unicodedata
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DATASET_PATH = os.path.join(HERE, "dataset", "dataset.json")
+DEFAULT_MODEL_DIR = os.path.join(HERE, "model")
+DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "agrimind_textclf.pkl")
+DEFAULT_HF_MODEL_DIR = os.path.join(DEFAULT_MODEL_DIR, "agrimind_hf_textclf")
+
+
+LOGGER = logging.getLogger("agrimind")
 
 
 def _normalize(text: str) -> str:
@@ -37,8 +47,24 @@ def _normalize(text: str) -> str:
     text = text.strip().lower()
     text = unicodedata.normalize("NFD", text)
     text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    # Dataset often uses underscores (e.g., 'dâu_tây'); users usually type spaces.
+    # Normalize separators to improve matching.
+    text = text.replace("_", " ")
+    text = text.replace("/", " ")
     text = re.sub(r"\s+", " ", text)
     return text
+
+
+def _strip_accents_keep_spaces(text: str) -> str:
+    if not text:
+        return ""
+    # Similar to _normalize but keep case? For augmentation we just want a simple variant.
+    t = text.strip().lower()
+    t = unicodedata.normalize("NFD", t)
+    t = "".join(ch for ch in t if unicodedata.category(ch) != "Mn")
+    t = t.replace("_", " ").replace("/", " ")
+    t = re.sub(r"\s+", " ", t)
+    return t
 
 
 @dataclass(frozen=True)
@@ -80,10 +106,39 @@ def load_dataset(path: str = DEFAULT_DATASET_PATH) -> List[KBEntry]:
         )
 
     # Basic validation
-    bad = [e for e in entries if not e.specie or not e.season or not e.disease]
+    bad = [e for e in entries if not e.id or not e.specie or not e.season or not e.disease]
     if bad:
-        raise ValueError(f"Dataset has {len(bad)} invalid entries missing specie/season/disease")
+        raise ValueError(f"Dataset has {len(bad)} invalid entries missing id/specie/season/disease")
+
+    # ID uniqueness matters for matching + ML labels
+    seen: set[str] = set()
+    dup: List[str] = []
+    for e in entries:
+        if e.id in seen:
+            dup.append(e.id)
+        seen.add(e.id)
+    if dup:
+        dup_preview = ", ".join(sorted(set(dup))[:20])
+        raise ValueError(f"Dataset has duplicate ids ({len(set(dup))}): {dup_preview}")
     return entries
+
+
+def _maybe_log_event(event: Dict[str, Any]) -> None:
+    """Optional JSONL logging for monitoring.
+
+    Enable by setting AGRIMIND_LOG_PATH to a file path.
+    """
+
+    log_path = os.environ.get("AGRIMIND_LOG_PATH")
+    if not log_path:
+        return
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(log_path)), exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception:
+        # Never break the app because logging fails.
+        return
 
 
 def _build_lexicons(entries: List[KBEntry]) -> Dict[str, Any]:
@@ -109,6 +164,9 @@ def _build_lexicons(entries: List[KBEntry]) -> Dict[str, Any]:
         "bo": ["bo", "bo sua", "bo thit"],
         "tom": ["tom", "tom the", "tom su"],
         "lua": ["lua", "ruong lua"],
+        # disambiguation: don't let 'bắp' map to 'ngô' when user means cabbage
+        "bắp cải": ["bap cai", "cai bap"],
+        "ngô": ["ngo", "bap ngo", "bap my", "corn", "maize", "bap"],
         "ca chua": ["ca chua", "tomato"],
         "ot": ["ot", "ot hiem"],
         "xoai": ["xoai", "mango"],
@@ -125,6 +183,87 @@ def _build_lexicons(entries: List[KBEntry]) -> Dict[str, Any]:
     }
 
 
+def _tokenize_norm(text_norm: str) -> List[str]:
+    # Very lightweight tokenizer; keep it deterministic.
+    if not text_norm:
+        return []
+    parts = re.split(r"[^\w]+", text_norm)
+    toks = [p for p in parts if p and len(p) >= 2]
+    return toks
+
+
+def _fuzzy_ratio(a: str, b: str) -> float:
+    if not a or not b:
+        return 0.0
+    return SequenceMatcher(None, a, b).ratio()
+
+
+def _fuzzy_find_best(text_norm: str, choices: List[str], min_ratio: float = 0.86) -> Optional[str]:
+    """Lightweight fuzzy matching fallback.
+
+    Useful for long questions where exact word-boundary match misses because of punctuation,
+    minor typos, or users mixing spacing.
+    """
+
+    if not text_norm or not choices:
+        return None
+
+    best_choice: Optional[str] = None
+    best_ratio = 0.0
+    for c in choices:
+        c_norm = _normalize(c)
+        if not c_norm:
+            continue
+        # Fast-path exact substring for phrases.
+        if c_norm in text_norm:
+            return c
+        r = _fuzzy_ratio(text_norm, c_norm)
+        if r > best_ratio:
+            best_ratio = r
+            best_choice = c
+
+    if best_choice and best_ratio >= float(min_ratio):
+        return best_choice
+    return None
+
+
+@dataclass(frozen=True)
+class KBIndex:
+    token_to_entry_idxs: Dict[str, Tuple[int, ...]]
+    entry_tokens: Tuple[Tuple[str, ...], ...]
+
+
+def _build_kb_index(entries: List[KBEntry]) -> KBIndex:
+    token_to: Dict[str, List[int]] = {}
+    entry_tokens: List[Tuple[str, ...]] = []
+
+    for idx, e in enumerate(entries):
+        tok_set: set[str] = set()
+        tok_set.update(_tokenize_norm(_normalize(e.domain)))
+        tok_set.update(_tokenize_norm(_normalize(e.specie)))
+        tok_set.update(_tokenize_norm(_normalize(e.season)))
+        tok_set.update(_tokenize_norm(_normalize(e.disease)))
+        for s in e.symptoms:
+            tok_set.update(_tokenize_norm(_normalize(s)))
+        # Keep a stable order for debugging
+        toks = tuple(sorted(tok_set))
+        entry_tokens.append(toks)
+
+        for t in toks:
+            token_to.setdefault(t, []).append(idx)
+
+    frozen = {k: tuple(v) for k, v in token_to.items()}
+    return KBIndex(token_to_entry_idxs=frozen, entry_tokens=tuple(entry_tokens))
+
+
+@lru_cache(maxsize=8)
+def _get_resources(dataset_path: str) -> Tuple[List[KBEntry], Dict[str, Any], KBIndex]:
+    entries = load_dataset(dataset_path)
+    lex = _build_lexicons(entries)
+    index = _build_kb_index(entries)
+    return entries, lex, index
+
+
 def _find_first_match(text_norm: str, candidates: List[str]) -> Optional[str]:
     for cand in candidates:
         cand_norm = _normalize(cand)
@@ -133,8 +272,17 @@ def _find_first_match(text_norm: str, candidates: List[str]) -> Optional[str]:
     return None
 
 
+def _has_term(text_norm: str, term: str) -> bool:
+    term_norm = _normalize(term)
+    if not term_norm:
+        return False
+    # Ensure we don't match inside other words (e.g., 'ga' inside 'gan')
+    return re.search(rf"(?<!\w){re.escape(term_norm)}(?!\w)", text_norm) is not None
+
+
 def _extract_symptoms(text_norm: str, symptom_list: List[str]) -> List[str]:
     found: List[str] = []
+    symptom_lex = {_normalize(s) for s in symptom_list if s}
     for s in symptom_list:
         s_norm = _normalize(s)
         if not s_norm:
@@ -142,6 +290,36 @@ def _extract_symptoms(text_norm: str, symptom_list: List[str]) -> List[str]:
         # allow partial match (symptoms are often phrases)
         if s_norm in text_norm:
             found.append(s)
+
+    # Extra VN-friendly symptom patterns (context understanding)
+    # These help when the dataset doesn't contain an exact phrase, or users write variants.
+    symptom_patterns = {
+        "nôn ói": ["non oi", "oi", "oi mua"],
+        "đau bụng": ["dau bung", "dau quan", "quan quai"],
+        "kén ăn": ["ken an"],
+        "bỏ ăn": ["bo an", "chan an", "khong an", "giam an"],
+        "chướng bụng": ["chuong bung", "bung chuong", "day hoi"],
+        "phân sâu trong nõn": ["phan sau trong non", "trong non co phan sau", "phan sau o non"],
+        "nõn bị rách": ["non bi rach", "rach non", "an non", "sau an non"],
+    }
+    for canonical, variants in symptom_patterns.items():
+        canon_norm = _normalize(canonical)
+        if not canon_norm:
+            continue
+        matched = False
+        for v in variants:
+            v_norm = _normalize(v)
+            if not v_norm:
+                continue
+            if re.search(rf"(?<!\w){re.escape(v_norm)}(?!\w)", text_norm):
+                matched = True
+                break
+
+        if matched:
+            # Only add if canonical exists in dataset lexicon
+            if canon_norm in symptom_lex:
+                found.append(canonical)
+
     # de-dup preserving order
     dedup: List[str] = []
     seen = set()
@@ -153,14 +331,132 @@ def _extract_symptoms(text_norm: str, symptom_list: List[str]) -> List[str]:
     return dedup
 
 
+def _infer_domain_hint(q_norm: str) -> Optional[str]:
+    """Heuristic domain hint when specie is missing."""
+    if not q_norm:
+        return None
+
+    # aquaculture
+    if any(w in q_norm for w in ["ao", "nuoi ca", "ca", "tom", "be", "nuoc", "phan trang", "mang"]):
+        if any(w in q_norm for w in ["tom", "ca", "ao", "nuoi ca", "nuoi tom"]):
+            return "aquaculture"
+
+    # livestock
+    if any(w in q_norm for w in ["con vat", "vat nuoi", "gia suc", "gia cam", "chuong", "thuc an", "tieu chay", "sot"]):
+        return "livestock"
+
+    # crop
+    if any(w in q_norm for w in ["cay", "la", "than", "re", "ruong", "vun", "trai", "qua"]):
+        return "crop"
+
+    return None
+
+
+def _try_ml_predict_entry_id(question: str, model_path: str = DEFAULT_MODEL_PATH) -> Optional[Dict[str, Any]]:
+    """Try to predict a KB entry id from free-text question using a trained sklearn model."""
+    try:
+        if not model_path or not os.path.exists(model_path):
+            return None
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+
+        classes = model.get("classes") or []
+        clf = model.get("classifier")
+        vec_cfg = model.get("vectorizer") or {}
+        if not classes or clf is None:
+            return None
+
+        from sklearn.feature_extraction.text import HashingVectorizer
+
+        vectorizer = HashingVectorizer(
+            n_features=int(vec_cfg.get("n_features", 2**18)),
+            alternate_sign=False,
+            ngram_range=tuple(vec_cfg.get("ngram_range", (1, 2))),
+            norm=vec_cfg.get("norm", "l2"),
+        )
+
+        X = vectorizer.transform([question])
+        proba = None
+        if hasattr(clf, "predict_proba"):
+            proba = clf.predict_proba(X)[0]
+            best_idx = int(proba.argmax())
+            return {
+                "id": classes[best_idx],
+                "prob": float(proba[best_idx]),
+                "type": str(model.get("type") or "unknown"),
+            }
+
+        pred = clf.predict(X)[0]
+        return {"id": str(pred), "prob": None, "type": str(model.get("type") or "unknown")}
+    except Exception:
+        return None
+
+
+@lru_cache(maxsize=2)
+def _load_hf_model(model_dir: str) -> Optional[Tuple[Any, Any, List[str]]]:
+    """Lazy-load HF tokenizer+model+classes.
+
+    Returns (tokenizer, model, classes) or None.
+    """
+
+    try:
+        if not model_dir or not os.path.isdir(model_dir):
+            return None
+        labels_path = os.path.join(model_dir, "labels.json")
+        if not os.path.exists(labels_path):
+            return None
+        with open(labels_path, "r", encoding="utf-8") as f:
+            labels_payload = json.load(f)
+        classes = labels_payload.get("classes") or []
+        if not classes:
+            return None
+
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=True)
+        model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+        model.eval()
+        return tokenizer, model, list(classes)
+    except Exception:
+        return None
+
+
+def _try_hf_predict_entry_id(question: str, model_dir: str = DEFAULT_HF_MODEL_DIR) -> Optional[Dict[str, Any]]:
+    """Predict a KB entry id using a fine-tuned HF classifier directory."""
+
+    try:
+        loaded = _load_hf_model(model_dir)
+        if not loaded:
+            return None
+        tokenizer, model, classes = loaded
+
+        import torch
+
+        inputs = tokenizer([question], truncation=True, padding=True, max_length=128, return_tensors="pt")
+        with torch.no_grad():
+            out = model(**inputs)
+            logits = out.logits[0]
+            probs = torch.softmax(logits, dim=-1)
+            best_idx = int(torch.argmax(probs).item())
+            prob = float(probs[best_idx].item())
+
+        if best_idx < 0 or best_idx >= len(classes):
+            return None
+        return {"id": classes[best_idx], "prob": prob, "type": "hf_transformer"}
+    except Exception:
+        return None
+
+
 def extract_entities(question: str, entries: List[KBEntry], lex: Dict[str, Any]) -> Dict[str, Any]:
     q_norm = _normalize(question)
+
+    domain_hint = _infer_domain_hint(q_norm)
 
     # 1) Specie (dictionary + aliases)
     specie: Optional[str] = None
     for canonical, aliases in lex.get("specie_aliases", {}).items():
         for alias in aliases:
-            if _normalize(alias) and _normalize(alias) in q_norm:
+            if _has_term(q_norm, alias):
                 # map back to canonical specie label present in dataset when possible
                 for s in lex["species"]:
                     if _normalize(s) == canonical:
@@ -177,7 +473,7 @@ def extract_entities(question: str, entries: List[KBEntry], lex: Dict[str, Any])
     season: Optional[str] = None
     for canonical, aliases in lex.get("season_aliases", {}).items():
         for alias in aliases:
-            if _normalize(alias) and _normalize(alias) in q_norm:
+            if _has_term(q_norm, alias):
                 for s in lex["seasons"]:
                     if _normalize(s) == canonical:
                         season = s
@@ -191,12 +487,16 @@ def extract_entities(question: str, entries: List[KBEntry], lex: Dict[str, Any])
 
     # 3) Disease
     disease = _find_first_match(q_norm, lex["diseases"])
+    if not disease:
+        # Fuzzy fallback (avoid being too eager; diseases are often longer phrases)
+        disease = _fuzzy_find_best(q_norm, lex["diseases"], min_ratio=0.88)
 
     # 4) Symptoms
     symptoms_found = _extract_symptoms(q_norm, lex["symptoms"])
 
     return {
         "question": question,
+        "domain_hint": domain_hint,
         "specie": specie,
         "season": season,
         "disease": disease,
@@ -206,6 +506,9 @@ def extract_entities(question: str, entries: List[KBEntry], lex: Dict[str, Any])
 
 def _score_entry(extracted: Dict[str, Any], entry: KBEntry) -> float:
     score = 0.0
+
+    if extracted.get("domain_hint") and _normalize(extracted["domain_hint"]) == _normalize(entry.domain):
+        score += 1.0
 
     if extracted.get("specie") and _normalize(extracted["specie"]) == _normalize(entry.specie):
         score += 3.0
@@ -239,6 +542,122 @@ def match_kb(extracted: Dict[str, Any], entries: List[KBEntry]) -> Tuple[Optiona
     # Normalize to [0,1] with a simple cap (heuristic)
     confidence = max(0.0, min(1.0, best_score / 10.0))
     return best, confidence
+
+
+def match_kb_indexed(extracted: Dict[str, Any], entries: List[KBEntry], index: KBIndex) -> Tuple[Optional[KBEntry], float]:
+    """Match KB using a token index to avoid O(n) full scan for large datasets."""
+
+    q_norm = _normalize(extracted.get("question") or "")
+    tokens = set(_tokenize_norm(q_norm))
+
+    # Prefer extracted fields (more precise) when present.
+    for k in ("specie", "season", "disease"):
+        v = extracted.get(k)
+        if v:
+            tokens.update(_tokenize_norm(_normalize(str(v))))
+    for s in (extracted.get("symptoms") or []):
+        tokens.update(_tokenize_norm(_normalize(str(s))))
+
+    # Collect candidates by token hits.
+    hit_counts: Dict[int, int] = {}
+    for t in tokens:
+        idxs = index.token_to_entry_idxs.get(t)
+        if not idxs:
+            continue
+        for i in idxs:
+            hit_counts[i] = hit_counts.get(i, 0) + 1
+
+    # If nothing hits (very generic question), fall back to full scan.
+    if not hit_counts:
+        return match_kb(extracted, entries)
+
+    # Take top candidates by token-hit count to keep scoring bounded.
+    top = sorted(hit_counts.items(), key=lambda kv: kv[1], reverse=True)
+    candidate_idxs = [i for i, _ in top[:800]]
+
+    best: Optional[KBEntry] = None
+    best_score = -1.0
+    for i in candidate_idxs:
+        e = entries[i]
+        s = _score_entry(extracted, e)
+        if s > best_score:
+            best = e
+            best_score = s
+
+    confidence = max(0.0, min(1.0, best_score / 10.0))
+    return best, confidence
+
+
+def _choose_best_entry(
+    question: str,
+    extracted: Dict[str, Any],
+    entries: List[KBEntry],
+) -> Tuple[Optional[KBEntry], float, Optional[Dict[str, Any]]]:
+    """Hybrid chooser: rule-based KB scoring first, ML fallback if missing disease/symptoms."""
+
+    # Note: prefer indexed matching when possible.
+    kb_entry, kb_conf = match_kb(extracted, entries)
+    ml_pred = _try_ml_predict_entry_id(question)
+
+    id_map = {e.id: e for e in entries}
+    ml_entry = id_map.get(ml_pred["id"]) if ml_pred and ml_pred.get("id") else None
+    ml_prob = float(ml_pred.get("prob")) if ml_pred and ml_pred.get("prob") is not None else None
+
+    # If we extracted strong signals, trust KB scoring.
+    has_disease = bool(extracted.get("disease"))
+    has_symptoms = bool(extracted.get("symptoms"))
+
+    if has_disease or has_symptoms:
+        return kb_entry, kb_conf, ml_pred
+
+    # Otherwise, if KB confidence is low but ML has a confident prediction, use ML.
+    if ml_entry and ml_prob is not None and ml_prob >= 0.45 and kb_conf < 0.45:
+        return ml_entry, max(kb_conf, ml_prob), ml_pred
+
+    return kb_entry, kb_conf, ml_pred
+
+
+def _choose_best_entry_indexed(
+    question: str,
+    extracted: Dict[str, Any],
+    entries: List[KBEntry],
+    index: KBIndex,
+) -> Tuple[Optional[KBEntry], float, Optional[Dict[str, Any]]]:
+    kb_entry, kb_conf = match_kb_indexed(extracted, entries, index)
+    # Prefer transformer when available; fall back to sklearn.
+    ml_pred = _try_hf_predict_entry_id(question) or _try_ml_predict_entry_id(question)
+
+    id_map = {e.id: e for e in entries}
+    ml_entry = id_map.get(ml_pred["id"]) if ml_pred and ml_pred.get("id") else None
+    ml_prob = float(ml_pred.get("prob")) if ml_pred and ml_pred.get("prob") is not None else None
+
+    has_disease = bool(extracted.get("disease"))
+    has_symptoms = bool(extracted.get("symptoms"))
+    if has_disease or has_symptoms:
+        return kb_entry, kb_conf, ml_pred
+
+    if ml_entry and ml_prob is not None and ml_prob >= 0.45 and kb_conf < 0.45:
+        return ml_entry, max(kb_conf, ml_prob), ml_pred
+
+    return kb_entry, kb_conf, ml_pred
+
+
+def _topk_accuracy_from_decision(decision, y_true: List[str], classes: List[str], k: int = 3) -> float:
+    import numpy as np
+
+    # decision: (n_samples, n_classes)
+    if decision is None:
+        return 0.0
+    arr = np.asarray(decision)
+    if arr.ndim != 2 or arr.shape[1] != len(classes):
+        return 0.0
+    topk = np.argsort(-arr, axis=1)[:, :k]
+    class_arr = np.asarray(classes)
+    hits = 0
+    for i, yi in enumerate(y_true):
+        if yi in set(class_arr[topk[i]].tolist()):
+            hits += 1
+    return hits / max(1, len(y_true))
 
 
 def rule_engine(extracted: Dict[str, Any], entry: Optional[KBEntry], confidence: float) -> Dict[str, Any]:
@@ -348,17 +767,430 @@ YÊU CẦU TRẢ LỜI:
     return prompt
 
 
+def generate_preview_prompt(question: str, extracted: Dict[str, Any], entry: Optional[KBEntry]) -> str:
+    """Generate a human-reviewable prompt (input) in the exact style the user requested."""
+
+    # Enrich missing fields from KB match (avoid null/empty in preview when we have a match)
+    disease = extracted.get("disease")
+    if not disease and entry:
+        disease = entry.disease
+
+    symptoms = extracted.get("symptoms") or []
+    if (not symptoms) and entry:
+        # Use a short list of typical symptoms when extraction is uncertain
+        symptoms = list(entry.symptoms[:6])
+
+    payload: Dict[str, Any] = {
+        "question": question,
+        "specie": extracted.get("specie") or (entry.specie if entry else None),
+        "season": extracted.get("season"),
+        "disease": disease,
+        "symptoms": symptoms,
+        "causes": list(entry.causes) if entry else [],
+        "advice": list(entry.advice) if entry else [],
+    }
+
+    header = (
+        "Bạn là AgriSense AI – chuyên gia tư vấn nông nghiệp thông minh và thân thiện của Việt Nam 🌾🐟.\n"
+        "Nhiệm vụ: nhận dữ liệu JSON về câu hỏi nông nghiệp, phân tích và sinh ra **văn bản trả lời thân thiện**, "
+        "bao gồm emoji, nêu triệu chứng, nguyên nhân, và khuyến nghị hành động.\n"
+    )
+
+    json_block = json.dumps(payload, ensure_ascii=False, indent=2)
+
+    instruction = "Hãy xuất ra văn bản dạng thân thiện, dễ đọc cho người nông dân"
+    return f"{header}\n{json_block}\n\n{instruction}".strip()
+
+
+def _build_training_samples(entries: List[KBEntry]) -> Tuple[List[str], List[str]]:
+    texts: List[str] = []
+    labels: List[str] = []
+
+    # Small, deterministic augmentation: add accent-stripped and common alias swaps.
+    # Keeps the dataset dependency-free while improving robustness.
+    alias_swaps = [
+        ("heo", "lợn"),
+        ("lon", "heo"),
+        ("ga", "gà"),
+        ("bo", "bò"),
+        ("lua", "lúa"),
+        ("ngo", "ngô"),
+        ("bap", "ngô"),
+        ("ca", "cá"),
+        ("tom", "tôm"),
+    ]
+
+    def augment_one(t: str) -> List[str]:
+        base = str(t or "").strip()
+        if not base:
+            return []
+        variants: List[str] = [base]
+        variants.append(_strip_accents_keep_spaces(base))
+
+        low = _strip_accents_keep_spaces(base)
+        for a, b in alias_swaps:
+            if a in low:
+                variants.append(low.replace(a, b))
+        # de-dup, keep order
+        out: List[str] = []
+        seen = set()
+        for v in variants:
+            v2 = str(v).strip()
+            if not v2:
+                continue
+            k = v2
+            if k not in seen:
+                seen.add(k)
+                out.append(v2)
+        return out
+    for e in entries:
+        if e.examples:
+            for ex in e.examples:
+                if ex and str(ex).strip():
+                    for v in augment_one(str(ex).strip()):
+                        texts.append(v)
+                        labels.append(e.id)
+        else:
+            # Fallback so every entry contributes at least one sample
+            for v in augment_one(f"{e.specie} {e.disease} {e.season}"):
+                texts.append(v)
+                labels.append(e.id)
+
+        # Light canonical sample (helps stabilize training)
+        canonical = f"{e.specie} bị {e.disease} ({e.season}). Triệu chứng: {', '.join(e.symptoms[:3])}."
+        for v in augment_one(canonical):
+            texts.append(v)
+            labels.append(e.id)
+
+    return texts, labels
+
+
+def _ensure_dir(path: str) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+
+
+def cli_train(args: argparse.Namespace) -> int:
+    """Train a lightweight text classifier from dataset examples.
+
+    This is intentionally simple and dependency-light (scikit-learn).
+    """
+
+    entries = load_dataset(args.dataset)
+    texts, labels = _build_training_samples(entries)
+
+    if not texts:
+        raise ValueError("No training samples found in dataset (examples empty)")
+
+    # Import lazily to keep non-train use-cases lightweight.
+    from sklearn.feature_extraction.text import HashingVectorizer
+    from sklearn.linear_model import SGDClassifier
+
+    vectorizer = HashingVectorizer(
+        n_features=2**18,
+        alternate_sign=False,
+        ngram_range=(1, 2),
+        norm="l2",
+    )
+
+    classes = sorted(set(labels))
+    clf = SGDClassifier(
+        loss="log_loss",
+        alpha=1e-4,
+        max_iter=1,
+        tol=None,
+        random_state=args.seed,
+    )
+
+    rnd = random.Random(args.seed)
+    indices = list(range(len(texts)))
+
+    for epoch in range(int(args.epoch)):
+        rnd.shuffle(indices)
+        first_fit = epoch == 0
+        for start in range(0, len(indices), int(args.batch_size)):
+            batch = indices[start : start + int(args.batch_size)]
+            Xb = vectorizer.transform([texts[i] for i in batch])
+            yb = [labels[i] for i in batch]
+            if first_fit and start == 0:
+                clf.partial_fit(Xb, yb, classes=classes)
+            else:
+                clf.partial_fit(Xb, yb)
+
+    # quick training-set accuracy (sanity only)
+    X_all = vectorizer.transform(texts)
+    pred = clf.predict(X_all)
+    acc = sum(1 for p, y in zip(pred, labels) if p == y) / max(1, len(labels))
+
+    model = {
+        "type": "hashing_sgd_v1",
+        "trained_at": time.time(),
+        "dataset_path": os.path.abspath(args.dataset),
+        "classes": classes,
+        "vectorizer": {
+            "n_features": 2**18,
+            "ngram_range": (1, 2),
+            "norm": "l2",
+        },
+        "classifier": clf,
+    }
+
+    out_path = args.model_out or DEFAULT_MODEL_PATH
+    _ensure_dir(out_path)
+    with open(out_path, "wb") as f:
+        pickle.dump(model, f)
+
+    print(f"✅ Trained samples: {len(texts)}")
+    print(f"✅ Classes (kb ids): {len(classes)}")
+    print(f"✅ Train accuracy (sanity): {acc:.3f}")
+    print(f"💾 Saved model: {out_path}")
+    return 0
+
+
+def cli_train_hf(args: argparse.Namespace) -> int:
+    """Train a Transformer text classifier (PhoBERT/XLM-R) from dataset examples.
+
+    Requires: torch, transformers, datasets (and often accelerate/sentencepiece).
+    Saves a Hugging Face checkpoint directory (not a pickle).
+    """
+
+    entries = load_dataset(args.dataset)
+    texts, labels = _build_training_samples(entries)
+    if not texts:
+        raise ValueError("No training samples found in dataset (examples empty)")
+
+    try:
+        from datasets import Dataset
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
+    except Exception as e:
+        raise RuntimeError(
+            "Missing HF dependencies. Install: pip install torch transformers datasets accelerate sentencepiece"
+        ) from e
+
+    classes = sorted(set(labels))
+    label2id = {c: i for i, c in enumerate(classes)}
+    id2label = {i: c for c, i in label2id.items()}
+
+    ds = Dataset.from_dict({"text": texts, "label": [label2id[y] for y in labels]})
+
+    # Ensure test set is large enough to include many classes; for many classes we use an integer size.
+    test_size = float(args.hf_test_size)
+    desired = int(round(test_size * len(ds)))
+    if desired < len(classes):
+        desired = len(classes)
+    if (len(ds) - desired) < max(1, len(classes)):
+        # if dataset is small, still keep at least 1 sample for training
+        desired = min(len(ds) - 1, desired)
+    if desired <= 0:
+        desired = 1
+
+    split = ds.train_test_split(test_size=desired, seed=int(args.seed), shuffle=True)
+    train_ds = split["train"]
+    eval_ds = split["test"]
+
+    tokenizer = AutoTokenizer.from_pretrained(args.hf_model, use_fast=True)
+
+    def tok(batch):
+        return tokenizer(batch["text"], truncation=True, padding="max_length", max_length=int(args.hf_max_length))
+
+    train_ds = train_ds.map(tok, batched=True, remove_columns=["text"])
+    eval_ds = eval_ds.map(tok, batched=True, remove_columns=["text"])
+    train_ds.set_format(type="torch")
+    eval_ds.set_format(type="torch")
+
+    model = AutoModelForSequenceClassification.from_pretrained(
+        args.hf_model,
+        num_labels=len(classes),
+        label2id=label2id,
+        id2label=id2label,
+    )
+
+    out_dir = args.hf_out or DEFAULT_HF_MODEL_DIR
+    os.makedirs(out_dir, exist_ok=True)
+
+    train_args = TrainingArguments(
+        output_dir=out_dir,
+        num_train_epochs=float(args.hf_epochs),
+        per_device_train_batch_size=int(args.hf_batch_size),
+        per_device_eval_batch_size=int(args.hf_batch_size),
+        learning_rate=float(args.hf_lr),
+        weight_decay=float(args.hf_weight_decay),
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        logging_steps=50,
+        report_to=[],
+        seed=int(args.seed),
+        fp16=bool(getattr(args, "hf_fp16", False)),
+        load_best_model_at_end=False,
+    )
+
+    def compute_metrics(eval_pred):
+        import numpy as np
+
+        logits, y_true = eval_pred
+        logits = np.asarray(logits)
+        y_true = np.asarray(y_true)
+        pred = np.argmax(logits, axis=1)
+        acc1 = float(np.mean(pred == y_true)) if len(y_true) else 0.0
+        # top-3
+        top3 = np.argsort(-logits, axis=1)[:, :3]
+        hits = 0
+        for i in range(len(y_true)):
+            if int(y_true[i]) in set(top3[i].tolist()):
+                hits += 1
+        acc3 = hits / max(1, len(y_true))
+        return {"accuracy@1": acc1, "accuracy@3": float(acc3)}
+
+    trainer = Trainer(
+        model=model,
+        args=train_args,
+        train_dataset=train_ds,
+        eval_dataset=eval_ds,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
+    )
+
+    trainer.train()
+
+    # Save in HF format
+    trainer.save_model(out_dir)
+    tokenizer.save_pretrained(out_dir)
+    with open(os.path.join(out_dir, "labels.json"), "w", encoding="utf-8") as f:
+        json.dump({"classes": classes}, f, ensure_ascii=False, indent=2)
+
+    metrics = trainer.evaluate()
+    # Print friendly summary
+    print(f"✅ Trained samples: {len(texts)}")
+    print(f"✅ Classes (kb ids): {len(classes)}")
+    if metrics:
+        a1 = metrics.get("eval_accuracy@1")
+        a3 = metrics.get("eval_accuracy@3")
+        if a1 is not None:
+            print(f"📈 eval_accuracy@1: {float(a1):.3f}")
+        if a3 is not None:
+            print(f"📈 eval_accuracy@3: {float(a3):.3f}")
+    print(f"💾 Saved HF model dir: {out_dir}")
+    return 0
+
+
+def cli_check_dataset(args: argparse.Namespace) -> int:
+    entries = load_dataset(args.dataset)
+    print(f"✅ entries: {len(entries)}")
+    print("✅ json ok, ids unique")
+    return 0
+
+
+def cli_eval(args: argparse.Namespace) -> int:
+    """Basic offline evaluation for the text classifier.
+
+    This gives a real test split metric (not just train sanity acc).
+    """
+
+    entries = load_dataset(args.dataset)
+    texts, labels = _build_training_samples(entries)
+    if not texts:
+        raise ValueError("No training samples found in dataset (examples empty)")
+
+    from sklearn.feature_extraction.text import HashingVectorizer
+    from sklearn.linear_model import SGDClassifier
+    from sklearn.model_selection import train_test_split
+
+    classes = sorted(set(labels))
+    n_classes = len(classes)
+    n_samples = len(texts)
+
+    # With many classes, a naive test_size (e.g. 0.2) can be too small to contain
+    # at least one sample per class, which breaks stratified splitting.
+    test_size: int | float = float(args.test_size)
+    stratify = labels if n_classes > 1 else None
+    if isinstance(test_size, float):
+        desired = int(round(test_size * n_samples))
+        if desired < n_classes:
+            # Prefer an integer test set size that can include all classes.
+            desired = n_classes
+        # Ensure train still has at least 1 sample per class when stratifying.
+        if stratify is not None and (n_samples - desired) < n_classes:
+            # Can't satisfy stratification; fall back to non-stratified split.
+            stratify = None
+        test_size = desired
+
+    X_train_texts, X_test_texts, y_train, y_test = train_test_split(
+        texts,
+        labels,
+        test_size=test_size,
+        random_state=int(args.seed),
+        stratify=stratify,
+    )
+
+    vectorizer = HashingVectorizer(
+        n_features=2**18,
+        alternate_sign=False,
+        ngram_range=(1, 2),
+        norm="l2",
+    )
+    X_train = vectorizer.transform(X_train_texts)
+    X_test = vectorizer.transform(X_test_texts)
+
+    clf = SGDClassifier(
+        loss="log_loss",
+        alpha=1e-4,
+        max_iter=5,
+        tol=1e-3,
+        random_state=int(args.seed),
+    )
+    clf.fit(X_train, y_train)
+
+    pred = clf.predict(X_test)
+    acc = sum(1 for p, y in zip(pred, y_test) if p == y) / max(1, len(y_test))
+
+    top3 = 0.0
+    try:
+        decision = clf.decision_function(X_test)
+        top3 = _topk_accuracy_from_decision(decision, list(y_test), classes, k=3)
+    except Exception:
+        top3 = 0.0
+
+    print(f"✅ samples: {len(texts)}")
+    print(f"✅ classes: {len(classes)}")
+    print(f"✅ test_size: {len(y_test)}")
+    print(f"📈 accuracy@1: {acc:.3f}")
+    print(f"📈 accuracy@3: {top3:.3f}")
+    return 0
+
+
 @lru_cache(maxsize=1024)
 def _cached_extract(question: str, dataset_path: str) -> Dict[str, Any]:
-    entries = load_dataset(dataset_path)
-    lex = _build_lexicons(entries)
+    entries, lex, index = _get_resources(dataset_path)
     extracted = extract_entities(question, entries, lex)
-    entry, confidence = match_kb(extracted, entries)
+    entry, confidence, ml_pred = _choose_best_entry_indexed(question, extracted, entries, index)
+
+    # Optional: if we matched an entry, backfill disease for downstream consumers
+    if entry and not extracted.get("disease"):
+        extracted = dict(extracted)
+        extracted["disease"] = entry.disease
     rules = rule_engine(extracted, entry, confidence)
+
+    _maybe_log_event(
+        {
+            "ts": time.time(),
+            "question": question,
+            "extracted": {
+                "domain_hint": extracted.get("domain_hint"),
+                "specie": extracted.get("specie"),
+                "season": extracted.get("season"),
+                "disease": extracted.get("disease"),
+                "symptoms": extracted.get("symptoms"),
+            },
+            "matched_id": entry.id if entry else None,
+            "confidence": float(confidence),
+            "ml_pred": ml_pred,
+            "allow_answer": bool(rules.get("allow_answer")),
+        }
+    )
     return {
         "extracted": extracted,
         "matched": (entry.__dict__ if entry else None),
         "confidence": confidence,
+        "ml_pred": ml_pred,
         "rules": rules,
     }
 
@@ -382,6 +1214,16 @@ def cli_extract(args: argparse.Namespace) -> int:
 
 def cli_prompt(args: argparse.Namespace) -> int:
     prompt = _cached_prompt(args.text, args.dataset)
+    print(prompt)
+    return 0
+
+
+def cli_answer(args: argparse.Namespace) -> int:
+    result = _cached_extract(args.text, args.dataset)
+    extracted = result["extracted"]
+    entry_raw = result["matched"]
+    entry = KBEntry(**entry_raw) if entry_raw else None
+    prompt = generate_preview_prompt(args.text, extracted, entry)
     print(prompt)
     return 0
 
@@ -418,7 +1260,23 @@ def cli_serve(args: argparse.Namespace) -> int:
 def build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="AgriMind - entity extraction + KB + safety + prompt generator")
     p.add_argument("--dataset", default=DEFAULT_DATASET_PATH, help="Path to dataset.json")
-    sub = p.add_subparsers(dest="cmd", required=True)
+    p.add_argument("--mode", choices=["train", "train-hf"], default=None, help="Run a special mode (e.g. train)")
+    p.add_argument("--epoch", type=int, default=5, help="Epochs for --mode train")
+    p.add_argument("--batch-size", type=int, default=32, help="Batch size for --mode train")
+    p.add_argument("--seed", type=int, default=42, help="Random seed for --mode train")
+    p.add_argument("--model-out", default=DEFAULT_MODEL_PATH, help="Output path for trained model")
+
+    # HF training args (only used when --mode train-hf)
+    p.add_argument("--hf-model", default="vinai/phobert-base", help="HF model name (e.g. vinai/phobert-base, xlm-roberta-base)")
+    p.add_argument("--hf-out", default=DEFAULT_HF_MODEL_DIR, help="Output dir for HF fine-tuned model")
+    p.add_argument("--hf-epochs", type=float, default=2.0)
+    p.add_argument("--hf-batch-size", type=int, default=8)
+    p.add_argument("--hf-lr", type=float, default=2e-5)
+    p.add_argument("--hf-weight-decay", type=float, default=0.01)
+    p.add_argument("--hf-max-length", type=int, default=128)
+    p.add_argument("--hf-test-size", type=float, default=0.2)
+
+    sub = p.add_subparsers(dest="cmd")
 
     p_extract = sub.add_parser("extract", help="Extract entities + match KB")
     p_extract.add_argument("text", help="User question")
@@ -428,10 +1286,22 @@ def build_argparser() -> argparse.ArgumentParser:
     p_prompt.add_argument("text", help="User question")
     p_prompt.set_defaults(func=cli_prompt)
 
+    p_answer = sub.add_parser("answer", help="Generate preview prompt (header + JSON + instruction)")
+    p_answer.add_argument("text", help="User question")
+    p_answer.set_defaults(func=cli_answer)
+
     p_serve = sub.add_parser("serve", help="Run REST API (Flask)")
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8011)
     p_serve.set_defaults(func=cli_serve)
+
+    p_check = sub.add_parser("check-dataset", help="Validate dataset.json (json + schema + unique ids)")
+    p_check.set_defaults(func=cli_check_dataset)
+
+    p_eval = sub.add_parser("eval", help="Evaluate text classifier with a held-out split")
+    p_eval.add_argument("--seed", type=int, default=42)
+    p_eval.add_argument("--test-size", type=float, default=0.2)
+    p_eval.set_defaults(func=cli_eval)
 
     return p
 
@@ -445,9 +1315,22 @@ def main() -> int:
     except Exception:
         pass
 
+    logging.basicConfig(level=os.environ.get("AGRIMIND_LOG_LEVEL", "WARNING"))
+
     parser = build_argparser()
     args = parser.parse_args()
-    return int(args.func(args))
+
+    if args.mode == "train":
+        return int(cli_train(args))
+
+    if args.mode == "train-hf":
+        return int(cli_train_hf(args))
+
+    if hasattr(args, "func"):
+        return int(args.func(args))
+
+    parser.print_help()
+    return 2
 
 
 if __name__ == "__main__":

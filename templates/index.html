@@ -551,68 +551,27 @@
           }
         }
         
-        // No URL param or not authenticated - check session
-        if (!conversationId || !isAuthenticated) {
-          console.log('ℹ️ No conversation ID in URL or not authenticated, checking session...');
-          // Nếu không có URL param hoặc chưa login, thử restore từ sessionStorage/temp session
-          this.restoreCurrentConversation();
+        // No URL param: do NOT restore old chat session.
+        // Requirement: mỗi lần vào lại web phải tạo cuộc hội thoại mới.
+        // (Users can still continue an old conversation only via History -> Continue, or via ?c= when logged in.)
+        if (!conversationId) {
+          console.log('🆕 No conversation in URL. Starting fresh (no session restore).');
         }
         return false;
       }
 
       // Khôi phục cuộc hội thoại đang dở khi quay lại trang (TRONG CÙNG PHIÊN)
       restoreCurrentConversation() {
-        const isAuthenticated = this.isUserAuthenticated();
-        console.log('🔄 restoreCurrentConversation: isAuthenticated =', isAuthenticated);
-        
-        const currentId = sessionStorage.getItem('agrisense_current_conversation_id');
-        if (currentId && this.conversations.length > 0) {
-          // Tìm cuộc hội thoại trong danh sách
-          const foundIndex = this.conversations.findIndex(conv => conv.id === currentId);
-          if (foundIndex !== -1) {
-            // IMPORTANT: Use reference to object in array!
-            this.currentConversation = this.conversations[foundIndex];
-            console.log('🔄 Restored current conversation:', currentId);
-            
-            // Cập nhật URL
-            this.updateURL(currentId);
-            
-            // Khôi phục tin nhắn lên chat box
-            setTimeout(() => {
-              this.restoreMessagesToUI();
-            }, 500);
-            return true;
-          }
+        // 🔥 Disabled: we no longer restore old sessions on reload/revisit.
+        // Clear any persisted "current session" state so the UI starts fresh.
+        try {
+          sessionStorage.removeItem('agrisense_current_conversation_id');
+          localStorage.removeItem('agrisense_current_session');
+        } catch (e) {
+          // ignore
         }
-        
-        // ✅ Chỉ restore session nếu CHƯA LOGIN
-        // Nếu đã login, session sẽ được lưu vào permanent history khi đăng nhập
-        if (!isAuthenticated) {
-          const sessionData = localStorage.getItem('agrisense_current_session');
-          if (sessionData) {
-            try {
-              this.currentConversation = JSON.parse(sessionData);
-              console.log('📱 Restored temp session (chưa login):', this.currentConversation.id);
-              
-              // Lưu ID vào sessionStorage để track
-              sessionStorage.setItem('agrisense_current_conversation_id', this.currentConversation.id);
-              
-              // Cập nhật URL
-              this.updateURL(this.currentConversation.id);
-              
-              // Khôi phục tin nhắn lên chat box
-              setTimeout(() => {
-                this.restoreMessagesToUI();
-              }, 500);
-              return true;
-            } catch (e) {
-              console.error('❌ Lỗi restore session:', e);
-            }
-          }
-        } else {
-          console.log('⏭️ Skipped temp session (user already logged in)');
-        }
-        
+
+        this.currentConversation = null;
         return false;
       }
 
@@ -952,6 +911,34 @@
           console.warn('⚠️ Sync failed (non-critical):', err.message);
         });
       }
+    }
+
+    // 🆕 Always start fresh on each visit (do not auto-show old conversation)
+    // Keep the ability to continue a specific conversation via History -> Continue (agrisense_continue_conversation_id)
+    // or via URL ?c= (logged-in only).
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasConversationInUrl = !!urlParams.get('c');
+      const hasContinueFlag = !!localStorage.getItem('agrisense_continue_conversation_id');
+
+      if (!hasConversationInUrl && !hasContinueFlag) {
+        sessionStorage.removeItem('agrisense_current_conversation_id');
+        localStorage.removeItem('agrisense_current_session');
+        window.chatHistoryManager.currentConversation = null;
+
+        const chatBox = document.getElementById('chat-box');
+        if (chatBox) {
+          const welcomeMsg = chatBox.querySelector('.bg-green-100');
+          chatBox.innerHTML = '';
+          if (welcomeMsg) chatBox.appendChild(welcomeMsg);
+        }
+
+        // Clear URL param defensively
+        window.history.replaceState({}, '', window.location.pathname);
+        console.log('✨ Fresh start: cleared persisted current session');
+      }
+    } catch (e) {
+      console.warn('⚠️ Fresh start initialization failed:', e);
     }
 
     // Handle browser back/forward button
@@ -6662,7 +6649,7 @@
     } finally {
       // ALWAYS redirect, even if sync failed
       console.log('🔄 Redirecting to history.html...');
-      window.location.href = 'history.html';
+      window.location.href = '/history';
     }
   };
 

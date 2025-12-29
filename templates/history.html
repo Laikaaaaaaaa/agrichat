@@ -1033,21 +1033,27 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // 🔐 CHECK AUTHENTICATION - but allow guest users too
+        // 🔐 CHECK AUTHENTICATION
+        // If not logged in, redirect immediately to /login
         console.log('🔐 Checking authentication before loading history...');
         try {
             const response = await fetch('/api/auth/profile');
-            const data = await response.json();
-            
-            if (data.success && data.user) {
-                console.log('✅ User authenticated:', data.user.username);
-            } else {
-                // Guest user - allow them to continue
-                console.log('👤 Guest user detected, allowing access to session history');
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
             }
+
+            const data = await response.json();
+            if (!data.success || !data.user) {
+                window.location.href = '/login';
+                return;
+            }
+
+            console.log('✅ User authenticated:', data.user.username);
         } catch (error) {
-            // Network error or not logged in - guest user is OK
-            console.log('👤 No auth response, treating as guest user');
+            // On any unexpected error, be safe and redirect to login
+            window.location.href = '/login';
+            return;
         }
         
         // Load chat history normally on first page load (for both logged-in and guest)
@@ -1089,16 +1095,18 @@
     async function checkSessionAndRedirect() {
         try {
             const response = await fetch('/api/auth/profile');
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
             const data = await response.json();
-            
             if (!data.success || !data.user) {
-                // Session expired or user logged out - only redirect if was previously logged in
-                // Guest users don't need to be redirected
-                console.log('⚠️ User session invalid - guest user can continue');
+                window.location.href = '/login';
+                return;
             }
         } catch (error) {
-            // On error, allow guest user to continue
-            console.log('👤 Error checking session (guest user allowed):', error.message);
+            window.location.href = '/login';
         }
     }
     </script>

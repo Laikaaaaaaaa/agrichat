@@ -64,7 +64,8 @@ logging.basicConfig(
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HTML_FILE = os.path.join(HERE, 'index.html')
+TEMPLATES_DIR = os.path.join(HERE, 'templates')  # 📁 Template directory for HTML files
+HTML_FILE = os.path.join(TEMPLATES_DIR, 'index.html')
 
 # ============================================================================
 # 🔐 SECURITY: Rate Limiting for Brute Force Protection
@@ -4469,25 +4470,25 @@ def update_user_activity():
 @app.route('/login')
 def login():
     """Trang đăng nhập"""
-    return send_from_directory(HERE, 'login.html')
+    return send_from_directory(TEMPLATES_DIR, 'login.html')
 
 
 @app.route('/register')
 def register():
     """Trang đăng ký"""
-    return send_from_directory(HERE, 'register.html')
+    return send_from_directory(TEMPLATES_DIR, 'register.html')
 
 
 @app.route('/forgot_password')
 def forgot_password():
     """Trang quên mật khẩu"""
-    return send_from_directory(HERE, 'forgot_password.html')
+    return send_from_directory(TEMPLATES_DIR, 'forgot_password.html')
 
 
 @app.route('/otp')
 def otp():
     """Trang xác thực OTP"""
-    return send_from_directory(HERE, 'otp.html')
+    return send_from_directory(TEMPLATES_DIR, 'otp.html')
 
 
 @app.route('/logout')
@@ -4500,17 +4501,17 @@ def logout():
 @app.route('/profile')
 def profile_own():
     """Trang hồ sơ của chính mình"""
-    return send_from_directory(HERE, 'profile.html')
+    return send_from_directory(TEMPLATES_DIR, 'profile.html')
 
 @app.route('/profile/<identifier>')
 def profile_user(identifier):
     """Trang hồ sơ người dùng - accepts username.userid or user ID"""
-    return send_from_directory(HERE, 'profile.html')
+    return send_from_directory(TEMPLATES_DIR, 'profile.html')
 
 @app.route('/profile/c/<identifier>')
 def profile_other(identifier):
     """Trang hồ sơ người dùng khác - accepts username slug or user ID"""
-    return send_from_directory(HERE, 'profile.html')
+    return send_from_directory(TEMPLATES_DIR, 'profile.html')
 
 
 @app.route('/api/profile/user/<identifier>', methods=['GET'])
@@ -5196,13 +5197,13 @@ def mark_all_notifications_read():
 @app.route('/')
 def index():
     """Trang chủ"""
-    return send_from_directory(HERE, 'index.html')
+    return send_from_directory(TEMPLATES_DIR, 'index.html')
 
 
 @app.route('/news')
 def news():
     """Trang tin tức nông nghiệp"""
-    return send_from_directory(HERE, 'news.html')
+    return send_from_directory(TEMPLATES_DIR, 'news.html')
 
 
 @app.route('/api/classify-article', methods=['POST'])
@@ -5354,21 +5355,22 @@ def get_rss_feed():
 
 
 @app.route('/history')
+@auth.login_required
 def history():
     """Trang lịch sử hội thoại"""
-    return send_from_directory(HERE, 'history.html')
+    return send_from_directory(TEMPLATES_DIR, 'history.html')
 
 
 @app.route('/forum')
 def forum():
     """Trang diễn đàn nông nghiệp"""
-    return send_from_directory(HERE, 'forum.html')
+    return send_from_directory(TEMPLATES_DIR, 'forum.html')
 
 
 @app.route('/rate')
 def rate():
     """Trang đánh giá trang web"""
-    return send_from_directory(HERE, 'rate.html')
+    return send_from_directory(TEMPLATES_DIR, 'rate.html')
 
 
 
@@ -5376,7 +5378,7 @@ def rate():
 @app.route('/map_vietnam')
 def map_vietnam():
     """Trang bản đồ Việt Nam"""
-    return send_from_directory(HERE, 'map_vietnam.html')
+    return send_from_directory(TEMPLATES_DIR, 'map_vietnam.html')
 
 
 @app.route('/static/<path:filename>')
@@ -5395,14 +5397,17 @@ def js_files(filename):
 @app.route('/templates/<path:filename>')
 def template_files(filename):
     """Serve template files"""
-    return send_from_directory(os.path.join(HERE, 'templates'), filename)
+    return send_from_directory(TEMPLATES_DIR, filename)
 
 
 @app.route('/<path:filename>')
 def html_files(filename):
     """Serve HTML files directly"""
     if filename.endswith('.html'):
-        return send_from_directory(HERE, filename)
+        # Protect private pages that should require authentication
+        if filename in {'history.html'} and 'user_id' not in session:
+            return redirect('/login')
+        return send_from_directory(TEMPLATES_DIR, filename)
     # For non-HTML files, return 404 which will be caught by error handler
     from flask import abort
     abort(404)
@@ -8251,7 +8256,7 @@ def get_rating_comments(rating_id):
 def page_not_found(error):
     """Handle 404 Not Found errors - serve error page"""
     try:
-        return send_from_directory(HERE, 'error.html'), 404
+        return send_from_directory(TEMPLATES_DIR, 'error.html'), 404
     except:
         return f'<html><head><meta charset="utf-8"><title>404</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>404 - Không tìm thấy</h1><p>Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa.</p><a href="/">Quay về trang chủ</a></body></html>', 404
 
@@ -8259,7 +8264,7 @@ def page_not_found(error):
 def method_not_allowed(error):
     """Handle 405 Method Not Allowed errors"""
     try:
-        return send_from_directory(HERE, 'error.html'), 405
+        return send_from_directory(TEMPLATES_DIR, 'error.html'), 405
     except:
         return f'<html><head><meta charset="utf-8"><title>405</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>405 - Phương thức không được hỗ trợ</h1><p>HTTP method này không được phép cho tài nguyên này.</p><a href="/">Quay về trang chủ</a></body></html>', 405
 
@@ -8267,7 +8272,7 @@ def method_not_allowed(error):
 def bad_request(error):
     """Handle 400 Bad Request errors"""
     try:
-        return send_from_directory(HERE, 'error.html'), 400
+        return send_from_directory(TEMPLATES_DIR, 'error.html'), 400
     except:
         return f'<html><head><meta charset="utf-8"><title>400</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>400 - Yêu cầu không hợp lệ</h1><p>Dữ liệu gửi đi không đúng định dạng.</p><a href="/">Quay về trang chủ</a></body></html>', 400
 
@@ -8275,7 +8280,7 @@ def bad_request(error):
 def forbidden(error):
     """Handle 403 Forbidden errors"""
     try:
-        return send_from_directory(HERE, 'error.html'), 403
+        return send_from_directory(TEMPLATES_DIR, 'error.html'), 403
     except:
         return f'<html><head><meta charset="utf-8"><title>403</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>403 - Truy cập bị từ chối</h1><p>Bạn không có quyền truy cập tài nguyên này.</p><a href="/">Quay về trang chủ</a></body></html>', 403
 
@@ -8284,7 +8289,7 @@ def internal_error(error):
     """Handle 500 Internal Server errors"""
     logging.error(f"Internal Server Error: {error}")
     try:
-        return send_from_directory(HERE, 'error.html'), 500
+        return send_from_directory(TEMPLATES_DIR, 'error.html'), 500
     except:
         return f'<html><head><meta charset="utf-8"><title>500</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>500 - Lỗi máy chủ</h1><p>Server gặp lỗi nội bộ. Vui lòng thử lại sau.</p><a href="/">Quay về trang chủ</a></body></html>', 500
 
@@ -8292,7 +8297,7 @@ def internal_error(error):
 def bad_gateway(error):
     """Handle 502 Bad Gateway errors"""
     try:
-        return send_from_directory(HERE, 'error.html'), 502
+        return send_from_directory(TEMPLATES_DIR, 'error.html'), 502
     except:
         return f'<html><head><meta charset="utf-8"><title>502</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>502 - Bad Gateway</h1><p>Server gateway gặp lỗi.</p><a href="/">Quay về trang chủ</a></body></html>', 502
 
@@ -8300,7 +8305,7 @@ def bad_gateway(error):
 def service_unavailable(error):
     """Handle 503 Service Unavailable errors"""
     try:
-        return send_from_directory(HERE, 'error.html'), 503
+        return send_from_directory(TEMPLATES_DIR, 'error.html'), 503
     except:
         return f'<html><head><meta charset="utf-8"><title>503</title></head><body style="font-family:Arial;text-align:center;padding:50px"><h1>503 - Dịch vụ không khả dụng</h1><p>Server đang bảo trì. Vui lòng quay lại sau.</p><a href="/">Quay về trang chủ</a></body></html>', 503
 

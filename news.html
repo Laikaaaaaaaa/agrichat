@@ -1,0 +1,2552 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  <title>Tin tức Nông nghiệp - AgriSense AI</title>
+
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    /* WebView Optimization */
+    * {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      -webkit-touch-callout: none;
+    }
+    
+    /* Fix mobile viewport issues with Chrome address bar */
+    html {
+      height: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    
+    body {
+      min-height: 100%;
+      overflow-x: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Smooth scrolling for WebView */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevent text selection in WebView */
+    img {
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    
+    /* Better touch handling */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    
+    /* Custom animations - matching index.html */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in-up {
+      animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .news-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    
+    .news-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Modal animations */
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    #article-modal {
+      animation: modalFadeIn 0.3s ease-out;
+    }
+    
+    #article-modal > div {
+      animation: modalSlideIn 0.3s ease-out;
+    }
+    
+    /* Modal image column - smaller on mobile, full on desktop */
+    #modal-image-column {
+      min-height: 200px;
+      max-height: 250px;
+    }
+    
+    @media (min-width: 768px) {
+      #modal-image-column {
+        max-height: none;
+        height: auto;
+        flex: 1;
+      }
+      
+      /* Make image column sticky effect */
+      .md\:w-2\/5 {
+        display: flex;
+        flex-direction: column;
+      }
+    }
+    
+    .category-button {
+      transition: all 0.3s ease;
+    }
+    
+    .category-button.active {
+      background-color: #10b981;
+      color: white;
+    }
+    
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #10b981;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Line clamp utilities */
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-green-50 font-sans text-gray-700">
+  
+  <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
+    <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
+      <div class="flex items-center gap-3">
+        
+        <button onclick="goBack()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        
+        <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="h-12 md:h-14 w-auto object-contain">
+      </div>
+      <span class="text-xs md:text-sm text-gray-500 hidden md:block">Tin tức nông nghiệp thông minh</span>
+      <div class="flex items-center gap-2 md:gap-4">
+        <span id="header-status" class="text-xs md:text-sm text-green-500">
+          <i class="fas fa-spinner fa-spin mr-1"></i>Đang tải tin tức...
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="w-full px-2 md:px-4 relative">
+    
+    <main class="bg-white shadow-lg rounded-2xl p-3 md:p-6 flex flex-col w-full relative mx-auto max-w-7xl mt-4 mb-4">
+
+      <div class="text-center mb-6 md:mb-8 pb-4 border-b border-gray-100">
+        <h1 class="text-2xl md:text-3xl font-bold text-green-800 mb-3">
+          <i class="fas fa-newspaper text-green-600 mr-3"></i>
+          <span id="page-title">Tin tức Nông nghiệp</span>
+        </h1>
+        <p class="text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
+          Cập nhật những tin tức mới nhất về nông nghiệp, công nghệ, khí hậu và chăn nuôi
+        </p>
+      </div>
+
+      <div class="mb-6 space-y-4">
+        
+        <div class="flex justify-center">
+          <div class="relative w-full max-w-md">
+            <input 
+              type="text" 
+              id="search-input"
+              placeholder="Tìm kiếm tin tức..." 
+              spellcheck="false"
+              class="w-full pl-10 pr-20 py-3 border-2 border-green-200 rounded-xl focus:ring-2 focus:ring-green-400 focus:border-green-500 shadow-sm text-sm md:text-base"
+            />
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+
+            <button id="clear-search" onclick="clearSearch()" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors hidden">
+              <i class="fas fa-times"></i>
+            </button>
+
+            <button onclick="searchNews()" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors">
+              <i class="fas fa-search text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="search-results-info" class="text-center text-sm text-gray-600 hidden">
+          <i class="fas fa-info-circle mr-1"></i>
+          <span id="search-results-text"></span>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-2 md:gap-3">
+          <button class="category-button active px-3 md:px-4 py-2 rounded-full border-2 border-green-500 hover:border-green-600 text-xs md:text-sm font-medium transition-colors" data-category="all">
+            <i class="fas fa-globe-americas mr-1"></i>
+            Tất cả
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="agriculture">
+            <i class="fas fa-seedling mr-1"></i>
+            Nông nghiệp
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="technology">
+            <i class="fas fa-microchip mr-1"></i>
+            Công nghệ
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="climate">
+            <i class="fas fa-cloud mr-1"></i>
+            Khí hậu
+          </button>
+          <button class="category-button px-3 md:px-4 py-2 rounded-full border-2 border-green-300 hover:border-green-500 text-xs md:text-sm font-medium transition-colors" data-category="livestock">
+            <i class="fa-solid fa-cow mr-1"></i>
+            Chăn nuôi
+          </button>
+        </div>
+      </div>
+
+      <div id="loading" class="text-center py-12">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 text-sm md:text-base">Đang tải tin tức...</p>
+      </div>
+
+      <div id="news-container" class="hidden flex-1 overflow-auto" style="min-height: 0;">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
+          
+        </div>
+      </div>
+
+      <div id="no-results" class="text-center py-12 hidden">
+        <i class="fas fa-newspaper text-gray-300 text-4xl md:text-6xl mb-4"></i>
+        <h3 class="text-lg md:text-xl font-semibold text-gray-600 mb-2">Không tìm thấy tin tức</h3>
+        <p class="text-sm md:text-base text-gray-500">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác</p>
+      </div>
+
+      <div class="text-center mt-6 pt-4 border-t border-gray-100">
+        <button id="load-more" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-sm">
+          <i class="fas fa-plus mr-2"></i>
+          Tải thêm tin tức
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <div id="article-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="closeArticleModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+      
+      <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fas fa-newspaper"></i>
+          <span>Chi tiết bài báo</span>
+        </h2>
+        <button onclick="closeArticleModal()" class="text-white hover:text-gray-200 transition-colors">
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-col md:flex-row flex-1 overflow-hidden">
+        
+        <div class="hidden md:flex md:w-2/5 flex-shrink-0 bg-gray-50 overflow-hidden flex-col">
+          <div id="modal-image-column" class="flex-shrink-0 relative">
+            
+          </div>
+
+          <div id="modal-actions-desktop" class="flex gap-3 p-4 bg-gray-100 border-t border-gray-200">
+            
+          </div>
+        </div>
+
+        <div id="modal-content" class="flex-1 overflow-y-auto p-6" style="max-height: calc(95vh - 120px);">
+          
+        </div>
+      </div>
+
+      <div id="modal-actions-mobile" class="md:hidden border-t border-gray-200 px-4 py-3 bg-gray-50 flex-shrink-0">
+        
+      </div>
+    </div>
+  </div>
+
+  <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onclick="closeShareModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden" onclick="event.stopPropagation()">
+      
+      <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 text-center">
+        <h3 class="text-lg font-semibold text-white">Chia sẻ bài viết</h3>
+      </div>
+
+      <div class="p-8">
+        <div id="share-options" class="flex justify-center items-center gap-4 flex-wrap">
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-green-100 border-t border-green-200 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="text-center">
+        <p class="text-sm text-gray-600">© 2025 AgriSense AI. Tất cả quyền được bảo lưu.</p>
+        <p class="text-xs text-gray-500 mt-1">Chuyên gia tư vấn nông nghiệp thông minh</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // News API Configuration
+    const newsAPIs = [
+      'df2bad590b1349e980a3123efe8b26b8',
+      '09479cf1408a4221a37bb8eeb4944d57',
+      'ac9afdf035ae40a6aac44a3e9bbdb676',
+      'b2631d135606454b90e5f91a4b65c005'
+    ];
+    
+    // Vietnamese RSS feeds for agriculture and related news
+    const vietnameseRSSFeeds = [
+      // Nông nghiệp môi trường ONLY - 9 feeds
+      {
+        name: "Nông nghiệp Môi trường - Chăn nuôi",
+        url: "https://nongnghiepmoitruong.vn/chan-nuoi.rss",
+        category: "livestock"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Tái cơ cấu",
+        url: "https://nongnghiepmoitruong.vn/tai-co-cau-nong-nghiep.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Khuyến nông",
+        url: "https://nongnghiepmoitruong.vn/khuyen-nong.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - KHCN",
+        url: "https://nongnghiepmoitruong.vn/khoa-hoc---cong-nghe.rss",
+        category: "technology"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Thị trường",
+        url: "https://nongnghiepmoitruong.vn/thi-truong.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Kinh doanh",
+        url: "https://nongnghiepmoitruong.vn/kinh-doanh.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Thời sự",
+        url: "https://nongnghiepmoitruong.vn/thoi-su.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Video",
+        url: "https://nongnghiepmoitruong.vn/video.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Nông nghiệp Môi trường - Tất cả",
+        url: "https://nongnghiepmoitruong.vn/rss",
+        category: "agriculture"
+      },
+      
+      // Báo lớn - Môi trường / Nông nghiệp
+      {
+        name: "VnExpress - Môi trường",
+        url: "https://vnexpress.net/rss/moi-truong.rss",
+        category: "climate"
+      },
+      {
+        name: "VnExpress - Nông nghiệp",
+        url: "https://vnexpress.net/tag/nong-nghiep.rss",
+        category: "agriculture"
+      },
+      {
+        name: "Tuổi Trẻ - Môi trường",
+        url: "https://tuoitre.vn/rss/moi-truong.rss",
+        category: "climate"
+      },
+      {
+        name: "VietnamNet - Môi trường",
+        url: "https://vietnamnet.vn/rss/moi-truong.rss",
+        category: "climate"
+      },
+      
+      // Moitruong.net.vn - 5 feeds chuyên sâu
+      {
+        name: "Môi trường - Biến đổi khí hậu",
+        url: "https://moitruong.net.vn/rss/tin-tuc/bien-doi-khi-hau",
+        category: "climate"
+      },
+      {
+        name: "Môi trường - An ninh nguồn nước",
+        url: "https://moitruong.net.vn/rss/nuoc-va-cuoc-song/an-ninh-nguon-nuoc",
+        category: "climate"
+      },
+      {
+        name: "Môi trường - Ô nhiễm",
+        url: "https://moitruong.net.vn/rss/moi-truong-tai-nguyen/o-nhiem-moi-truong",
+        category: "climate"
+      },
+      {
+        name: "Môi trường - Vấn đề hôm nay",
+        url: "https://moitruong.net.vn/rss/tin-tuc/van-de-hom-nay",
+        category: "climate"
+      },
+      {
+        name: "Môi trường - Kinh tế xanh",
+        url: "https://moitruong.net.vn/rss/kinh-te-xanh/chuyen-doi-xanh",
+        category: "climate"
+      }
+    ];
+    
+    let currentAPIIndex = 0;
+    let currentCategory = 'all';
+    let currentPage = 1;
+    let allNews = [];
+    let vietnameseNews = [];
+    let isLoading = false;
+    let hasMoreNews = true;
+    
+    // NEW: Track loading state for progressive display
+    let currentDisplayCount = 0; // Số bài đang hiển thị
+    let loadedFeedsCount = 0;    // Số RSS feeds đã load
+    let allLoadedArticles = [];  // Tất cả bài đã load (chưa filter)
+    const ARTICLES_PER_PAGE = 10;
+    
+    // Animated loading messages
+    const loadingMessages = [
+      'Đang tải tin tức...',
+      'Chờ một chút nhé...',
+      'Sắp xong rồi...',
+      'Gần xong rồi, đừng rời đi nhé...',
+      'Đang xuất ra...',
+      'Xong ngay bây giờ...'
+    ];
+    let loadingMessageIndex = 0;
+    let loadingMessageInterval = null;
+    
+    // Cache cho từng danh mục để giảm lag
+    let categoryCache = {
+      all: [],
+      agriculture: [],
+      technology: [],
+      climate: [],
+      livestock: []
+    };
+
+    // Update header status message
+    function updateHeaderStatus(message, isLoading = false) {
+      const headerStatus = document.getElementById('header-status');
+      if (headerStatus) {
+        if (isLoading) {
+          headerStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i>${message}`;
+          headerStatus.className = 'text-xs md:text-sm text-green-500';
+        } else {
+          headerStatus.innerHTML = `<i class="fas fa-check-circle mr-1"></i>${message}`;
+          headerStatus.className = 'text-xs md:text-sm text-green-600 font-medium';
+        }
+      }
+    }
+
+    // Category keywords mapping - Enhanced để phân biệt rõ ràng các danh mục
+    const categoryKeywords = {
+      agriculture: [
+        // Tiếng Việt
+        'nông nghiệp', 'nông dân', 'trồng trọt', 'cây trồng', 'lúa', 'gạo', 'rau củ', 'hoa màu', 
+        'giống cây', 'phân bón', 'thuốc trừ sâu', 'tưới tiêu', 'đất nông nghiệp', 'nông sản',
+        'xuất khẩu nông sản', 'an toàn thực phẩm', 'nông nghiệp hữu cơ', 'nông nghiệp sạch',
+        // Tiếng Anh
+        'farming', 'agriculture', 'crop', 'harvest', 'soil', 'seed', 'irrigation', 'pesticide', 
+        'rice', 'corn', 'wheat', 'vegetable', 'organic farming', 'sustainable agriculture'
+      ],
+      technology: [
+        // Tiếng Việt
+        'công nghệ', 'trí tuệ nhân tạo', 'AI', 'drone', 'robot', 'cảm biến', 'IoT', 'thông minh',
+        'tự động hóa', 'khoa học', 'nghiên cứu', 'phát minh', 'khám phá', 'startup', 'số hóa',
+        'blockchain', 'big data', 'machine learning', 'nông nghiệp thông minh',
+        // Tiếng Anh
+        'technology', 'innovation', 'digital', 'smart', 'automation', 'artificial intelligence', 
+        'precision agriculture', 'sensor', 'IoT', 'robotics', 'drone technology'
+      ],
+      climate: [
+        // Tiếng Việt
+        'khí hậu', 'thời tiết', 'nhiệt độ', 'mưa', 'hạn hán', 'lũ lụt', 'bão', 'biến đổi khí hậu',
+        'ô nhiễm', 'môi trường', 'khí thải', 'carbon', 'hiệu ứng nhà kính', 'năng lượng tái tạo',
+        'bảo vệ môi trường', 'sinh thái', 'đa dạng sinh học', 'rừng', 'sa mạc hóa',
+        // Tiếng Anh
+        'climate', 'weather', 'temperature', 'rainfall', 'drought', 'flood', 'global warming', 
+        'climate change', 'monsoon', 'pollution', 'environment', 'carbon emissions', 'renewable energy'
+      ],
+      livestock: [
+        // Tiếng Việt
+        'chăn nuôi', 'bò', 'heo', 'lợn', 'gà', 'vịt', 'cừu', 'dê', 'trâu', 'ngựa', 'thịt', 'sữa',
+        'trứng', 'gia súc', 'gia cầm', 'thức ăn chăn nuôi', 'vaccine', 'bệnh động vật',
+        'trang trại', 'chăn nuôi công nghiệp', 'an toàn sinh học', 'giết mổ', 'chế biến thịt',
+        // Tiếng Anh
+        'livestock', 'cattle', 'pig', 'chicken', 'dairy', 'meat', 'animal', 'poultry', 
+        'beef', 'pork', 'eggs', 'farm animals', 'animal husbandry', 'veterinary'
+      ]
+    };
+
+    // Enhanced similarity calculation function for duplicate detection
+    function calculateSimilarity(str1, str2) {
+      if (!str1 || !str2) return 0;
+      if (str1 === str2) return 1;
+      
+      // Normalize strings
+      const s1 = str1.toLowerCase().trim().replace(/[^\w\s]/g, '');
+      const s2 = str2.toLowerCase().trim().replace(/[^\w\s]/g, '');
+      
+      if (s1 === s2) return 1;
+      
+      // Calculate Levenshtein distance
+      const matrix = [];
+      const len1 = s1.length;
+      const len2 = s2.length;
+      
+      if (len1 === 0) return len2 === 0 ? 1 : 0;
+      if (len2 === 0) return 0;
+      
+      // Initialize matrix
+      for (let i = 0; i <= len1; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= len2; j++) {
+        matrix[0][j] = j;
+      }
+      
+      // Calculate distances
+      for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+          const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,      // deletion
+            matrix[i][j - 1] + 1,      // insertion
+            matrix[i - 1][j - 1] + cost // substitution
+          );
+        }
+      }
+      
+      const maxLen = Math.max(len1, len2);
+      const distance = matrix[len1][len2];
+      
+      return 1 - (distance / maxLen);
+    }
+
+    // Additional function to normalize article data and reduce duplicates
+    function normalizeArticle(article) {
+      return {
+        ...article,
+        title: article.title ? article.title.trim().replace(/\s+/g, ' ') : '',
+        description: article.description ? article.description.trim().replace(/\s+/g, ' ') : '',
+        normalizedTitle: article.title ? article.title.toLowerCase().replace(/[^\w\s]/g, '').trim() : ''
+      };
+    }
+
+    // Enhanced duplicate detection for RSS feeds
+    // Filter articles to keep only those from last 7 days
+    function filterArticlesByDate(articles) {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentArticles = articles.filter(article => {
+        if (!article.publishedAt) return false;
+        
+        const publishDate = new Date(article.publishedAt);
+        return publishDate >= sevenDaysAgo;
+      });
+      
+      console.log(`📅 Lọc theo ngày: ${articles.length} bài → ${recentArticles.length} bài (từ 7 ngày trở lại)`);
+      return recentArticles;
+    }
+
+    function removeDuplicatesFromFeed(articles) {
+      const seen = new Set();
+      const uniqueArticles = [];
+      
+      for (const article of articles) {
+        const normalized = normalizeArticle(article);
+        const titleKey = normalized.normalizedTitle;
+        const urlKey = article.url;
+        
+        // Check if we've seen this title or URL before
+        if (!seen.has(titleKey) && !seen.has(urlKey)) {
+          // Additional check against existing articles for similarity
+          const isDuplicate = uniqueArticles.some(existing => {
+            return calculateSimilarity(existing.normalizedTitle, normalized.normalizedTitle) > 0.75 ||
+                   (existing.url === article.url) ||
+                   (existing.description && article.description && 
+                    calculateSimilarity(existing.description.toLowerCase(), article.description.toLowerCase()) > 0.8);
+          });
+          
+          if (!isDuplicate) {
+            seen.add(titleKey);
+            seen.add(urlKey);
+            uniqueArticles.push(normalized);
+          }
+        }
+      }
+      
+      return uniqueArticles;
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Initialize clock
+      updateClock();
+      setInterval(updateClock, 1000);
+      
+      // Setup event listeners first
+      setupEventListeners();
+      
+      // Get URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const categoryParam = urlParams.get('category');
+      const typeParam = urlParams.get('type');
+      
+      // Set initial category if provided
+      if (categoryParam && categoryParam !== 'all') {
+        currentCategory = categoryParam;
+        // Update active button
+        document.querySelectorAll('.category-button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        const targetButton = document.querySelector(`[data-category="${categoryParam}"]`);
+        if (targetButton) {
+          targetButton.classList.add('active');
+        }
+      }
+      
+      // Update page title if type is provided
+      if (typeParam) {
+        document.getElementById('page-title').textContent = typeParam;
+        document.title = `${typeParam} - AgriSense AI`;
+      }
+      
+      // Show loading state
+      showLoading();
+      updateHeaderStatus('Đang tải tin tức từ RSS...', true);
+      console.log('🚀 Bắt đầu tải tin tức từ RSS2JSON...');
+      
+      // === ƯU TIÊN: Load RSS ngay lập tức ===
+      // Không chờ lâu, load RSS với rss2json ngay
+      loadVietnameseNews().then(() => {
+        console.log(`✅ Load xong! ${vietnameseNews.length} bài`);
+        filterAndDisplayNews();
+        hideLoading();
+      }).catch(error => {
+        console.error('❌ Lỗi load:', error);
+        hideLoading();
+        showNoResults();
+      });
+      
+      // Update status sau 5s
+      setTimeout(() => {
+        if (vietnameseNews.length > 0) {
+          console.log(`📊 ${vietnameseNews.length} bài báo đã load`);
+          updateHeaderStatus(`${vietnameseNews.length} tin tức`, false);
+        }
+      }, 5000);
+    });
+
+    // Fetch Vietnamese RSS feeds - PROGRESSIVE LOADING with random mix
+    async function loadVietnameseNews() {
+      console.log('🚀 Đang tải tin tức Việt Nam (ngẫu nhiên hoàn toàn)...');
+      
+      try {
+        // Shuffle all feeds FIRST để load ngẫu nhiên
+        let shuffledFeeds = shuffleArray([...vietnameseRSSFeeds]);
+        
+        console.log(`📋 Load từ ${shuffledFeeds.length} nguồn (xáo trộn)...`);
+        
+        // Store shuffled feeds for progressive loading
+        window.allFeeds = shuffledFeeds;
+        
+        // Load first 15 feeds for initial display (enough for 100+ articles)
+        const initialBatch = window.allFeeds.slice(0, 15);
+        window.remainingFeeds = window.allFeeds.slice(15);
+        
+        console.log(`⚡ Batch 1: Load ${initialBatch.length} nguồn...`);
+        console.log(`Các nguồn: ${initialBatch.map(f => f.name).join(', ')}`);
+        
+        // Load batch 1 feeds in parallel
+        const feedPromises = initialBatch.map(feed => loadSingleFeed(feed));
+        const results = await Promise.allSettled(feedPromises);
+        
+        // Collect articles from batch 1
+        results.forEach(result => {
+          if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
+            allLoadedArticles = [...allLoadedArticles, ...result.value];
+          }
+        });
+        
+        // Remove duplicates
+        allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        
+        // SHUFFLE articles by source randomly
+        allLoadedArticles = shuffleBySource(allLoadedArticles);
+        
+        vietnameseNews = [...allLoadedArticles];
+        loadedFeedsCount = initialBatch.length;
+        
+        console.log(`✅ Batch 1 xong: ${vietnameseNews.length} bài (ngẫu nhiên từ ${loadedFeedsCount} nguồn)`);
+        console.log(`📦 Còn ${window.remainingFeeds.length} feeds chờ load`);
+        
+      } catch (error) {
+        console.error('❌ Lỗi tải tin:', error);
+      }
+    }
+    
+    // Shuffle array function - xáo trộn ngẫu nhiên
+    function shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+    
+    // Shuffle by source - đảm bảo báo xen kẽ nhau
+    function shuffleBySource(articles) {
+      // Group articles by source
+      const bySource = {};
+      articles.forEach(article => {
+        const source = article.source || 'Unknown';
+        if (!bySource[source]) bySource[source] = [];
+        bySource[source].push(article);
+      });
+      
+      // Mix articles round-robin: lấy 1 từ báo A, 1 từ báo B, 1 từ báo C, etc.
+      const sources = Object.keys(bySource);
+      const result = [];
+      let maxLength = Math.max(...sources.map(s => bySource[s].length));
+      
+      for (let i = 0; i < maxLength; i++) {
+        for (const source of sources) {
+          if (bySource[source][i]) {
+            result.push(bySource[source][i]);
+          }
+        }
+      }
+      
+      return result;
+    }
+    
+    // Load a single RSS feed - UỨU TIÊN rss2json, bỏ /api/rss-parse
+    async function loadSingleFeed(feed) {
+      console.log(`📥 Đang tải: ${feed.name} từ backend Python...`);
+      
+      try {
+        // Gọi backend Python API để load RSS
+        const response = await fetch(`/api/fetch-rss-feeds?url=${encodeURIComponent(feed.url)}`, {
+          timeout: 15000,
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          console.warn(`   ⚠️ Backend trả về ${response.status}, fallback sang rss2json...`);
+          return await loadSingleFeedFallback(feed);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.items || data.items.length === 0) {
+          console.warn(`   ⚠️ ${feed.name}: không có bài viết từ backend`);
+          return await loadSingleFeedFallback(feed);
+        }
+        
+        // Chuyển đổi format từ backend
+        let newsItems = data.items.map(item => {
+          let description = item.description || '';
+          if (description) {
+            description = description.replace(/<[^>]*>/g, '').substring(0, 300);
+          }
+          
+          return {
+            title: item.title || '',
+            description: description || 'Không có mô tả',
+            url: item.link || '',
+            urlToImage: item.thumbnail || item.image || getImageFromItem(item, feed.name),
+            publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
+            source: { name: feed.name },
+            content: item.content || description,
+            category: feed.category,
+            isVietnamese: true,
+            priority: feed.category === 'agriculture' ? 1 : 2,
+            guid: item.guid || item.link
+          };
+        });
+        
+        // Filter to keep only recent articles (7 days)
+        newsItems = filterArticlesByDate(newsItems);
+        
+        if (newsItems.length > 0) {
+          console.log(`✅ ${feed.name}: ${newsItems.length} bài (từ backend)`);
+          return newsItems;
+        }
+        
+      } catch (error) {
+        console.warn(`   ⚠️ Backend error: ${error.message}, fallback sang rss2json...`);
+      }
+      
+      // Fallback to rss2json if backend fails
+      return await loadSingleFeedFallback(feed);
+    }
+    
+    // Fallback function để dùng rss2json nếu backend fail
+    async function loadSingleFeedFallback(feed) {
+      console.log(`   🔄 Fallback: ${feed.name} dùng rss2json...`);
+      
+      const rssServices = [
+        {
+          url: `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=99`,
+          name: 'rss2json.com'
+        },
+        {
+          url: `https://rss2json.com/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=bhqojjrpwu79kwhljjcj20c2c3s7ycpwmq0ldyjb&count=99`,
+          name: 'rss2json.com (backup)'
+        }
+      ];
+      
+      for (const service of rssServices) {
+        try {
+          console.log(`     🔗 Thử ${service.name}...`);
+          const response = await fetch(service.url, { 
+            timeout: 8000,
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          if (!response.ok) {
+            console.warn(`     ⚠️ ${service.name} trả về ${response.status}`);
+            continue;
+          }
+          
+          const data = await response.json();
+          
+          if (data.status !== 'ok') {
+            console.warn(`     ⚠️ ${service.name} status: ${data.status}`);
+            continue;
+          }
+          
+          if (!data.items || data.items.length === 0) {
+            console.warn(`     ⚠️ ${feed.name}: không có bài viết`);
+            continue;
+          }
+          
+          const newsItems = data.items.map(item => {
+            let description = item.description || '';
+            if (description) {
+              description = description.replace(/<[^>]*>/g, '').substring(0, 300);
+            }
+            
+            return {
+              title: item.title || '',
+              description: description || 'Không có mô tả',
+              url: item.link || '',
+              urlToImage: item.thumbnail || getImageFromItem(item, feed.name),
+              publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
+              source: { name: feed.name },
+              content: item.content || description,
+              category: feed.category,
+              isVietnamese: true,
+              priority: feed.category === 'agriculture' ? 1 : 2,
+              guid: item.guid || item.link
+            };
+          });
+          
+          // Filter to keep only recent articles (7 days)
+          let filteredItems = filterArticlesByDate(newsItems);
+          
+          // For Dân Trí, filter out articles without images
+          if (feed.name.includes('Dân Trí')) {
+            const originalCount = filteredItems.length;
+            filteredItems = filteredItems.filter(item => item.urlToImage && item.urlToImage.trim() !== '');
+            if (filteredItems.length === 0) {
+              console.log(`⚠️ Dân Trí (fallback): tất cả bài đều không có ảnh`);
+              continue;
+            }
+            if (filteredItems.length < originalCount) {
+              console.log(`📸 Dân Trí (fallback): lọc bài không ảnh: ${originalCount} → ${filteredItems.length}`);
+            }
+          }
+          
+          if (filteredItems.length > 0) {
+            console.log(`✅ ${feed.name}: ${filteredItems.length} bài (từ rss2json fallback)`);
+            return filteredItems;
+          }
+          
+        } catch (error) {
+          console.warn(`     ⚠️ ${service.name} lỗi: ${error.message}`);
+          continue;
+        }
+      }
+      
+      console.error(`❌ Không tải được ${feed.name}`);
+      return [];
+    }
+    
+    // Load more feeds when user clicks "Load More"
+    async function loadMoreFeeds() {
+      if (!window.remainingFeeds || window.remainingFeeds.length === 0) {
+        console.log('❌ Không còn nguồn RSS để load');
+        hasMoreNews = false;
+        return false;
+      }
+      
+      if (isLoading) {
+        console.log('⏳ Đang load, chờ tí...');
+        return false;
+      }
+      
+      isLoading = true;
+      
+      try {
+        updateHeaderStatus('Đang tải thêm tin tức...', true);
+        
+        // Load next batch of feeds (5 feeds at a time) - keep trying until we get new articles
+        let articlesBeforeLoad = allLoadedArticles.length;
+        let feedsLoadedThisBatch = 0;
+        let maxAttemptsPerBatch = 10;  // Try up to 10 feeds to get new content
+        
+        while (feedsLoadedThisBatch < 5 && window.remainingFeeds.length > 0 && feedsLoadedThisBatch < maxAttemptsPerBatch) {
+          const nextFeed = window.remainingFeeds.shift();  // Pop first remaining feed
+          
+          console.log(`📥 Loading feed: ${nextFeed.name}...`);
+          
+          try {
+            const articles = await loadSingleFeed(nextFeed);
+            
+            if (articles && articles.length > 0) {
+              console.log(`✅ Got ${articles.length} articles from ${nextFeed.name}`);
+              allLoadedArticles = [...allLoadedArticles, ...articles];
+              feedsLoadedThisBatch++;
+            } else {
+              console.log(`⚠️ ${nextFeed.name} returned no articles, skipping`);
+            }
+          } catch (err) {
+            console.warn(`❌ Error loading ${nextFeed.name}:`, err);
+            continue;  // Skip this feed and try next
+          }
+        }
+        
+        // Remove duplicates
+        const beforeDedup = allLoadedArticles.length;
+        allLoadedArticles = removeDuplicatesFromFeed(allLoadedArticles);
+        const afterDedup = allLoadedArticles.length;
+        
+        console.log(`📊 Deduplicated: ${beforeDedup} → ${afterDedup} articles`);
+        
+        // SHUFFLE by source để xen kẽ báo
+        allLoadedArticles = shuffleBySource(allLoadedArticles);
+        
+        vietnameseNews = [...allLoadedArticles];
+        loadedFeedsCount += feedsLoadedThisBatch;
+        
+        // Clear cache to force refresh
+        categoryCache = {
+          all: [],
+          agriculture: [],
+          technology: [],
+          climate: [],
+          livestock: []
+        };
+        
+        const newArticles = allLoadedArticles.length - articlesBeforeLoad;
+        console.log(`✅ Loaded ${feedsLoadedThisBatch} feeds, ${newArticles} new articles`);
+        console.log(`📊 Total: ${loadedFeedsCount} feeds, ${vietnameseNews.length} articles`);
+        
+        if (newArticles > 0) {
+          updateHeaderStatus(`${vietnameseNews.length} tin tức mới nhất`, false);
+          return true;
+        } else {
+          console.log('⚠️ No new articles found, marking as no more content');
+          hasMoreNews = false;
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Error in loadMoreFeeds:', error);
+        return false;
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    // Extract default image based on feed/category
+    function extractDefaultImage(feedName) {
+      const defaultImages = {
+        'vnexpress': 'https://i.vnexpress.net/files/f1/2021/05/12/vnexpress-favicon-16x16.png',
+        'zing': 'https://zing.vn/favicon.ico',
+        'dantri': 'https://dantri.com.vn/favicon.ico',
+        'thanhnien': 'https://thanhnien.vn/favicon.ico',
+        'thoibao': 'https://thoibao.vn/favicon.ico',
+        'tuoitre': 'https://tuoitre.vn/favicon.ico',
+        'nông nghiệp': 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop',
+        'môi trường': 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=300&h=200&fit=crop',
+        'livestock': 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=300&h=200&fit=crop',
+        'agriculture': 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop'
+      };
+      
+      // Try exact match first
+      if (defaultImages[feedName.toLowerCase()]) {
+        return defaultImages[feedName.toLowerCase()];
+      }
+      
+      // Try partial match
+      for (const [key, url] of Object.entries(defaultImages)) {
+        if (feedName.toLowerCase().includes(key)) {
+          return url;
+        }
+      }
+      
+      // Default agriculture image
+      return 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop';
+    }
+
+    // Enhanced image extraction function with Vietnamese agriculture focus
+    function getImageFromItem(item, feedName) {
+      // Try multiple sources for images
+      let imageUrl = null;
+      
+      // 1. Try thumbnail
+      if (item.thumbnail) {
+        imageUrl = item.thumbnail;
+      }
+      // 2. Try enclosure
+      else if (item.enclosure && item.enclosure.link) {
+        imageUrl = item.enclosure.link;
+      }
+      // 3. Try extracting from content with priority for Vietnamese sources
+      else if (item.content) {
+        imageUrl = extractImageFromContent(item.content);
+      }
+      // 4. Try extracting from description
+      else if (item.description) {
+        imageUrl = extractImageFromContent(item.description);
+      }
+      
+      // 5. Try media:content or other RSS image tags
+      if (!imageUrl && item['media:content']) {
+        imageUrl = item['media:content']['@_url'] || item['media:content'].url;
+      }
+      
+      // 6. Use high-quality agriculture images based on content/feed
+      if (!imageUrl) {
+        imageUrl = getAgricultureImageByContent(item, feedName);
+      }
+      
+      return imageUrl;
+    }
+
+    // Get agriculture-specific images based on content
+    function getAgricultureImageByContent(item, feedName) {
+      const title = (item.title || '').toLowerCase();
+      const description = (item.description || '').toLowerCase();
+      const content = title + ' ' + description;
+      
+      // Vietnamese agriculture-specific images
+      if (content.includes('lúa') || content.includes('gạo')) {
+        return 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('rau') || content.includes('củ')) {
+        return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('bò') || content.includes('sữa')) {
+        return 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('heo') || content.includes('lợn')) {
+        return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('gà') || content.includes('trứng')) {
+        return 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('cá') || content.includes('tôm') || content.includes('thủy sản')) {
+        return 'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('môi trường') || content.includes('khí hậu')) {
+        return 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('công nghệ') || content.includes('ai') || content.includes('drone')) {
+        return 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=200&fit=crop&auto=format';
+      }
+      if (content.includes('hữu cơ') || content.includes('sạch')) {
+        return 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&h=200&fit=crop&auto=format';
+      }
+      
+      // Feed-specific high-quality images for Vietnamese sources
+      const feedImages = {
+        'VnExpress': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=200&fit=crop&auto=format',
+        'Tuổi Trẻ': 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=400&h=200&fit=crop&auto=format',
+        'Thanh Niên': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+        'Dân trí': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=200&fit=crop&auto=format',
+        'VTC': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
+        'Nông nghiệp': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+        'Môi trường': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format'
+      };
+      
+      for (const [key, img] of Object.entries(feedImages)) {
+        if (feedName.includes(key)) {
+          return img;
+        }
+      }
+      
+      // Default high-quality agriculture image
+      return 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format';
+    }
+
+    // Helper function to extract image from content
+    function extractImageFromContent(content) {
+      if (!content) return null;
+      
+      // Try multiple image extraction patterns
+      const imgPatterns = [
+        /<img[^>]+src="([^"]+)"/i,
+        /<img[^>]+src='([^']+)'/i,
+        /src="([^"]*\.(jpg|jpeg|png|gif|webp)[^"]*)"/i,
+        /src='([^']*\.(jpg|jpeg|png|gif|webp)[^']*)'/i,
+        /<media:content[^>]+url="([^"]+)"/i,
+        /<enclosure[^>]+url="([^"]+)"/i
+      ];
+      
+      for (const pattern of imgPatterns) {
+        const match = content.match(pattern);
+        if (match && match[1]) {
+          // Validate URL
+          try {
+            const url = new URL(match[1]);
+            if (url.protocol === 'http:' || url.protocol === 'https:') {
+              return match[1];
+            }
+          } catch (e) {
+            // If it's a relative URL, try to make it absolute
+            if (match[1].startsWith('/')) {
+              return 'https:' + match[1];
+            }
+          }
+        }
+      }
+      
+      return null;
+    }
+
+    // Generate category-specific Vietnamese news with maximum diversity
+    function generateCategorySpecificNews(category, count = 20) {
+      const categoryNews = {
+        agriculture: [
+          {
+            title: 'Nông dân Đồng bằng sông Cửu Long ứng dụng AI trong sản xuất lúa',
+            description: 'Hệ thống trí tuệ nhân tạo giúp dự báo sâu bệnh, tối ưu hóa lượng phân bón và tăng năng suất lúa lên 30%...',
+            urlToImage: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Trồng rau thủy canh trong nhà kính - mô hình hiệu quả cao',
+            description: 'Công nghệ trồng rau không đất giúp tiết kiệm 90% nước, tăng năng suất gấp 4 lần và không sử dụng thuốc trừ sâu...',
+            urlToImage: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Xuất khẩu gạo Việt Nam vượt mốc 8,5 triệu tấn năm 2025',
+            description: 'Với chất lượng cao và giá cạnh tranh, gạo Việt Nam tiếp tục dẫn đầu thị trường xuất khẩu toàn cầu...',
+            urlToImage: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Nông nghiệp hữu cơ - xu hướng bền vững của tương lai',
+            description: 'Diện tích canh tác hữu cơ tăng 25% mỗi năm, đáp ứng nhu cầu thực phẩm sạch của người tiêu dùng...',
+            urlToImage: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Chăn nuôi bò sữa công nghệ cao tại Việt Nam phát triển mạnh',
+            description: 'Trang trại bò sữa hiện đại với hệ thống tự động hóa hoàn toàn đang mang lại hiệu quả kinh tế cao...',
+            urlToImage: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Nuôi tôm thẻ chân trắng công nghệ biofloc thành công',
+            description: 'Công nghệ nuôi tôm không thải nước giúp tăng năng suất 40% và giảm tỷ lệ bệnh tật đáng kể...',
+            urlToImage: 'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Sản xuất cà phê bền vững - thương hiệu Việt nổi tiếng thế giới',
+            description: 'Các vùng cà phê Việt Nam áp dụng quy trình sản xuất bền vững, nâng cao giá trị và thương hiệu...',
+            urlToImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          },
+          {
+            title: 'Ứng dụng drone phun thuốc bảo vệ thực vật hiệu quả cao',
+            description: 'Drone nông nghiệp giúp giảm 70% lượng thuốc sử dụng và tăng độ chính xác trong phun thuốc...',
+            urlToImage: 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=400&h=200&fit=crop&auto=format',
+            category: 'agriculture'
+          }
+        ],
+        technology: [
+          {
+            title: 'AI cách mạng hóa ngành nông nghiệp Việt Nam',
+            description: 'Trí tuệ nhân tạo đang thay đổi hoàn toàn cách thức sản xuất nông nghiệp từ gieo trồng đến thu hoạch...',
+            urlToImage: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'IoT và cảm biến thông minh trong trang trại hiện đại',
+            description: 'Hệ thống cảm biến đo độ ẩm, pH, nhiệt độ giúp tự động hóa hoàn toàn quy trình canh tác...',
+            urlToImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Blockchain trong truy xuất nguồn gốc thực phẩm',
+            description: 'Công nghệ chuỗi khối đảm bảo tính minh bạch và an toàn thực phẩm từ trang trại đến người tiêu dùng...',
+            urlToImage: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Robot thu hoạch tự động - tương lai của nông nghiệp',
+            description: 'Robot AI có thể nhận diện độ chín và thu hoạch tự động, giảm 80% chi phí nhân công...',
+            urlToImage: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Nông nghiệp chính xác với GPS và satellite',
+            description: 'Công nghệ định vị vệ tinh giúp tối ưu hóa việc bón phân, gieo hạt với độ chính xác centimeter...',
+            urlToImage: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Big Data phân tích xu hướng thị trường nông sản',
+            description: 'Dữ liệu lớn giúp dự báo giá cả, nhu cầu thị trường và tối ưu hóa kế hoạch sản xuất...',
+            urlToImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Năng lượng mặt trời cho trang trại xanh',
+            description: 'Hệ thống điện mặt trời kết hợp nông nghiệp giúp giảm chi phí điện và tăng thu nhập...',
+            urlToImage: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          },
+          {
+            title: 'Ứng dụng di động kết nối nông dân với thị trường',
+            description: 'App thông minh giúp nông dân tiếp cận thông tin giá cả, thời tiết và kỹ thuật canh tác...',
+            urlToImage: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=200&fit=crop&auto=format',
+            category: 'technology'
+          }
+        ],
+        climate: [
+          {
+            title: 'Biến đổi khí hậu thách thức lớn với nông nghiệp Việt Nam',
+            description: 'Hiện tượng thời tiết cực đoan ngày càng gia tăng, đòi hỏi giải pháp thích ứng khẩn cấp...',
+            urlToImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Hạn hán kéo dài ảnh hưởng nghiêm trọng đến sản xuất lúa',
+            description: 'Tình trạng thiếu nước tại Đồng bằng sông Cửu Long đang đe dọa mùa vụ lúa mới...',
+            urlToImage: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Giải pháp thích ứng với nước biển dâng ở vùng ven biển',
+            description: 'Các biện pháp chống xâm nhập mặn và giống cây chịu mặn đang được triển khai rộng rãi...',
+            urlToImage: 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Nông nghiệp thông minh thích ứng biến đổi khí hậu',
+            description: 'Hệ thống dự báo thời tiết AI giúp nông dân chủ động ứng phó với thiên tai...',
+            urlToImage: 'https://images.unsplash.com/photo-1504567961542-e18d1ac2c7a4?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Giống cây chịu hạn - giải pháp cho nông nghiệp bền vững',
+            description: 'Các giống lúa, ngô chịu hạn mới giúp duy trì sản xuất trong điều kiện khan hiếm nước...',
+            urlToImage: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Rừng trồng hấp thụ CO2 - giảm thiểu biến đổi khí hậu',
+            description: 'Chương trình trồng rừng quy mô lớn góp phần giảm phát thải khí nhà kính...',
+            urlToImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Quản lý nước thông minh chống hạn hán hiệu quả',
+            description: 'Hệ thống tưới tiêu thông minh giúp tiết kiệm 50% lượng nước sử dụng...',
+            urlToImage: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          },
+          {
+            title: 'Năng lượng tái tạo trong nông nghiệp giảm phát thải',
+            description: 'Điện gió, điện mặt trời đang thay thế nhiên liệu hóa thạch trong sản xuất nông nghiệp...',
+            urlToImage: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=200&fit=crop&auto=format',
+            category: 'climate'
+          }
+        ],
+        livestock: [
+          {
+            title: 'Chăn nuôi bò thịt sạch không sử dụng kháng sinh',
+            description: 'Mô hình chăn nuôi bò thịt tự nhiên đang mang lại giá trị cao và an toàn cho người tiêu dùng...',
+            urlToImage: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Ngành chăn nuôi heo phục hồi mạnh mẽ sau đại dịch',
+            description: 'Với công nghệ sinh học hiện đại, đàn heo Việt Nam đã phục hồi và vượt mức trước dịch...',
+            urlToImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Chăn nuôi gà organic - xu hướng tiêu dùng mới',
+            description: 'Gà nuôi thả vườn không sử dụng thức ăn công nghiệp đang được ưa chuộng trên thị trường...',
+            urlToImage: 'https://images.unsplash.com/photo-1518728495266-2d56fe834b2b?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Chăn nuôi dê núi - tiềm năng lớn vùng cao Việt Nam',
+            description: 'Dê núi thích ứng tốt với địa hình khó khăn và mang lại thu nhập cao cho đồng bào vùng cao...',
+            urlToImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Công nghệ AI giám sát sức khỏe đàn gia súc',
+            description: 'Camera thông minh và cảm biến IoT giúp phát hiện sớm bệnh tật và tối ưu hóa chăm sóc...',
+            urlToImage: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Nuôi cừu sản xuất len chất lượng cao',
+            description: 'Ngành chăn nuôi cừu Việt Nam đang phát triển để cung cấp len chất lượng cho ngành dệt may...',
+            urlToImage: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Vaccine sinh học ngăn ngừa dịch bệnh gia súc',
+            description: 'Công nghệ vaccine mới giúp bảo vệ đàn gia súc khỏi các bệnh truyền nhiễm nguy hiểm...',
+            urlToImage: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          },
+          {
+            title: 'Thức ăn chăn nuôi thông minh tăng năng suất',
+            description: 'Thức ăn bổ sung enzyme và probiotic giúp gia súc phát triển khỏe mạnh và tăng trọng nhanh...',
+            urlToImage: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=200&fit=crop&auto=format',
+            category: 'livestock'
+          }
+        ]
+      };
+      
+      const articles = categoryNews[category] || categoryNews['agriculture'];
+      const result = [];
+      
+      // Tạo nội dung đa dạng tối đa
+      for (let i = 0; i < count; i++) {
+        const articleIndex = i % articles.length;
+        const baseArticle = articles[articleIndex];
+        const timeOffset = (i * 2 + Math.random() * 3) * 3600000; // Random time between 2-5 hours
+        const uniqueId = Date.now() + i + Math.floor(Math.random() * 1000);
+        
+        // Sử dụng trực tiếp tiêu đề gốc - không thêm hậu tố
+        const variation = {
+          ...baseArticle,
+          title: baseArticle.title,
+          publishedAt: new Date(Date.now() - timeOffset).toISOString(),
+          url: `https://vietnamnews.vn/${category}/${uniqueId}`,
+          source: { name: getRandomSource(category) },
+          isVietnamese: true,
+          priority: category === 'agriculture' ? 1 : 2
+        };
+        result.push(variation);
+      }
+      
+      return result;
+    }
+    
+    // Get random source name for variety
+    function getRandomSource(category) {
+      const sources = {
+        agriculture: ['VnExpress Nông nghiệp', 'Tuổi Trẻ Nông thôn', 'Dân Trí Nông nghiệp', 'Nông nghiệp Việt Nam', 'Báo Nông dân'],
+        technology: ['VnExpress Khoa học', 'Tuổi Trẻ Công nghệ', 'ICTNews', 'Vietnam Tech', 'Innovation Vietnam'],
+        climate: ['VnExpress Môi trường', 'Tuổi Trẻ Xanh', 'Môi trường Việt Nam', 'Green ID', 'Climate Vietnam'],
+        livestock: ['VnExpress Chăn nuôi', 'Thủy sản Việt Nam', 'Chăn nuôi VN', 'Livestock Vietnam', 'Trang trại Việt']
+      };
+      const categorySource = sources[category] || sources['agriculture'];
+      return categorySource[Math.floor(Math.random() * categorySource.length)];
+    }
+    
+    // Get Vietnamese category display names
+    function getCategoryDisplayName(category) {
+      const categoryNames = {
+        agriculture: 'Nông nghiệp',
+        technology: 'Công nghệ',
+        climate: 'Khí hậu',
+        livestock: 'Chăn nuôi'
+      };
+      return categoryNames[category] || 'Tin tức';
+    }
+
+    // Generate mock Vietnamese news for demonstration - improved to avoid duplication
+    function generateMockVietnameseNews(feed, count = 15) {
+      // Use the category-specific news generator for more varied content
+      return generateCategorySpecificNews(feed.category, count);
+    }
+
+    // Generate all mock Vietnamese news - increased volume
+    function generateAllMockVietnameseNews() {
+      const allMockNews = [];
+      vietnameseRSSFeeds.forEach((feed, index) => {
+        // Generate 15-25 articles per feed for maximum content (ensure 50+ per category)
+        const articlesPerFeed = 15 + (index % 11); // Vary between 15-25 articles
+        allMockNews.push(...generateMockVietnameseNews(feed, articlesPerFeed));
+      });
+      console.log(`🎯 Tạo tổng ${allMockNews.length} bài báo Việt Nam từ ${vietnameseRSSFeeds.length} nguồn RSS`);
+      return allMockNews;
+    }
+
+    // Clock function - matching index.html
+    function updateClock() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      const clockElement = document.getElementById('clock');
+      if (clockElement) {
+        clockElement.textContent = timeString;
+      }
+    }
+
+    function setupEventListeners() {
+      // Category buttons
+      document.querySelectorAll('.category-button').forEach(button => {
+        button.addEventListener('click', function() {
+          const category = this.getAttribute('data-category');
+          selectCategory(category);
+        });
+      });
+
+      // Enhanced search functionality
+      const searchInput = document.getElementById('search-input');
+      
+      // Search on Enter key
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          searchNews();
+        }
+      });
+      
+      // Real-time search với debounce
+      let searchTimeout;
+      searchInput.addEventListener('input', function(e) {
+        updateSearchUI(); // Update UI ngay lập tức
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searchNews();
+        }, 500); // Đợi 500ms sau khi user ngừng gõ
+      });
+      
+      // Clear search khi click X
+      searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          this.value = '';
+          searchNews();
+        }
+      });
+
+      // Load more button
+      document.getElementById('load-more').addEventListener('click', function() {
+        loadMoreNews();
+      });
+    }
+
+    function selectCategory(category) {
+      currentCategory = category;
+      currentPage = 1;
+      currentDisplayCount = 0; // Reset display count when changing category
+      
+      // Update active button IMMEDIATELY for instant feedback
+      document.querySelectorAll('.category-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      const targetButton = document.querySelector(`[data-category="${category}"]`);
+      if (targetButton) {
+        targetButton.classList.add('active');
+      }
+      
+      // Use requestAnimationFrame for smooth transition
+      requestAnimationFrame(() => {
+        console.log(`⚡ Chuyển sang: ${getCategoryDisplayName(category) || category}`);
+        filterAndDisplayNews(); // Will use cache if available = INSTANT
+      });
+    }
+
+    async function loadNews(reset = true) {
+      // Only load English news if Vietnamese content is insufficient
+      if (vietnameseNews.length >= 50) {
+        console.log(`🇻🇳 Đủ tin Việt Nam (${vietnameseNews.length} bài), bỏ qua tải tin tiếng Anh`);
+        if (reset) {
+          allNews = []; // No English news needed
+        }
+        return; // Don't call filterAndDisplayNews here, let caller handle it
+      }
+      
+      if (isLoading) return;
+      
+      isLoading = true;
+
+      try {
+        const apiKey = newsAPIs[currentAPIIndex];
+        let query = 'agriculture OR farming OR crop OR livestock OR climate OR food OR rural';
+        
+        // Add specific keywords based on category
+        if (currentCategory !== 'all' && categoryKeywords[currentCategory]) {
+          query = categoryKeywords[currentCategory].join(' OR ');
+        }
+
+        // Limit English news to minimal amount
+        const response = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&page=${currentPage}&pageSize=10&apiKey=${apiKey}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch news');
+        }
+
+        const data = await response.json();
+        
+        let newsArticles = data.articles || [];
+        
+        // Severely limit English content
+        newsArticles = newsArticles.slice(0, Math.max(0, 50 - vietnameseNews.length));
+        
+        if (reset) {
+          allNews = newsArticles;
+        } else {
+          allNews = [...allNews, ...newsArticles];
+        }
+
+        // Check if we have more news to load (but prefer Vietnamese)
+        hasMoreNews = vietnameseNews.length < 200; // Focus on Vietnamese content expansion
+
+        console.log(`📊 Tải ${newsArticles.length} bài tiếng Anh (Tổng Việt: ${vietnameseNews.length}, Anh: ${allNews.length})`);
+        
+      } catch (error) {
+        console.error('❌ Lỗi tải tin tiếng Anh:', error);
+        
+        // Try next API if current one fails
+        currentAPIIndex = (currentAPIIndex + 1) % newsAPIs.length;
+        if (currentAPIIndex !== 0) {
+          await loadNews(reset); // Try with next API
+        }
+      }
+      
+      isLoading = false;
+    }
+
+    function filterAndDisplayNews(skipDisplay = false) {
+      // Check cache first for INSTANT loading
+      if (categoryCache[currentCategory] && categoryCache[currentCategory].length > 0) {
+        console.log(`⚡ CACHE HIT cho ${currentCategory}: ${categoryCache[currentCategory].length} bài`);
+        if (!skipDisplay) {
+          displayNews(categoryCache[currentCategory]);
+          applySearchFilter();
+        }
+        return;
+      }
+      
+      console.log(`🔄 Tạo cache mới cho danh mục: ${currentCategory}`);
+      
+      // PRIORITIZE VIETNAMESE NEWS COMPLETELY - Always show Vietnamese first
+      // Filter by date first (7 days)
+      let filteredNews = filterArticlesByDate([...vietnameseNews]);
+      
+      // Only add English articles if Vietnamese news is insufficient (less than 50 articles)
+      if (filteredNews.length < 50 && allNews.length > 0) {
+        // Add minimal English content to reach 50 articles minimum
+        const needed = Math.min(50 - filteredNews.length, 5); // Maximum 5 English articles
+        filteredNews = [...filteredNews, ...allNews.slice(0, needed)];
+      }
+
+      // OPTIMIZED CATEGORY FILTERING - Faster algorithm
+      if (currentCategory !== 'all') {
+        const keywords = categoryKeywords[currentCategory];
+        const keywordSet = new Set(keywords.map(k => k.toLowerCase())); // Use Set for O(1) lookup
+        
+        filteredNews = filteredNews.filter(article => {
+          // Fast category match for Vietnamese articles
+          if (article.isVietnamese && article.category === currentCategory) {
+            return true;
+          }
+          
+          // Keyword matching (optimized)
+          const text = (article.title + ' ' + article.description).toLowerCase();
+          for (const keyword of keywordSet) {
+            if (text.includes(keyword)) return true;
+          }
+          return false;
+        });
+        
+        console.log(`📊 Danh mục ${currentCategory}: ${filteredNews.length} bài`);
+      }
+
+      // FAST duplicate removal - simplified algorithm
+      const seen = new Map();
+      filteredNews = filteredNews.filter(article => {
+        const key = article.url || article.title.toLowerCase().trim();
+        if (seen.has(key)) return false;
+        seen.set(key, true);
+        return true;
+      });
+
+      // Sort by Vietnamese priority first, then by priority level, then by date
+      filteredNews.sort((a, b) => {
+        // Always prioritize Vietnamese articles
+        if (a.isVietnamese && !b.isVietnamese) return -1;
+        if (!a.isVietnamese && b.isVietnamese) return 1;
+        
+        // Within same language, sort by priority then date
+        if (a.priority !== b.priority) {
+          return (a.priority || 3) - (b.priority || 3);
+        }
+        return new Date(b.publishedAt) - new Date(a.publishedAt);
+      });
+
+      // Log status
+      const vietnameseCount = filteredNews.filter(article => article.isVietnamese).length;
+      const englishCount = filteredNews.length - vietnameseCount;
+      console.log(`📊 Hiển thị: ${vietnameseCount} VN, ${englishCount} EN (Tổng: ${filteredNews.length})`);
+
+      // Cache kết quả để tăng tốc độ chuyển đổi danh mục
+      categoryCache[currentCategory] = [...filteredNews];
+      console.log(`💾 Đã cache ${filteredNews.length} bài cho ${currentCategory}`);
+
+      // Only display if not skipped (when called from loadMoreNews)
+      if (!skipDisplay) {
+        console.log(`🎯 Gọi displayNews với ${filteredNews.length} bài...`);
+        displayNews(filteredNews);
+        console.log(`✅ displayNews hoàn tất`);
+        applySearchFilter();
+      } else {
+        console.log(`⏭️ Skip display - chỉ tạo cache`);
+      }
+    }
+
+    function displayNews(articles, append = false) {
+      console.log(`📺 displayNews: ${articles.length} bài, append=${append}`);
+      const container = document.getElementById('news-container');
+      const noResults = document.getElementById('no-results');
+      const loadMoreBtn = document.getElementById('load-more');
+      const loading = document.getElementById('loading');
+
+      // Always hide loading spinner when displaying
+      if (loading) {
+        loading.classList.add('hidden');
+        console.log(`🚫 Đã ẩn loading spinner`);
+      }
+
+      if (articles.length === 0) {
+        console.log(`❌ Không có bài báo để hiển thị`);
+        container.classList.add('hidden');
+        noResults.classList.remove('hidden');
+        loadMoreBtn.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      noResults.classList.add('hidden');
+      
+      // Get the grid container inside news-container
+      const gridContainer = container.querySelector('div');
+      
+      // Clear container if NOT appending
+      if (!append) {
+        gridContainer.innerHTML = '';
+        currentDisplayCount = 0;
+      }
+
+      // Calculate how many articles to display
+      const startIndex = currentDisplayCount;
+      const endIndex = Math.min(startIndex + ARTICLES_PER_PAGE, articles.length);
+      const articlesToShow = articles.slice(startIndex, endIndex);
+      
+      console.log(`📊 Hiển thị bài ${startIndex + 1}-${endIndex} / ${articles.length}`);
+
+      articlesToShow.forEach((article, index) => {
+        if (!article.title || article.title === '[Removed]') return;
+        
+        // Skip if article already exists (prevent duplicates)
+        const existingCards = gridContainer.querySelectorAll('.news-card');
+        const articleExists = Array.from(existingCards).some(card => {
+          const existingTitle = card.querySelector('h3').textContent.toLowerCase().trim();
+          const newTitle = article.title.toLowerCase().trim();
+          return existingTitle === newTitle;
+        });
+        
+        if (!articleExists) {
+          const newsCard = createNewsCard(article, startIndex + index);
+          gridContainer.appendChild(newsCard);
+          
+          // 🤖 Asynchronously update with ML classification (non-blocking)
+          updateCardWithMLClassification(newsCard, article).catch(err => {
+            console.warn('⚠️ ML update error:', err);
+          });
+        }
+      });
+
+      // Update display count
+      currentDisplayCount = endIndex;
+      const totalDisplayed = gridContainer.children.length;
+      
+      console.log(`✅ Đã hiển thị ${totalDisplayed} bài (${currentDisplayCount}/${articles.length})`);
+      
+      // Show/hide load more button based on remaining articles
+      const hasMoreInFilter = currentDisplayCount < articles.length;
+      const hasMoreFeeds = window.remainingFeeds?.length > 0;
+      const hasMore = hasMoreInFilter || hasMoreFeeds;
+      
+      console.log(`🔘 Button logic: displayed=${currentDisplayCount}/${articles.length}, feeds=${window.remainingFeeds?.length || 0}, show=${hasMore}`);
+      
+      if (hasMore) {
+        loadMoreBtn.classList.remove('hidden');
+        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed})`;
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    function createNewsCard(article, index) {
+      const card = document.createElement('div');
+      card.className = 'news-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 fade-in-up';
+      card.style.animationDelay = `${index * 0.1}s`;
+
+      const imageUrl = article.urlToImage || 'https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI';
+      const publishedDate = new Date(article.publishedAt).toLocaleDateString('vi-VN');
+      const description = article.description || 'Không có mô tả';
+      const displayCategory = getCategoryFromArticle(article);
+      
+      // Detect if this is Vietnamese news
+      const isVietnamese = vietnameseNews.some(vnNews => vnNews.title === article.title);
+      const sourceFlag = isVietnamese ? '🇻🇳' : '🌍';
+
+      const searchIndex = [
+        article.title || '',
+        article.description || '',
+        article.content || '',
+        article.category || '',
+        article.source?.name || '',
+        displayCategory || ''
+      ].join(' ').toLowerCase();
+
+      card.dataset.title = (article.title || '').toLowerCase();
+      card.dataset.description = (article.description || '').toLowerCase();
+      card.dataset.category = (article.category || '').toLowerCase();
+      card.dataset.content = (article.content || '').toLowerCase();
+      card.dataset.source = (article.source?.name || '').toLowerCase();
+      card.dataset.search = searchIndex;
+      
+      // Store full article data for modal
+      card.articleData = article;
+      
+      // Add click event to open modal
+      card.addEventListener('click', function(e) {
+        // Don't open modal if clicking on links or buttons
+        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('a') || e.target.closest('button')) {
+          return;
+        }
+        openArticleModal(article);
+      });
+      
+      card.innerHTML = `
+        <div class="relative">
+          <img src="${imageUrl}" alt="${article.title}" class="w-full h-40 md:h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x200/10b981/ffffff?text=AgriSense+AI'">
+          <div class="absolute top-3 left-3">
+            <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm category-badge">
+              ${sourceFlag} ${displayCategory}
+            </span>
+          </div>
+          ${isVietnamese ? '<div class="absolute top-3 right-3"><span class="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium">Tin Việt</span></div>' : ''}
+        </div>
+        <div class="p-4 md:p-5">
+          <div class="flex items-center gap-2 text-xs md:text-sm text-gray-500 mb-3">
+            <i class="fas fa-calendar-alt text-green-500"></i>
+            <span>${publishedDate}</span>
+            <span class="mx-2">•</span>
+            <span class="text-green-600 font-medium">${article.source.name}</span>
+          </div>
+          <h3 class="font-semibold text-base md:text-lg text-gray-900 mb-3 line-clamp-2 leading-tight">
+            ${article.title}
+          </h3>
+          <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+            ${description}
+          </p>
+          <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+            <a href="${article.url}" target="_blank" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium text-sm transition-colors">
+              <i class="fas fa-external-link-alt mr-2 text-xs"></i>
+              Đọc thêm
+            </a>
+            <div class="flex items-center gap-2">
+              <button onclick="shareArticle('${article.url}', '${article.title.replace(/'/g, "\\'")}' )" class="text-gray-400 hover:text-green-600 transition-colors p-1 rounded-full hover:bg-green-50">
+                <i class="fas fa-share-alt text-sm"></i>
+              </button>
+              ${isVietnamese ? '<span class="text-xs text-green-600 font-medium">VN</span>' : '<span class="text-xs text-blue-600 font-medium">EN</span>'}
+            </div>
+          </div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    // 🤖 Async ML Classification for cards already displayed
+    async function updateCardWithMLClassification(card, article) {
+      try {
+        const mlCategory = await classifyArticleWithML(article);
+        
+        // Update the category badge if it changed
+        const badge = card.querySelector('.category-badge');
+        if (badge) {
+          const sourceFlag = badge.textContent.includes('🇻🇳') ? '🇻🇳' : '🌍';
+          const oldCategory = badge.textContent.replace(sourceFlag, '').trim();
+          
+          if (oldCategory !== mlCategory) {
+            badge.textContent = `${sourceFlag} ${mlCategory}`;
+            badge.style.transition = 'all 0.3s ease';
+            badge.style.opacity = '0.7';
+            setTimeout(() => {
+              badge.style.opacity = '1';
+            }, 150);
+            
+            console.log(`🤖 Updated category: "${oldCategory}" → "${mlCategory}"`);
+            
+            // Update card's data attributes for filtering
+            card.dataset.category = mlCategory.toLowerCase();
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to update ML classification:', error);
+      }
+    }
+
+    // 🤖 ML Classification cache
+    const classificationCache = {};
+
+    async function classifyArticleWithML(article) {
+      // Check cache first
+      const cacheKey = (article.title || '').substring(0, 50);
+      if (classificationCache[cacheKey]) {
+        return classificationCache[cacheKey];
+      }
+
+      try {
+        const response = await fetch('/api/classify-article', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: article.title || '',
+            description: article.description || '',
+            content: article.content || ''
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.classification) {
+            const displayCategory = data.classification.display_category || 'Khác';
+            classificationCache[cacheKey] = displayCategory;
+            return displayCategory;
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ ML classification error, using fallback:', error);
+      }
+
+      // Fallback to rule-based if ML fails
+      return getCategoryFromArticleFallback(article);
+    }
+
+    function getCategoryFromArticleFallback(article) {
+      const text = (article.title + ' ' + article.description).toLowerCase();
+      
+      for (const [category, keywords] of Object.entries(categoryKeywords)) {
+        if (keywords.some(keyword => text.includes(keyword.toLowerCase()))) {
+          const categoryNames = {
+            agriculture: 'Nông nghiệp',
+            technology: 'Công nghệ',
+            climate: 'Khí hậu',
+            livestock: 'Chăn nuôi'
+          };
+          return categoryNames[category];
+        }
+      }
+      
+      return 'Tin tức';
+    }
+
+    function getCategoryFromArticle(article) {
+      // Return fallback immediately for display
+      // ML classification happens asynchronously in background
+      return getCategoryFromArticleFallback(article);
+    }
+
+    async function loadMoreNews() {
+      console.log('🔽 User bấm "Tải thêm"');
+      
+      if (isLoading) {
+        console.log('⏳ Đang load, chờ...');
+        return;
+      }
+      
+      isLoading = true;
+      
+      try {
+        // Get current filtered articles for this category
+        const filteredArticles = categoryCache[currentCategory] || [];
+        
+        // Option 1: If we have more articles in current filter, show them
+        if (currentDisplayCount < filteredArticles.length) {
+          console.log(`📄 Hiển thị thêm 10 bài từ cache (${currentDisplayCount}/${filteredArticles.length})`);
+          displayNews(filteredArticles, true); // Append mode
+          return;
+        }
+        
+        // Option 2: If no more filtered articles, load more RSS feeds
+        if (window.remainingFeeds && window.remainingFeeds.length > 0) {
+          console.log('📡 Tải thêm RSS feeds...');
+          
+          const hasNewFeeds = await loadMoreFeeds();
+          
+          if (hasNewFeeds) {
+            // Save current display count before clearing cache
+            const previousDisplayCount = currentDisplayCount;
+            
+            // Clear cache to force re-filter with new data
+            categoryCache[currentCategory] = [];
+            
+            // Re-filter to get updated article list (DON'T display yet)
+            filterAndDisplayNews(true); // skipDisplay = true
+            
+            // Restore display count to continue from where we were
+            currentDisplayCount = previousDisplayCount;
+            
+            // Now display next batch from updated cache (this will append)
+            const filteredArticles = categoryCache[currentCategory] || [];
+            if (currentDisplayCount < filteredArticles.length) {
+              displayNews(filteredArticles, true); // Append mode
+            } else {
+              console.log('⚠️ Không có bài mới sau khi load feeds');
+            }
+            
+            console.log('✅ Đã tải và hiển thị tin mới');
+          } else {
+            console.log('❌ Không còn nguồn RSS');
+            document.getElementById('load-more').classList.add('hidden');
+          }
+        } else {
+          console.log('🏁 Đã hết tất cả tin tức');
+          document.getElementById('load-more').classList.add('hidden');
+        }
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    // Enhanced search function to include Vietnamese news
+    function searchNews() {
+      console.log('🔍 Search function called');
+      const searchQuery = document.getElementById('search-input').value.trim();
+      console.log('🔍 Search query:', searchQuery);
+      console.log('🔍 Total articles before search:', allNews.length);
+      
+      currentPage = 1;
+      updateSearchUI();
+      filterAndDisplayNews();
+    }
+    
+    // Clear search function
+    function clearSearch() {
+      const searchInput = document.getElementById('search-input');
+      searchInput.value = '';
+      searchInput.focus();
+      updateSearchUI();
+      searchNews();
+    }
+    
+    // Update search UI elements
+    function updateSearchUI() {
+      const searchInput = document.getElementById('search-input');
+      const clearBtn = document.getElementById('clear-search');
+      const searchResultsInfo = document.getElementById('search-results-info');
+      
+      if (searchInput.value.trim()) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+        searchResultsInfo.classList.add('hidden');
+      }
+    }
+    
+    // Update search results info
+    function updateSearchResultsInfo(query, total, found) {
+      const searchResultsInfo = document.getElementById('search-results-info');
+      const searchResultsText = document.getElementById('search-results-text');
+      
+      if (query && query.trim()) {
+        searchResultsText.textContent = `Tìm thấy ${found} kết quả cho "${query}"`;
+        searchResultsInfo.classList.remove('hidden');
+      } else {
+        searchResultsInfo.classList.add('hidden');
+      }
+    }
+
+    function refreshLoadMoreButton() {
+      const loadMoreBtn = document.getElementById('load-more');
+      const container = document.getElementById('news-container');
+      const gridContainer = container ? container.querySelector('div') : null;
+      const searchValue = document.getElementById('search-input')?.value.trim();
+      if (!loadMoreBtn || !gridContainer) return;
+
+      if (searchValue) {
+        loadMoreBtn.classList.add('hidden');
+        return;
+      }
+
+      const totalDisplayed = gridContainer.querySelectorAll('.news-card').length;
+      if (totalDisplayed < 100) {
+        loadMoreBtn.classList.remove('hidden');
+        loadMoreBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Xem thêm (${totalDisplayed})`;
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    function applySearchFilter() {
+      const searchInput = document.getElementById('search-input');
+      const container = document.getElementById('news-container');
+      const noResults = document.getElementById('no-results');
+      const loadMoreBtn = document.getElementById('load-more');
+      const gridContainer = container ? container.querySelector('div') : null;
+      if (!gridContainer) return;
+
+      const query = (searchInput?.value || '').trim().toLowerCase();
+      const cards = Array.from(gridContainer.querySelectorAll('.news-card'));
+
+      if (!query) {
+        cards.forEach(card => {
+          card.style.display = '';
+        });
+        if (cards.length > 0) {
+          container.classList.remove('hidden');
+          noResults.classList.add('hidden');
+        }
+        updateSearchResultsInfo('', cards.length, cards.length);
+        refreshLoadMoreButton();
+        return;
+      }
+
+      const searchWords = query.split(/\s+/).filter(Boolean);
+      let matchCount = 0;
+
+      cards.forEach(card => {
+        const searchable = card.dataset.search || '';
+        const matches = searchWords.some(word => searchable.includes(word));
+        if (matches) {
+          card.style.display = '';
+          matchCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      updateSearchResultsInfo(searchInput.value, cards.length, matchCount);
+
+      if (matchCount === 0) {
+        container.classList.add('hidden');
+        noResults.classList.remove('hidden');
+      } else {
+        container.classList.remove('hidden');
+        noResults.classList.add('hidden');
+      }
+
+      if (loadMoreBtn) {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    // Test search function for debugging
+    function testSearch() {
+      console.log('=== SEARCH DEBUG ===');
+      console.log('Total articles:', allNews.length);
+      console.log('Current category:', currentCategory);
+      console.log('Search input value:', document.getElementById('search-input').value);
+      
+      if (allNews.length > 0) {
+        console.log('Sample article:', allNews[0]);
+      } else {
+        console.log('❌ No articles loaded yet!');
+      }
+      
+      return allNews.length;
+    }
+    
+    // Add to window for console access
+    window.testSearch = testSearch;
+
+    // Share Modal Functions
+    let currentShareUrl = '';
+    let currentShareTitle = '';
+
+    function shareArticle(url, title) {
+      currentShareUrl = url;
+      currentShareTitle = title;
+      
+      const shareModal = document.getElementById('share-modal');
+      const shareOptions = document.getElementById('share-options');
+      
+      // Create share options
+      shareOptions.innerHTML = `
+        
+        <button onclick="shareToFacebook()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Facebook">
+          <div class="w-16 h-16 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-facebook-f text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Facebook</span>
+        </button>
+
+        <button onclick="shareToTwitter()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ lên Twitter">
+          <div class="w-16 h-16 bg-black hover:bg-gray-800 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-twitter text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Twitter</span>
+        </button>
+
+        <button onclick="shareToTelegram()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Chia sẻ qua Telegram">
+          <div class="w-16 h-16 bg-blue-400 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fab fa-telegram-plane text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Telegram</span>
+        </button>
+
+        <button onclick="shareViaEmail()" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Gửi qua email">
+          <div class="w-16 h-16 bg-gray-600 hover:bg-gray-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-envelope text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Email</span>
+        </button>
+
+        <button onclick="copyShareLink(event)" class="group flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all" title="Sao chép liên kết">
+          <div class="w-16 h-16 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center transition-all group-hover:scale-110 shadow-lg">
+            <i class="fas fa-copy text-white text-2xl"></i>
+          </div>
+          <span class="text-xs text-gray-600 font-medium">Copy Link</span>
+        </button>
+      `;
+      
+      shareModal.classList.remove('hidden');
+    }
+
+    function closeShareModal(event) {
+      if (!event || event.target.id === 'share-modal') {
+        document.getElementById('share-modal').classList.add('hidden');
+      }
+    }
+
+    function shareToFacebook() {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentShareUrl)}`;
+      window.open(fbUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTwitter() {
+      const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentShareUrl)}&text=${encodeURIComponent(currentShareTitle)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareToTelegram() {
+      const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(currentShareUrl)}&text=${encodeURIComponent(currentShareTitle)}`;
+      window.open(telegramUrl, '_blank', 'width=600,height=400');
+      closeShareModal();
+    }
+
+    function shareViaEmail() {
+      const subject = encodeURIComponent(currentShareTitle);
+      const body = encodeURIComponent(`Xem bài viết này: ${currentShareUrl}`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      closeShareModal();
+    }
+
+    function copyShareLink(event) {
+      if (!currentShareUrl) {
+        alert('Không có link để sao chép!');
+        return;
+      }
+      
+      navigator.clipboard.writeText(currentShareUrl).then(() => {
+        // Show success feedback
+        const btn = event.target.closest('button');
+        if (btn) {
+          const iconDiv = btn.querySelector('div');
+          const label = btn.querySelector('span');
+          
+          if (iconDiv && label) {
+            // Change to success state
+            iconDiv.className = 'w-16 h-16 bg-green-600 rounded-full flex items-center justify-center transition-all shadow-lg';
+            iconDiv.innerHTML = '<i class="fas fa-check text-white text-2xl"></i>';
+            label.textContent = 'Đã copy!';
+          }
+        }
+        
+        setTimeout(() => {
+          closeShareModal();
+        }, 1000);
+      }).catch((err) => {
+        console.error('Copy error:', err);
+        alert('Không thể sao chép. Vui lòng thử lại!');
+      });
+    }
+
+    // Close share modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeShareModal();
+      }
+    });
+
+    function showLoading() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('news-container').classList.add('hidden');
+      document.getElementById('no-results').classList.add('hidden');
+      
+      // Start cycling loading messages
+      loadingMessageIndex = 0;
+      startLoadingMessageCycle();
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').classList.add('hidden');
+      
+      // Stop cycling loading messages
+      stopLoadingMessageCycle();
+    }
+
+    function startLoadingMessageCycle() {
+      // Clear any existing interval
+      if (loadingMessageInterval) {
+        clearInterval(loadingMessageInterval);
+      }
+      
+      // Update immediately with first message
+      updateLoadingMessage();
+      
+      // Cycle through messages every 2.5 seconds
+      loadingMessageInterval = setInterval(updateLoadingMessage, 2500);
+    }
+
+    function stopLoadingMessageCycle() {
+      if (loadingMessageInterval) {
+        clearInterval(loadingMessageInterval);
+        loadingMessageInterval = null;
+      }
+    }
+
+    function updateLoadingMessage() {
+      const message = loadingMessages[loadingMessageIndex];
+      const headerStatus = document.getElementById('header-status');
+      const loadingText = document.querySelector('#loading p');
+      
+      if (headerStatus) {
+        headerStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i>${message}`;
+      }
+      
+      if (loadingText) {
+        loadingText.textContent = message;
+      }
+      
+      // Move to next message
+      loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.length;
+    }
+
+    function showNoResults() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('news-container').classList.add('hidden');
+      document.getElementById('no-results').classList.remove('hidden');
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    // Article Modal Functions
+    function openArticleModal(article) {
+      console.log('📰 Mở modal cho:', article.title);
+      
+      const modal = document.getElementById('article-modal');
+      const modalImageColumn = document.getElementById('modal-image-column');
+      const modalContent = document.getElementById('modal-content');
+      const modalActionsDesktop = document.getElementById('modal-actions-desktop');
+      const modalActionsMobile = document.getElementById('modal-actions-mobile');
+      
+      const imageUrl = article.urlToImage || 'https://via.placeholder.com/600x800/10b981/ffffff?text=AgriSense+AI';
+      const publishedDate = new Date(article.publishedAt).toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const isVietnamese = vietnameseNews.some(vnNews => vnNews.title === article.title);
+      const displayCategory = getCategoryFromArticle(article);
+      
+      // Clean content - remove HTML tags if any
+      let content = article.content || article.description || 'Nội dung bài viết không có sẵn. Vui lòng nhấn "Đọc bài gốc" để xem đầy đủ.';
+      content = content.replace(/<[^>]*>/g, '');
+      
+      // Left Column - Image with category badge
+      modalImageColumn.innerHTML = `
+        <div class="relative h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+          <img src="${imageUrl}" alt="${article.title}" 
+               class="w-full h-full object-cover" 
+               onerror="this.src='https://via.placeholder.com/600x800/10b981/ffffff?text=AgriSense+AI'">
+          <div class="absolute top-4 left-4">
+            <span class="bg-green-500 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg backdrop-blur-sm bg-opacity-90">
+              ${isVietnamese ? '🇻🇳' : '🌍'} ${displayCategory}
+            </span>
+          </div>
+          ${isVietnamese ? `
+            <div class="absolute top-4 right-4">
+              <span class="bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg">
+                TIN VIỆT
+              </span>
+            </div>
+          ` : ''}
+          
+          <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
+        </div>
+      `;
+      
+      // Action Buttons - Circular style (subtle gray)
+      const actionButtonsHTML = `
+        <a href="${article.url}" target="_blank" 
+           class="w-10 h-10 bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-800 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all" 
+           title="Đọc bài gốc"
+           onclick="event.stopPropagation()">
+          <i class="fas fa-external-link-alt text-sm"></i>
+        </a>
+        <button onclick="shareArticle('${article.url.replace(/'/g, "\\'")}', '${article.title.replace(/'/g, "\\'")}'); event.stopPropagation();" 
+                class="w-10 h-10 bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-800 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all" 
+                title="Chia sẻ">
+          <i class="fas fa-share-alt text-sm"></i>
+        </button>
+      `;
+      
+      // Set buttons for desktop (below image)
+      modalActionsDesktop.innerHTML = actionButtonsHTML;
+      
+      // Set buttons for mobile (at bottom)
+      modalActionsMobile.innerHTML = `
+        <div class="flex justify-center gap-3">
+          ${actionButtonsHTML}
+        </div>
+      `;
+      
+      // Right Column - Content with enhanced readability
+      modalContent.innerHTML = `
+        
+        <div class="md:hidden mb-6 -mx-6 -mt-6">
+          <div class="relative">
+            <img src="${imageUrl}" alt="${article.title}" 
+                 class="w-full h-64 object-cover" 
+                 onerror="this.src='https://via.placeholder.com/600x400/10b981/ffffff?text=AgriSense+AI'">
+
+            ${displayCategory ? `
+              <div class="absolute top-4 left-4">
+                <span class="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg backdrop-blur-sm bg-opacity-90 flex items-center gap-2">
+                  <i class="fas fa-tag"></i>
+                  ${displayCategory}
+                </span>
+              </div>
+            ` : ''}
+
+            ${isVietnamese ? `
+              <div class="absolute top-4 right-4">
+                <span class="bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm bg-opacity-90">
+                  TIN VIỆT
+                </span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+          ${article.title}
+        </h1>
+
+        <div class="flex items-center gap-4 text-sm text-gray-500 mb-6 pb-4 border-b border-gray-200 flex-wrap">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-calendar-alt"></i>
+            <span>${publishedDate}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-newspaper"></i>
+            <span class="font-medium">${article.source.name}</span>
+          </div>
+        </div>
+
+        ${article.description ? `
+          <div class="bg-blue-50 border-l-4 border-blue-500 p-5 rounded-r mb-6">
+            <p class="text-gray-800 font-semibold leading-relaxed text-lg">
+              ${article.description}
+            </p>
+          </div>
+        ` : ''}
+
+        <div class="prose prose-lg max-w-none mb-6">
+          <div class="text-gray-700 leading-relaxed text-base space-y-4">
+            ${content.split('\n').map(para => {
+              const trimmed = para.trim();
+              if (!trimmed) return '';
+              // Check if it's a heading-like sentence (short and likely a section title)
+              if (trimmed.length < 60 && !trimmed.includes('.')) {
+                return `<h3 class="text-xl font-semibold text-gray-900 mt-6 mb-3">${trimmed}</h3>`;
+              }
+              return `<p class="mb-4">${trimmed}</p>`;
+            }).join('')}
+          </div>
+
+          ${content.length < 500 ? `
+            <div class="mt-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border border-green-200">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-info-circle text-green-600"></i>
+                Thông tin thêm về bài viết
+              </h3>
+              <div class="space-y-3 text-gray-700">
+                <p>📰 <strong>Nguồn tin:</strong> ${article.source.name} - Một trong những nguồn tin uy tín hàng đầu tại Việt Nam</p>
+                <p>🕐 <strong>Thời gian:</strong> ${publishedDate}</p>
+                <p>📍 <strong>Danh mục:</strong> ${article.categories && article.categories.length > 0 ? article.categories.join(', ') : 'Tin tức tổng hợp'}</p>
+                <p class="pt-3 border-t border-green-300 text-sm italic">
+                  💡 Nội dung chi tiết và đầy đủ nhất của bài viết được cập nhật liên tục trên website gốc. 
+                  Nhấn nút "Đọc bài gốc" để xem toàn bộ hình ảnh, video và nội dung bổ sung.
+                </p>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="mt-6 p-4 bg-gray-50 rounded-lg border-l-4 border-green-500">
+            <p class="text-sm text-gray-600">
+              <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+              <strong>Gợi ý:</strong> Bài viết này thuộc lĩnh vực ${article.categories && article.categories[0] ? article.categories[0] : 'tin tức tổng hợp'}. 
+              Bạn có thể tìm thêm các bài viết liên quan bằng cách chọn danh mục tương ứng ở trên.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8 pt-4 border-t border-gray-200 bg-gray-50 -mx-6 px-6 py-4 rounded">
+          <div class="flex items-center gap-2 text-sm text-gray-600">
+            <i class="fas fa-info-circle"></i>
+            <span>Bài viết đầy đủ và cập nhật nhất tại: <strong class="text-gray-800">${article.source.name}</strong></span>
+          </div>
+        </div>
+      `;
+      
+      // Show modal with animation
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+    }
+    
+    function closeArticleModal(event) {
+      // Close if clicking backdrop or called directly
+      if (!event || event.target.id === 'article-modal') {
+        const modal = document.getElementById('article-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = ''; // Restore scroll
+      }
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeArticleModal();
+      }
+    });
+
+    // CSS utility classes
+    const style = document.createElement('style');
+    style.textContent = `
+      .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      
+      .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

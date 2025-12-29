@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <title id="error-title">Lỗi - AgriSense AI</title>
+
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  
+  <style>
+    body {
+      min-height: 100vh;
+      background-color: #ffffff;
+    }
+    
+    .error-icon {
+      font-size: 4rem;
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+    
+    .error-code {
+      font-size: 5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    button {
+      transition: all 0.3s ease;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body class="bg-white">
+
+  <header class="bg-green-100 border-b border-green-200 shadow-sm">
+    <div class="h-20 flex items-center px-4 md:px-6 gap-3">
+      <button onclick="window.history.back()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500" title="Quay lại">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <img src="/static/logo/logo.png" alt="AgriSense AI" class="h-12 md:h-14 w-auto object-contain">
+    </div>
+  </header>
+
+  <div class="min-h-screen flex items-center justify-center px-4 py-8">
+    <div class="max-w-md w-full">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-8 text-center">
+
+        <div class="mb-6">
+          <div class="error-code" id="error-code">404</div>
+        </div>
+
+        <div class="mb-6">
+          <i id="error-icon" class="error-icon fas fa-exclamation-circle text-red-500"></i>
+        </div>
+
+        <h1 id="error-title-text" class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">
+          Không tìm thấy
+        </h1>
+
+        <p id="error-description" class="text-sm md:text-base text-gray-600 mb-8">
+          Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa. Vui lòng kiểm tra URL và thử lại.
+        </p>
+
+        <div id="error-details" class="hidden mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <p id="error-details-text" class="text-xs md:text-sm text-gray-600 font-mono"></p>
+        </div>
+
+        <div class="space-y-3 flex gap-3 justify-center">
+          
+          <button 
+            onclick="goHome()" 
+            class="p-3 md:p-4 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-lg transition-all hover:scale-110 active:scale-95"
+            title="Quay về trang chủ"
+          >
+            <i class="fas fa-home text-xl md:text-2xl"></i>
+          </button>
+
+          <button 
+            onclick="goBack()" 
+            class="p-3 md:p-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg shadow-lg transition-all hover:scale-110 active:scale-95"
+            title="Quay lại"
+          >
+            <i class="fas fa-arrow-left text-xl md:text-2xl"></i>
+          </button>
+
+          <button 
+            onclick="contactSupport()" 
+            class="p-3 md:p-4 border-2 border-green-600 text-green-600 hover:bg-green-50 rounded-lg shadow-lg transition-all hover:scale-110 active:scale-95"
+            title="Liên hệ hỗ trợ"
+          >
+            <i class="fas fa-headset text-xl md:text-2xl"></i>
+          </button>
+        </div>
+
+        <div id="status-info" class="mt-8 pt-8 border-t border-gray-200">
+          <p class="text-xs text-gray-500 mb-2">
+            <strong>Mã trạng thái HTTP:</strong> <span id="status-code">404</span>
+          </p>
+          <p class="text-xs text-gray-500">
+            <strong>Thời gian:</strong> <span id="error-time"></span>
+          </p>
+        </div>
+        
+      </div>
+
+      <div class="mt-6 text-center text-xs md:text-sm text-gray-600">
+        <p>Có phải bạn cần:</p>
+        <div class="mt-3 space-y-2">
+          <a href="/forum" class="block text-green-600 hover:text-green-700 font-medium">
+            <i class="fas fa-comments mr-1"></i>Đến diễn đàn cộng đồng
+          </a>
+          <a href="/news.html" class="block text-green-600 hover:text-green-700 font-medium">
+            <i class="fas fa-newspaper mr-1"></i>Đọc tin tức nông nghiệp
+          </a>
+          <a href="/" class="block text-green-600 hover:text-green-700 font-medium">
+            <i class="fas fa-robot mr-1"></i>Trò chuyện với chatbot
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Error code mapping for different HTTP status codes
+    const errorMap = {
+      // 1xx Information
+      100: {
+        title: 'Continue',
+        description: 'Yêu cầu đã được nhận. Server đang xử lý tiếp tục.',
+        icon: 'fa-circle-info',
+        color: 'text-blue-500',
+        bgColor: 'from-blue-50 to-blue-100'
+      },
+      101: {
+        title: 'Switching Protocols',
+        description: 'Server đang chuyển đổi giao thức.',
+        icon: 'fa-exchange',
+        color: 'text-blue-500',
+        bgColor: 'from-blue-50 to-blue-100'
+      },
+      
+      // 2xx Success
+      200: {
+        title: 'OK',
+        description: 'Yêu cầu thành công!',
+        icon: 'fa-check-circle',
+        color: 'text-green-500',
+        bgColor: 'from-green-50 to-green-100'
+      },
+      201: {
+        title: 'Created',
+        description: 'Tài nguyên đã được tạo thành công.',
+        icon: 'fa-plus-circle',
+        color: 'text-green-500',
+        bgColor: 'from-green-50 to-green-100'
+      },
+      202: {
+        title: 'Accepted',
+        description: 'Yêu cầu đã được chấp nhận để xử lý.',
+        icon: 'fa-thumbs-up',
+        color: 'text-green-500',
+        bgColor: 'from-green-50 to-green-100'
+      },
+      204: {
+        title: 'No Content',
+        description: 'Yêu cầu thành công nhưng không có nội dung trả về.',
+        icon: 'fa-check-circle',
+        color: 'text-green-500',
+        bgColor: 'from-green-50 to-green-100'
+      },
+      
+      // 3xx Redirection
+      300: {
+        title: 'Multiple Choices',
+        description: 'Có nhiều lựa chọn cho tài nguyên này.',
+        icon: 'fa-arrows-split-up-and-left',
+        color: 'text-orange-500',
+        bgColor: 'from-orange-50 to-orange-100'
+      },
+      301: {
+        title: 'Moved Permanently',
+        description: 'Tài nguyên này đã được chuyển vĩnh viễn.',
+        icon: 'fa-arrow-right',
+        color: 'text-orange-500',
+        bgColor: 'from-orange-50 to-orange-100'
+      },
+      302: {
+        title: 'Found',
+        description: 'Tài nguyên tạm thời nằm ở nơi khác.',
+        icon: 'fa-arrow-right-arrow-left',
+        color: 'text-orange-500',
+        bgColor: 'from-orange-50 to-orange-100'
+      },
+      304: {
+        title: 'Not Modified',
+        description: 'Tài nguyên chưa thay đổi kể từ lần cuối cùng.',
+        icon: 'fa-circle-check',
+        color: 'text-orange-500',
+        bgColor: 'from-orange-50 to-orange-100'
+      },
+      307: {
+        title: 'Temporary Redirect',
+        description: 'Tạm thời chuyển hướng đến địa chỉ khác.',
+        icon: 'fa-arrow-right',
+        color: 'text-orange-500',
+        bgColor: 'from-orange-50 to-orange-100'
+      },
+      308: {
+        title: 'Permanent Redirect',
+        description: 'Chuyển hướng vĩnh viễn đến địa chỉ mới.',
+        icon: 'fa-arrow-right',
+        color: 'text-orange-500',
+        bgColor: 'from-orange-50 to-orange-100'
+      },
+      
+      // 4xx Client Errors
+      400: {
+        title: 'Bad Request',
+        description: 'Yêu cầu không hợp lệ. Vui lòng kiểm tra dữ liệu gửi đi.',
+        icon: 'fa-triangle-exclamation',
+        color: 'text-yellow-600',
+        bgColor: 'from-yellow-50 to-yellow-100'
+      },
+      401: {
+        title: 'Unauthorized',
+        description: 'Bạn cần phải đăng nhập để truy cập tài nguyên này.',
+        icon: 'fa-lock',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      403: {
+        title: 'Forbidden',
+        description: 'Bạn không có quyền truy cập tài nguyên này.',
+        icon: 'fa-ban',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      404: {
+        title: 'Không tìm thấy',
+        description: 'Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa.',
+        icon: 'fa-exclamation-circle',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      405: {
+        title: 'Method Not Allowed',
+        description: 'Phương thức HTTP này không được hỗ trợ.',
+        icon: 'fa-circle-xmark',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      408: {
+        title: 'Request Timeout',
+        description: 'Yêu cầu vượt quá thời gian chờ.',
+        icon: 'fa-hourglass-end',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      409: {
+        title: 'Conflict',
+        description: 'Yêu cầu xung đột với trạng thái hiện tại.',
+        icon: 'fa-code-compare',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      410: {
+        title: 'Gone',
+        description: 'Tài nguyên này không còn tồn tại.',
+        icon: 'fa-trash',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      413: {
+        title: 'Payload Too Large',
+        description: 'Yêu cầu quá lớn. Vui lòng giảm kích thước dữ liệu.',
+        icon: 'fa-file-arrow-up',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      414: {
+        title: 'URI Too Long',
+        description: 'URL quá dài. Vui lòng kiểm tra lại.',
+        icon: 'fa-link',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      415: {
+        title: 'Unsupported Media Type',
+        description: 'Loại dữ liệu này không được hỗ trợ.',
+        icon: 'fa-file-slash',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      418: {
+        title: 'I\'m a Teapot',
+        description: 'Đây là một trò đùa HTTP! ☕',
+        icon: 'fa-mug-hot',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      429: {
+        title: 'Too Many Requests',
+        description: 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau.',
+        icon: 'fa-gauge-high',
+        color: 'text-red-500',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      
+      // 5xx Server Errors
+      500: {
+        title: 'Internal Server Error',
+        description: 'Server gặp lỗi nội bộ. Vui lòng thử lại sau.',
+        icon: 'fa-explosion',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      501: {
+        title: 'Not Implemented',
+        description: 'Chức năng này chưa được triển khai.',
+        icon: 'fa-wrench',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      502: {
+        title: 'Bad Gateway',
+        description: 'Server gateway gặp lỗi. Vui lòng thử lại sau.',
+        icon: 'fa-link',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      503: {
+        title: 'Service Unavailable',
+        description: 'Dịch vụ hiện đang bảo trì. Vui lòng quay lại sau.',
+        icon: 'fa-server',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      504: {
+        title: 'Gateway Timeout',
+        description: 'Gateway vượt quá thời gian chờ. Vui lòng thử lại.',
+        icon: 'fa-hourglass-end',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      505: {
+        title: 'HTTP Version Not Supported',
+        description: 'Phiên bản HTTP này không được hỗ trợ.',
+        icon: 'fa-code',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100'
+      },
+      511: {
+        title: 'Network Authentication Required',
+        description: 'Cần xác thực mạng để truy cập.',
+        icon: 'fa-shield',
+        color: 'text-red-600',
+        bgColor: 'from-red-50 to-red-100'
+      },
+    };
+    
+    // Get error code from URL parameters or default to 404
+    function getErrorCode() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const customMessage = urlParams.get('message');
+      const customDescription = urlParams.get('description');
+      
+      return {
+        code: code ? parseInt(code) : 404,
+        customMessage: customMessage ? decodeURIComponent(customMessage) : null,
+        customDescription: customDescription ? decodeURIComponent(customDescription) : null
+      };
+    }
+    
+    // Categorize error code (1xx, 2xx, 3xx, 4xx, 5xx)
+    function getCategoryColor(code) {
+      if (code >= 100 && code < 200) return 'from-blue-50 to-blue-100';
+      if (code >= 200 && code < 300) return 'from-green-50 to-green-100';
+      if (code >= 300 && code < 400) return 'from-orange-50 to-orange-100';
+      if (code >= 400 && code < 500) return 'from-yellow-50 to-yellow-100';
+      if (code >= 500 && code < 600) return 'from-red-50 to-red-100';
+      return 'from-gray-50 to-gray-100';
+    }
+    
+    // Categorize error icon (1xx, 2xx, 3xx, 4xx, 5xx)
+    function getCategoryIcon(code) {
+      if (code >= 100 && code < 200) return 'fa-circle-info';
+      if (code >= 200 && code < 300) return 'fa-check-circle';
+      if (code >= 300 && code < 400) return 'fa-arrow-right';
+      if (code >= 400 && code < 500) return 'fa-exclamation-triangle';
+      if (code >= 500 && code < 600) return 'fa-explosion';
+      return 'fa-exclamation-circle';
+    }
+    
+    // Categorize error color (1xx, 2xx, 3xx, 4xx, 5xx)
+    function getCategoryTextColor(code) {
+      if (code >= 100 && code < 200) return 'text-blue-500';
+      if (code >= 200 && code < 300) return 'text-green-500';
+      if (code >= 300 && code < 400) return 'text-orange-500';
+      if (code >= 400 && code < 500) return 'text-yellow-600';
+      if (code >= 500 && code < 600) return 'text-red-600';
+      return 'text-gray-500';
+    }
+    
+    // Initialize error page
+    function initErrorPage() {
+      const { code, customMessage, customDescription } = getErrorCode();
+      
+      // Get error info from map or use default
+      const errorInfo = errorMap[code] || {
+        title: `Lỗi ${code}`,
+        description: 'Đã xảy ra lỗi. Vui lòng thử lại sau.',
+        icon: getCategoryIcon(code),
+        color: getCategoryTextColor(code),
+        bgColor: getCategoryColor(code)
+      };
+      
+      // Use custom message if provided, otherwise use mapped message
+      const title = customMessage || errorInfo.title;
+      const description = customDescription || errorInfo.description;
+      const icon = errorInfo.icon || getCategoryIcon(code);
+      const color = errorInfo.color || getCategoryTextColor(code);
+      
+      // Update page title
+      document.title = `${code} ${title} - AgriSense AI`;
+      document.getElementById('error-title').textContent = document.title;
+      
+      // Update error code display
+      document.getElementById('error-code').textContent = code;
+      document.getElementById('status-code').textContent = code;
+      
+      // Update error title
+      document.getElementById('error-title-text').textContent = title;
+      
+      // Update error description
+      document.getElementById('error-description').textContent = description;
+      
+      // Update error icon
+      const iconEl = document.getElementById('error-icon');
+      iconEl.className = `error-icon fas ${icon} ${color}`;
+      
+      // Update error time
+      document.getElementById('error-time').textContent = new Date().toLocaleString('vi-VN');
+      
+      // Show error details if custom message provided
+      if (customDescription) {
+        const detailsEl = document.getElementById('error-details');
+        const detailsTextEl = document.getElementById('error-details-text');
+        detailsTextEl.textContent = description;
+        detailsEl.classList.remove('hidden');
+      }
+    }
+    
+    // Navigation functions
+    function goHome() {
+      window.location.href = '/';
+    }
+    
+    function goBack() {
+      window.history.back();
+    }
+    
+    function contactSupport() {
+      // Redirect to forum or contact page
+      // You can customize this based on your support page
+      window.location.href = '/forum?category=support';
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initErrorPage);
+  </script>
+  
+</body>
+</html>

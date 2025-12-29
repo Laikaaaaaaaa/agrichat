@@ -1,0 +1,3069 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  <title>Diễn đàn Nông nghiệp - AgriSense AI</title>
+
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <style>
+    /* WebView Optimization */
+    * {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      -webkit-touch-callout: none;
+    }
+    
+    html {
+      height: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    
+    body {
+      min-height: 100%;
+      overflow-x: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #f0fdf4;
+    }
+    
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    img {
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    
+    .post-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .post-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .create-post-textarea {
+      resize: none;
+      transition: all 0.3s;
+    }
+    
+    .create-post-textarea:focus {
+      outline: none;
+      border-color: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+    }
+    
+    .like-btn.liked {
+      color: #16a34a;
+    }
+    
+    /* Post menu dropdown */
+    .post-menu-btn {
+      background: none;
+      border: none;
+      padding: 0.25rem;
+      cursor: pointer;
+      color: #9ca3af;
+      transition: color 0.2s;
+      position: relative;
+    }
+    
+    .post-menu-btn:hover {
+      color: #374151;
+    }
+    
+    .post-menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      min-width: 200px;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      margin-top: 0.5rem;
+    }
+    
+    .post-menu-dropdown.show {
+      display: flex;
+    }
+    
+    .post-menu-item {
+      padding: 0.75rem 1rem;
+      border: none;
+      background: none;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: #374151;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+    }
+    
+    .post-menu-item:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .post-menu-item:last-child {
+      border-radius: 0 0 8px 8px;
+    }
+    
+    .post-menu-item:hover {
+      background-color: #f3f4f6;
+    }
+    
+    .post-menu-item.delete:hover {
+      background-color: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .post-menu-item i {
+      width: 1rem;
+      text-align: center;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.2s;
+    }
+    
+    .modal.hidden {
+      display: none !important;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in-up {
+      animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #10b981;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    /* Mobile Optimization */
+    @media (max-width: 640px) {
+      .post-card {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      
+      .post-card:hover {
+        transform: none;
+      }
+      
+      .comment-bubble {
+        max-width: 85%;
+        word-break: break-word;
+        overflow-wrap: break-word;
+      }
+      
+      .modal > div {
+        margin: 1rem;
+        max-height: 85vh;
+      }
+    }
+    
+    .comment-bubble {
+      max-width: 75%;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+
+    /* Facebook-style connector lines with curves */
+    .replies-container {
+      position: relative;
+      margin-left: 2rem; /* 32px - align with comment avatar center */
+      padding-left: 1.5rem; /* 24px */
+    }
+
+    /* The vertical line that connects all replies */
+    .replies-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: #d1d5db; /* gray-300 */
+    }
+
+    /* The L-shaped connector for each direct reply (level 1) */
+    .replies-container > div > div[id^="reply-"]::before {
+      content: '';
+      position: absolute;
+      top: 1.25rem; /* 20px, vertically centered with level 1 avatar (24px/2 = 12px + padding) */
+      left: -1.5rem; /* Connects to the vertical line */
+      width: 1.5rem; /* Horizontal length */
+      height: 0; /* No height to avoid extra vertical line */
+      border-bottom: 2px solid #d1d5db;
+      border-left: 2px solid transparent; /* Transparent to create space for curve */
+      border-bottom-left-radius: 0.75rem; /* The curve */
+    }
+
+    /* Child replies (nested) connector styling */
+    div[id^="child-replies-"] {
+      position: relative;
+      margin-left: 1.75rem; /* 28px - align with level 1 avatar center */
+      padding-left: 1.5rem; /* 24px */
+    }
+
+    /* Vertical line for child replies list */
+    div[id^="child-replies-list-"]::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: #d1d5db;
+    }
+
+    /* L-shaped connector for each nested reply (level 2) */
+    div[id^="nested-reply-"]::before {
+      content: '';
+      position: absolute;
+      top: 1rem; /* Vertically centered with level 2 avatar (20px/2 = 10px) */
+      left: -1.5rem;
+      width: 1.5rem;
+      height: 0; /* No height to avoid extra vertical line */
+      border-bottom: 2px solid #d1d5db;
+      border-left: 2px solid transparent; /* Transparent to create space for curve */
+      border-bottom-left-radius: 0.75rem; /* The curve */
+    }
+
+    /* Nested-nested replies container (for level 3 if needed) */
+    div[id^="nested-child-replies-"] {
+      position: relative;
+      padding-left: 1rem; /* 16px */
+    }
+  </style>
+</head>
+<body class="bg-green-50 font-sans text-gray-700">
+
+  <header class="bg-green-100 border-b border-green-200 shadow-sm flex-shrink-0">
+    <div class="w-full flex justify-between items-center py-3 px-4 md:py-4 md:px-6">
+      <div class="flex items-center gap-3">
+        
+        <button onclick="goBack()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500 font-bold text-sm">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        
+        <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="h-12 md:h-14 w-auto object-contain">
+      </div>
+      <span class="text-xs md:text-sm text-gray-500 hidden md:block">Diễn đàn nông nghiệp cộng đồng</span>
+      <div class="flex items-center gap-2 md:gap-4">
+        
+        <div id="user-section" class="cursor-pointer" onclick="handleUserClick()">
+          <div id="user-avatar" class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold shadow-lg hover:shadow-xl transition-shadow">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="min-h-screen bg-green-50">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+
+        <div class="hidden lg:block lg:col-span-1">
+          <div class="sticky top-20">
+            
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <div class="relative">
+                <input type="text" id="search-input" placeholder="Tìm kiếm bài viết..." class="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-sm" onkeyup="searchPosts(this.value)">
+                <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-gray-900 text-base">📰 Tin tức</h3>
+                <a href="news.html" class="text-xs text-blue-600 hover:text-blue-700 font-medium">Xem tất cả</a>
+              </div>
+              <div id="sidebar-news-container" class="space-y-2 text-sm">
+                <ul class="space-y-2">
+                  <li>
+                    <a href="news.html?category=agriculture&type=Tin%20t%E1%BB%A9c%20n%C3%B4ng%20nghi%E1%BB%87p" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-newspaper text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Tin tức nông nghiệp</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="news.html?category=technology&type=Xu%20h%C6%B0%E1%BB%9Bng%20c%C3%B4ng%20ngh%E1%BB%87" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-lightbulb text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Xu hướng công nghệ</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="news.html?category=research&type=Nghi%C3%AAn%20c%C3%B8u%20khoa%20h%E1%BB%8Dc" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-flask text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Nghiên cứu khoa học</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="news.html?category=experience&type=Kinh%20nghi%E1%BB%87m%20th%E1%BB%B1c%20t%E1%BA%BF" 
+                       class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+                      <i class="fas fa-star text-xs text-green-600"></i>
+                      <span class="text-xs font-semibold">Kinh nghiệm thực tế</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-4">
+              <h3 class="font-bold text-gray-900 mb-3 text-base">🔥 Xu hướng</h3>
+              <div id="trending-topics-container" class="space-y-2 text-sm">
+                
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="lg:col-span-3">
+
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-md p-3 sm:p-4 mb-4 sm:mb-6">
+      <div class="flex gap-2 sm:gap-3">
+        <div id="create-post-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+          <i class="fas fa-user text-sm sm:text-base"></i>
+        </div>
+        <button onclick="openCreatePostModal()" class="flex-1 text-left px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors text-sm sm:text-base">
+          Bạn đang nghĩ gì về nông nghiệp?
+        </button>
+      </div>
+      
+      <div class="flex gap-1 sm:gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
+        <button onclick="openCreatePostModal('image')" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+          <i class="fas fa-image text-green-600 text-sm sm:text-base"></i>
+          <span class="font-medium text-xs sm:text-sm">Ảnh</span>
+        </button>
+        <button onclick="openCreatePostModal('poll')" class="flex-1 flex items-center justify-center gap-1 sm:gap-2 py-1.5 sm:py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+          <i class="fas fa-poll text-blue-600 text-sm sm:text-base"></i>
+          <span class="font-medium text-xs sm:text-sm">Khảo sát</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm mb-4 sm:mb-6 p-1.5 sm:p-2 flex gap-1 sm:gap-2 overflow-x-auto">
+      <button onclick="setFilter('latest'); loadPosts()" id="filter-latest" class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 bg-green-600 text-white rounded-lg font-medium text-xs sm:text-sm min-w-[80px] transition-colors">
+        <i class="fas fa-fire mr-1 sm:mr-2"></i><span class="hidden xs:inline">Mới nhất</span><span class="xs:hidden">Mới</span>
+      </button>
+      <button onclick="setFilter('popular'); loadPosts()" id="filter-popular" class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600 text-xs sm:text-sm min-w-[80px] transition-colors">
+        <i class="fas fa-star mr-1 sm:mr-2"></i><span class="hidden xs:inline">Phổ biến</span><span class="xs:hidden">Hot</span>
+      </button>
+      <button onclick="setFilter('questions'); loadPosts()" id="filter-questions" class="flex-1 whitespace-nowrap py-2 px-3 sm:px-4 hover:bg-gray-100 rounded-lg font-medium text-gray-600 text-xs sm:text-sm min-w-[80px] transition-colors">
+        <i class="fas fa-question-circle mr-1 sm:mr-2"></i>Câu hỏi
+      </button>
+    </div>
+
+    <div id="posts-container">
+      
+      <div class="flex justify-center py-8">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+
+    <div class="text-center py-4">
+      <button class="px-4 sm:px-6 py-2 sm:py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-full shadow-sm hover:shadow-md font-medium transition-all text-sm sm:text-base">
+        Xem thêm bài viết
+      </button>
+    </div>
+    
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="likes-modal" class="modal">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full mx-3 sm:mx-4 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h3 class="text-base sm:text-lg font-bold text-gray-800">Người đã thích</h3>
+        <button onclick="closeLikesModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-lg sm:text-xl"></i>
+        </button>
+      </div>
+      <div id="likes-list-content" class="overflow-y-auto p-3 sm:p-4 flex-1">
+        <p class="text-center text-gray-500 text-sm">Đang tải...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="create-post-modal" class="modal">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-2xl w-full mx-3 sm:mx-4 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800">Tạo bài viết</h2>
+        <button onclick="closeCreatePostModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-lg sm:text-xl"></i>
+        </button>
+      </div>
+
+      <div class="p-3 sm:p-4">
+        
+        <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div id="modal-user-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+            <i class="fas fa-user text-sm sm:text-base"></i>
+          </div>
+          <div>
+            <h3 id="modal-user-name" class="font-semibold text-gray-800 text-sm sm:text-base">Đang tải...</h3>
+          </div>
+        </div>
+
+        <div class="relative mb-3 sm:mb-4">
+          <textarea 
+            id="post-content" 
+            rows="5" 
+            placeholder="Chia sẻ suy nghĩ của bạn về nông nghiệp..."
+            class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:border-green-600 resize-none"
+          ></textarea>
+        </div>
+
+        <div id="poll-preview-container"></div>
+
+        <div id="image-preview-container" class="hidden mb-3 sm:mb-4">
+          <div class="relative">
+            <img id="image-preview" src="" alt="Preview" class="w-full rounded-lg max-h-48 sm:max-h-64 object-cover" />
+            <button onclick="removeImage()" class="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100">
+              <i class="fas fa-times text-gray-600 text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-3 sm:mb-4">
+          <input 
+            type="text" 
+            id="post-tags" 
+            placeholder="Thêm thẻ (cách nhau bằng dấu phẩy). VD: lúa, trồng trọt"
+            class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 text-xs sm:text-sm"
+          />
+        </div>
+
+        <div class="flex gap-2 sm:gap-3">
+          <button onclick="selectPostImage()" class="flex-1 py-2.5 sm:py-3 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
+            <i class="fas fa-image"></i>
+            <span class="hidden xs:inline">Ảnh</span>
+          </button>
+          <button onclick="closeCreatePostModal(); openPollModal()" class="flex-1 py-2.5 sm:py-3 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm">
+            <i class="fas fa-poll"></i>
+            <span class="hidden xs:inline">Khảo sát</span>
+          </button>
+          <button onclick="submitPost()" class="flex-1 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm">
+            Đăng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="report-modal" class="modal">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full mx-3 sm:mx-4">
+      
+      <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800">Báo cáo bài viết</h2>
+        <button onclick="closeReportModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-lg sm:text-xl"></i>
+        </button>
+      </div>
+
+      <div class="p-3 sm:p-4 space-y-3">
+        <p class="text-sm text-gray-600">Vui lòng chọn lý do báo cáo:</p>
+        
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors">
+            <input type="radio" name="report-reason" value="spam" class="w-4 h-4" checked>
+            <span class="text-sm text-gray-700">Spam</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors">
+            <input type="radio" name="report-reason" value="inappropriate" class="w-4 h-4">
+            <span class="text-sm text-gray-700">Nội dung không phù hợp</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors">
+            <input type="radio" name="report-reason" value="fraud" class="w-4 h-4">
+            <span class="text-sm text-gray-700">Lừa đảo</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors">
+            <input type="radio" name="report-reason" value="other" class="w-4 h-4">
+            <span class="text-sm text-gray-700">Khác</span>
+          </label>
+        </div>
+        
+        <textarea id="report-details" placeholder="Chi tiết thêm (tùy chọn)..." rows="3" class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600 text-sm resize-none spellcheck-false" spellcheck="false"></textarea>
+      </div>
+
+      <div class="flex gap-2 p-3 sm:p-4 border-t border-gray-200">
+        <button onclick="closeReportModal()" class="flex-1 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm">
+          Hủy
+        </button>
+        <button onclick="submitReportModal()" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium text-sm">
+          Báo cáo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-post-modal" class="modal">
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-2xl w-full mx-3 sm:mx-4 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+        <h2 class="text-lg sm:text-xl font-bold text-gray-800">Chỉnh sửa bài viết</h2>
+        <button onclick="closeEditPostModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-lg sm:text-xl"></i>
+        </button>
+      </div>
+
+      <div class="p-3 sm:p-4">
+        
+        <div class="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div id="edit-modal-user-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-semibold">
+            <i class="fas fa-user text-sm sm:text-base"></i>
+          </div>
+          <div>
+            <h3 id="edit-modal-user-name" class="font-semibold text-gray-800 text-sm sm:text-base">Đang tải...</h3>
+          </div>
+        </div>
+
+        <div class="relative mb-3 sm:mb-4">
+          <textarea 
+            id="edit-post-content" 
+            rows="5" 
+            placeholder="Chỉnh sửa nội dung bài viết..."
+            class="create-post-textarea w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:border-green-600 resize-none"
+          ></textarea>
+        </div>
+
+        <div class="flex gap-2 sm:gap-3 justify-end">
+          <button onclick="closeEditPostModal()" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors text-sm sm:text-base">
+            Hủy
+          </button>
+          <button onclick="submitEditPost()" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
+            Lưu
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="post-image-input" accept="image/*" class="hidden" />
+
+  <div id="poll-modal" class="modal hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl max-w-md w-full">
+        
+        <div class="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Thêm cuộc thăm dò ý kiến</h2>
+          <button onclick="closePollModal()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times text-lg sm:text-xl"></i>
+          </button>
+        </div>
+
+        <div class="p-3 sm:p-4">
+          
+          <div class="mb-4 sm:mb-5">
+            <div id="poll-options-container" class="space-y-2.5">
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Lựa chọn 1"
+                  class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+                />
+                <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Lựa chọn 2"
+                  class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+                />
+                <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            <button onclick="addPollOption()" class="mt-3 w-full py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <i class="fas fa-plus text-green-600"></i>
+              <span>Thêm lựa chọn</span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="text-xs sm:text-sm text-gray-500">
+              Bạn không thể tạo cuộc thăm dò ý kiến không chứa ít nhất hai lựa chọn trong bài viết.
+            </div>
+            <button onclick="togglePollSettings()" class="ml-2 p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Cài đặt">
+              <i class="fas fa-cog text-gray-600 text-lg"></i>
+            </button>
+          </div>
+
+          <div id="poll-settings" class="hidden mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <label class="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="poll-multiple" class="w-4 h-4">
+              <span class="text-xs sm:text-sm text-gray-700">Cho phép chọn nhiều tùy chọn</span>
+            </label>
+          </div>
+
+          <div class="flex gap-2 mt-4 sm:mt-5">
+            <button onclick="closePollModal()" class="flex-1 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm sm:text-base">
+              Hủy
+            </button>
+            <button onclick="addPollToPost()" class="flex-1 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base">
+              Thêm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isUserLoggedIn = false;
+    let currentUser = null;
+    let selectedImage = null;
+    let allPosts = [];
+    let currentFilter = 'latest';
+    let pollData = null;
+    let mentionedUsers = [];
+    let hashtags = [];
+    let allUsersCache = []; // Cache all users for real-time filtering
+    
+    // Back button
+    function goBack() {
+      window.history.back();
+    }
+    
+    // Check user session
+    async function checkUserSession() {
+      try {
+        const response = await fetch('/api/auth/profile');
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+          isUserLoggedIn = true;
+          currentUser = data.user;
+          const userName = data.user.name || data.user.email.split('@')[0];
+          
+          // Update avatars
+          const updateAvatar = (element, user) => {
+            if (!element) return;
+            if (user.avatar_url) {
+              element.innerHTML = `<img src="${user.avatar_url}" class="w-full h-full rounded-full object-cover" />`;
+            } else {
+              const firstLetter = userName.charAt(0).toUpperCase();
+              element.textContent = firstLetter;
+            }
+          };
+          
+          updateAvatar(document.getElementById('user-avatar'), data.user);
+          updateAvatar(document.getElementById('create-post-avatar'), data.user);
+          updateAvatar(document.getElementById('modal-user-avatar'), data.user);
+          
+          const nameEl = document.getElementById('modal-user-name');
+          if (nameEl) nameEl.textContent = userName;
+        }
+      } catch (error) {
+        console.log('User not logged in');
+      }
+    }
+    
+    function handleUserClick() {
+      if (isUserLoggedIn) {
+        window.location.href = '/profile';
+      } else {
+        window.location.href = '/login';
+      }
+    }
+    
+    // Load all posts
+    async function loadPosts() {
+      try {
+        // Build query based on current filter
+        let url = '/api/forum/posts';
+        const params = new URLSearchParams();
+        
+        if (currentFilter === 'popular') {
+          params.append('sort', 'likes');
+        } else if (currentFilter === 'questions') {
+          params.append('sort', 'questions');
+        }
+        
+        if (params.toString()) {
+          url += '?' + params.toString();
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts || [];
+          renderPosts(allPosts);
+          updateOnlineCount(data.total_users || 0);
+          loadTrendingTopics(); // Load trending after posts
+        }
+      } catch (error) {
+        console.error('Error loading posts:', error);
+        document.getElementById('posts-container').innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <i class="fas fa-exclamation-triangle text-red-600 text-2xl mb-2"></i>
+            <p class="text-red-800">Không thể tải bài viết. Vui lòng thử lại sau.</p>
+          </div>
+        `;
+      }
+    }
+    
+    // Load trending topics based on actual data
+    async function loadTrendingTopics() {
+      try {
+        const response = await fetch('/api/forum/trending-tags');
+        const data = await response.json();
+        
+        if (data.success && data.tags) {
+          const container = document.getElementById('trending-topics-container');
+          if (container) {
+            const tagsHTML = data.tags.slice(0, 3).map(tag => `
+              <div class="p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" onclick="searchByTag('${tag.tag}')">
+                <div class="font-medium text-gray-800">#${tag.tag}</div>
+                <div class="text-xs text-gray-500">${tag.count} bài viết</div>
+              </div>
+            `).join('');
+            
+            container.innerHTML = tagsHTML;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading trending topics:', error);
+      }
+    }
+    
+    // Search by tag or keyword
+    async function searchByTag(tag) {
+      try {
+        const response = await fetch(`/api/forum/posts?tag=${encodeURIComponent(tag)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts || [];
+          renderPosts(allPosts);
+        }
+      } catch (error) {
+        console.error('Error searching:', error);
+      }
+    }
+    
+    // Search posts
+    async function searchPosts(keyword) {
+      if (!keyword.trim()) {
+        loadPosts();
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts?search=${encodeURIComponent(keyword)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts || [];
+          renderPosts(allPosts);
+        }
+      } catch (error) {
+        console.error('Error searching:', error);
+      }
+    }
+    
+    // Set filter and update UI
+    function setFilter(filter) {
+      currentFilter = filter;
+      
+      // Update button styles
+      document.getElementById('filter-latest').classList.toggle('bg-green-600', filter === 'latest');
+      document.getElementById('filter-latest').classList.toggle('text-white', filter === 'latest');
+      document.getElementById('filter-latest').classList.toggle('text-gray-600', filter !== 'latest');
+      document.getElementById('filter-latest').classList.toggle('hover:bg-gray-100', filter !== 'latest');
+      
+      document.getElementById('filter-popular').classList.toggle('bg-green-600', filter === 'popular');
+      document.getElementById('filter-popular').classList.toggle('text-white', filter === 'popular');
+      document.getElementById('filter-popular').classList.toggle('text-gray-600', filter !== 'popular');
+      document.getElementById('filter-popular').classList.toggle('hover:bg-gray-100', filter !== 'popular');
+      
+      document.getElementById('filter-questions').classList.toggle('bg-green-600', filter === 'questions');
+      document.getElementById('filter-questions').classList.toggle('text-white', filter === 'questions');
+      document.getElementById('filter-questions').classList.toggle('text-gray-600', filter !== 'questions');
+      document.getElementById('filter-questions').classList.toggle('hover:bg-gray-100', filter !== 'questions');
+    }
+    
+    // Filter by category
+    async function filterByCategory(category) {
+      try {
+        const response = await fetch(`/api/forum/posts?category=${encodeURIComponent(category)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          allPosts = data.posts || [];
+          renderPosts(allPosts);
+        }
+      } catch (error) {
+        console.error('Error filtering:', error);
+      }
+    }
+    
+    // Render posts
+    function renderPosts(posts) {
+      const container = document.getElementById('posts-container');
+      
+      if (!posts || posts.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl shadow-md p-8 text-center">
+            <i class="fas fa-inbox text-gray-300 text-5xl mb-4"></i>
+            <p class="text-gray-500 text-lg">Chưa có bài viết nào</p>
+            <p class="text-gray-400 text-sm mt-2">Hãy là người đầu tiên chia sẻ!</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = posts.map(post => createPostHTML(post)).join('');
+    }
+    
+    // Create post HTML
+    function createPostHTML(post) {
+      const userName = post.user_name || post.user_email?.split('@')[0] || 'Người dùng';
+      const userAvatar = post.user_avatar 
+        ? `<img src="${post.user_avatar}" class="w-full h-full rounded-full object-cover" />`
+        : `<div class="w-full h-full rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-semibold text-xs">${userName.charAt(0).toUpperCase()}</div>`;
+      
+      const timeAgo = getTimeAgo(post.created_at);
+      const isLiked = post.user_liked ? 'liked' : '';
+      const likeIconClass = post.user_liked ? 'fas' : 'far';
+      
+      const imageHTML = post.image_url 
+        ? `<img src="${post.image_url}" alt="Post image" class="w-full rounded-xl object-cover max-h-96 mb-3 pointer-events-auto" />`
+        : '';
+      
+      const tagsHTML = post.tags && post.tags.length > 0
+        ? `<div class="flex gap-2 mb-3 flex-wrap">
+            ${post.tags.map(tag => `<a href="javascript:searchByTag('${tag}')" class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 cursor-pointer transition-colors">#${tag}</a>`).join('')}
+           </div>`
+        : '';
+      
+      const titleHTML = post.title 
+        ? `<h2 class="text-lg font-semibold text-gray-800 mb-2">${escapeHtml(post.title)}</h2>`
+        : '';
+      
+      // Poll HTML
+      const pollHTML = post.poll && post.poll.options && post.poll.options.length > 0
+        ? `<div class="bg-blue-50 rounded-lg p-3 sm:p-4 mb-3 border border-blue-200">
+            <p class="text-sm font-semibold text-blue-700 mb-3">📊 ${escapeHtml(post.poll.question || 'Khảo sát')} ${post.poll.allowMultiple ? '<span class="text-xs font-normal">(Chọn nhiều câu trả lời)</span>' : ''} (Tổng: ${post.total_poll_votes || 0} phiếu)</p>
+            <div class="space-y-2">
+              ${post.poll.options.map((option, idx) => {
+                const voteData = post.poll_vote_counts[idx] || {count: 0, percentage: 0};
+                // Check if this option was voted by current user
+                const isUserVoted = post.user_voted && (
+                  post.user_voted_options ? post.user_voted_options.includes(idx) : post.user_voted_option === idx
+                );
+                const inputType = post.poll.allowMultiple ? 'checkbox' : 'radio';
+                return `
+                <div class="flex items-center gap-2">
+                  <input type="${inputType}" name="poll_${post.id}" value="${idx}" id="poll_${post.id}_${idx}" class="cursor-pointer" ${post.user_voted ? 'disabled' : ''} ${isUserVoted ? 'checked' : ''} />
+                  <label for="poll_${post.id}_${idx}" class="flex-1 py-2 px-3 bg-white rounded border ${isUserVoted ? 'border-green-500 bg-green-50' : 'border-blue-200'} text-sm text-gray-700 cursor-pointer hover:bg-blue-50 transition-colors">
+                    <div class="flex items-center justify-between">
+                      <span>${escapeHtml(option)} ${isUserVoted ? '✓' : ''}</span>
+                      <span class="text-xs font-semibold text-gray-600">${voteData.percentage}% (${voteData.count})</span>
+                    </div>
+                    <div class="mt-1 w-full bg-gray-200 rounded-full h-1.5">
+                      <div class="bg-blue-500 h-1.5 rounded-full transition-all" style="width: ${voteData.percentage}%"></div>
+                    </div>
+                  </label>
+                </div>
+              `;
+              }).join('')}
+            </div>
+            <button onclick="submitPollVote(${post.id})" class="mt-3 px-4 py-2 ${post.user_voted ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-lg transition-colors text-sm font-medium w-full" ${post.user_voted ? 'disabled' : ''}>
+              ${post.user_voted ? '✓ Đã bầu chọn' : 'Gửi phiếu bầu'}
+            </button>
+          </div>`
+        : '';
+      
+      return `
+        <div class="post-card bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md p-3 sm:p-4 mb-3 sm:mb-4 fade-in-up" data-post-id="${post.id}">
+          
+          <div class="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <a href="/profile/${post.user_id}" class="hover:opacity-80 transition-opacity flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden">
+              ${userAvatar}
+            </a>
+            <div class="flex-1 min-w-0">
+              <a href="/profile/${post.user_id}" class="hover:underline">
+                <h3 class="font-semibold text-gray-800 text-sm sm:text-base truncate">${escapeHtml(userName)}</h3>
+              </a>
+              <p class="text-xs text-gray-500">
+                <i class="far fa-clock mr-1"></i>${timeAgo}
+              </p>
+            </div>
+            
+            <div class="relative" style="flex-shrink: 0;">
+              <button onclick="togglePostMenu(event, ${post.id})" class="post-menu-btn" title="Thêm tùy chọn">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div class="post-menu-dropdown" id="menu-${post.id}">
+                <button onclick="reportPost(${post.id})" class="post-menu-item">
+                  <i class="fas fa-flag"></i>
+                  <span>Báo cáo</span>
+                </button>
+                ${currentUser && currentUser.id === post.user_id ? `
+                  <button onclick="editPostModal(${post.id})" class="post-menu-item">
+                    <i class="fas fa-edit"></i>
+                    <span>Chỉnh sửa</span>
+                  </button>
+                  <button onclick="deletePost(${post.id})" class="post-menu-item delete">
+                    <i class="fas fa-trash"></i>
+                    <span>Xóa</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-2 sm:mb-3">
+            ${titleHTML}
+            ${(() => {
+              const truncated = truncatePostContent(post.content, post.id);
+              if (truncated.isTruncated) {
+                return `
+                  <div id="content-preview-${post.id}">
+                    <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${truncated.display}</p>
+                    <button onclick="togglePostExpand(${post.id})" class="mt-2 text-green-600 hover:text-green-700 font-semibold text-sm transition-colors">
+                      Xem thêm <i class="fas fa-chevron-down"></i>
+                    </button>
+                  </div>
+                  <div id="content-full-${post.id}" class="hidden">
+                    <p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${truncated.full}</p>
+                    <button onclick="togglePostExpand(${post.id})" class="mt-2 text-green-600 hover:text-green-700 font-semibold text-sm transition-colors">
+                      Ẩn bớt <i class="fas fa-chevron-up"></i>
+                    </button>
+                  </div>
+                `;
+              } else {
+                return `<p class="text-gray-600 whitespace-pre-wrap text-sm sm:text-base break-words">${truncated.display}</p>`;
+              }
+            })()}
+          </div>
+          
+          ${imageHTML}
+          ${pollHTML}
+          ${tagsHTML}
+
+          <div class="px-2.5 sm:px-4 py-2 sm:py-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <button 
+                onclick="showLikesList(${post.id})" 
+                class="flex items-center gap-1 text-gray-600 hover:text-green-600 hover:underline transition-colors"
+              >
+                ${post.likes_count > 0 ? `
+                  <span class="flex items-center gap-1">
+                    <i class="fas fa-thumbs-up text-green-600 text-xs"></i>
+                    <span class="font-medium text-gray-700">${post.likes_count}</span>
+                  </span>
+                ` : '<span class="text-gray-500 text-xs">Chưa có lượt thích</span>'}
+              </button>
+              <button 
+                onclick="toggleComments(${post.id})" 
+                class="text-gray-600 hover:text-blue-600 hover:underline transition-colors"
+              >
+                ${post.comments_count > 0 
+                  ? `<span class="font-medium">${post.comments_count}</span> bình luận` 
+                  : 'Chưa có bình luận'}
+              </button>
+            </div>
+          </div>
+
+          <div class="px-2 pb-2 flex gap-1 border-t border-gray-100 pt-1">
+            <button 
+              onclick="toggleLike(${post.id})" 
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium like-btn-${post.id} ${isLiked}"
+              title="${isLiked ? 'Bỏ thích' : 'Thích bài viết'}"
+            >
+              <i class="${likeIconClass} fa-thumbs-up text-lg"></i>
+              <span class="text-sm">${isLiked ? 'Đã thích' : 'Thích'}</span>
+            </button>
+            <button 
+              onclick="toggleComments(${post.id})" 
+              class="flex-1 flex items-center justify-center gap-2 py-2.5 hover:bg-gray-50 rounded-lg transition-colors text-gray-600 font-medium"
+              title="Bình luận bài viết"
+            >
+              <i class="far fa-comment text-lg"></i>
+              <span class="text-sm">Bình luận</span>
+            </button>
+          </div>
+
+          <div id="comments-${post.id}" class="comments-section hidden border-t border-gray-100 bg-gray-50">
+            
+            <div class="p-3 sm:p-4 border-b border-gray-200">
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  id="comment-input-${post.id}"
+                  placeholder="Viết bình luận..." 
+                  spellcheck="false"
+                  class="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-green-600 text-sm sm:text-base"
+                  onkeypress="if(event.key==='Enter') submitComment(${post.id})"
+                />
+                <button onclick="submitComment(${post.id})" class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors flex-shrink-0">
+                  <i class="fas fa-paper-plane text-sm"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="comments-list space-y-3 p-3 sm:p-4" id="comments-list-${post.id}">
+              
+            </div>
+          </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Process content to highlight hashtags and @mentions
+    function processContent(text) {
+      if (!text) return '';
+      
+      // Escape HTML first
+      let processed = escapeHtml(text);
+      
+      // Highlight hashtags: #word or #word_word or #wordword -> <a href="/forum?tag=word" class="...">
+      processed = processed.replace(/#([\w]+)/g, (match, tag) => {
+        return `<a href="javascript:searchByTag('${tag}')" class="text-green-600 hover:underline font-semibold cursor-pointer">${match}</a>`;
+      });
+      
+      // Highlight @mentions: @Name -> <a href="/profile/...">
+      processed = processed.replace(/@([\w\s]+?)(?=\s|$|[,.!?])/g, (match, user) => {
+        const userName = user.trim();
+        return `<a href="javascript:goToUserProfile('${userName}')" class="text-blue-600 hover:underline font-semibold cursor-pointer">${match}</a>`;
+      });
+      
+      return processed;
+    }
+
+    // Truncate long posts and add "See more" button (Facebook-style)
+    const MAX_PREVIEW_CHARS = 280;
+    const MAX_PREVIEW_LINES = 4;
+    
+    function truncatePostContent(text, postId) {
+      if (!text) return { display: '', isTruncated: false };
+      
+      // Count lines (break on newline)
+      const lines = text.split('\n');
+      const exceedsLines = lines.length > MAX_PREVIEW_LINES;
+      
+      // Check if text exceeds char limit
+      const exceedsChars = text.length > MAX_PREVIEW_CHARS;
+      
+      if (!exceedsChars && !exceedsLines) {
+        return { display: processContent(text), isTruncated: false };
+      }
+      
+      // Truncate based on whichever comes first
+      let truncatedText = text;
+      
+      if (exceedsLines) {
+        truncatedText = lines.slice(0, MAX_PREVIEW_LINES).join('\n');
+      }
+      
+      if (exceedsChars && truncatedText.length > MAX_PREVIEW_CHARS) {
+        truncatedText = truncatedText.substring(0, MAX_PREVIEW_CHARS) + '...';
+      }
+      
+      const displayText = processContent(truncatedText);
+      const fullText = processContent(text);
+      
+      return { 
+        display: displayText,
+        full: fullText,
+        isTruncated: true,
+        postId: postId
+      };
+    }
+    
+    // Toggle post expand/collapse (Facebook-style)
+    function togglePostExpand(postId) {
+      const preview = document.getElementById(`content-preview-${postId}`);
+      const full = document.getElementById(`content-full-${postId}`);
+      
+      if (preview.classList.contains('hidden')) {
+        preview.classList.remove('hidden');
+        full.classList.add('hidden');
+      } else {
+        preview.classList.add('hidden');
+        full.classList.remove('hidden');
+      }
+    }
+    
+    // Navigate to user profile
+    function goToUserProfile(userName) {
+      // Fetch user ID by name
+      fetch(`/api/users/search?name=${encodeURIComponent(userName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.users && data.users.length > 0) {
+            // Navigate to first match
+            window.location.href = `/profile/${data.users[0].id}`;
+          } else {
+            alert('Không tìm thấy người dùng');
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    // Get time ago
+    function getTimeAgo(dateString) {
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+      
+      if (seconds < 60) return 'Vừa xong';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} phút trước`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} giờ trước`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return `${days} ngày trước`;
+      const months = Math.floor(days / 30);
+      if (months < 12) return `${months} tháng trước`;
+      const years = Math.floor(months / 12);
+      return `${years} năm trước`;
+    }
+    
+    // Update online count
+    function updateOnlineCount(count) {
+      const el = document.getElementById('online-count');
+      if (el) el.textContent = count;
+    }
+    
+    // Create Post Modal
+    function openCreatePostModal(type) {
+      if (!isUserLoggedIn) {
+        alert('Vui lòng đăng nhập để đăng bài');
+        window.location.href = '/login';
+        return;
+      }
+      document.getElementById('create-post-modal').classList.add('active');
+      
+      // Setup autocomplete
+      setTimeout(() => {
+        setupMentionAutocomplete();
+        setupHashtagAutocomplete();
+      }, 100);
+      
+      if (type === 'image') {
+        selectPostImage();
+      }
+    }
+    
+    function closeCreatePostModal() {
+      document.getElementById('create-post-modal').classList.remove('active');
+      // Reset form
+      document.getElementById('post-content').value = '';
+      document.getElementById('post-tags').value = '';
+      removeImage();
+      // Clear poll preview
+      const pollContainer = document.getElementById('poll-preview-container');
+      if (pollContainer) pollContainer.innerHTML = '';
+      pollData = null;
+      // Clear other data
+      selectedLocation = null;
+      mentionedUsers = [];
+      hashtags = [];
+      allUsersCache = [];
+      // Clear poll data on actual close
+      pollData = null;
+    }
+    
+    function selectPostImage() {
+      document.getElementById('post-image-input').click();
+    }
+    
+    // Handle image selection
+    document.getElementById('post-image-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        selectedImage = event.target.result;
+        document.getElementById('image-preview').src = selectedImage;
+        document.getElementById('image-preview-container').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    function removeImage() {
+      selectedImage = null;
+      document.getElementById('image-preview').src = '';
+      document.getElementById('image-preview-container').classList.add('hidden');
+      document.getElementById('post-image-input').value = '';
+    }
+    
+    // Poll Modal Functions
+    function openPollModal() {
+      document.getElementById('poll-modal').classList.remove('hidden');
+      document.getElementById('poll-modal').classList.add('active');
+    }
+    
+    function closePollModal() {
+      document.getElementById('poll-modal').classList.add('hidden');
+      document.getElementById('poll-modal').classList.remove('active');
+      
+      // Reset poll options container to 2 default options with remove buttons
+      document.getElementById('poll-options-container').innerHTML = `
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            placeholder="Lựa chọn 1"
+            class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+          />
+          <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            placeholder="Lựa chọn 2"
+            class="poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base"
+          />
+          <button onclick="removePollOption(this)" class="text-gray-400 hover:text-gray-600 p-1">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      // Reset poll settings
+      document.getElementById('poll-multiple').checked = false;
+      document.getElementById('poll-settings').classList.add('hidden');
+      
+      // Clear poll data only when modal is closed for real
+      pollData = null;
+    }
+    
+    function addPollOption() {
+      const container = document.getElementById('poll-options-container');
+      const optionCount = container.querySelectorAll('.poll-option').length;
+      
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'flex items-center gap-2';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'poll-option flex-1 px-3 sm:px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm sm:text-base';
+      input.placeholder = `Lựa chọn ${optionCount + 1}`;
+      
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'text-gray-400 hover:text-gray-600 p-1';
+      removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+      removeBtn.onclick = function() { removePollOption(this); };
+      
+      optionDiv.appendChild(input);
+      optionDiv.appendChild(removeBtn);
+      container.appendChild(optionDiv);
+    }
+    
+    function removePollOption(button) {
+      const optionDiv = button.parentElement;
+      optionDiv.remove();
+    }
+    
+    function togglePollSettings() {
+      const settings = document.getElementById('poll-settings');
+      settings.classList.toggle('hidden');
+    }
+    
+    function addPollToPost() {
+      const options = Array.from(document.querySelectorAll('.poll-option'))
+        .map(input => input.value.trim())
+        .filter(value => value);
+      const allowMultiple = document.getElementById('poll-multiple').checked;
+      
+      if (options.length < 2) {
+        alert('Cần ít nhất 2 tùy chọn');
+        return;
+      }
+      
+      pollData = { question: '', options, allowMultiple, votes: options.map(() => 0) };
+      
+      // Close poll modal
+      document.getElementById('poll-modal').classList.add('hidden');
+      
+      // Open create post modal
+      if (!isUserLoggedIn) {
+        alert('Vui lòng đăng nhập để đăng bài');
+        window.location.href = '/login';
+        return;
+      }
+      
+      document.getElementById('create-post-modal').classList.add('active');
+      
+      // Setup autocomplete
+      setTimeout(() => {
+        setupMentionAutocomplete();
+        setupHashtagAutocomplete();
+        showPollPreview();
+      }, 100);
+      
+      showAlert('Khảo sát đã được thêm!', 'success');
+    }
+    
+    function showPollPreview() {
+      if (!pollData || pollData.options.length === 0) return;
+      
+      const pollContainer = document.getElementById('poll-preview-container');
+      if (!pollContainer) return;
+      
+      pollContainer.innerHTML = `
+        <div class="mb-3 sm:mb-4 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-blue-700">📊 Khảo sát</p>
+            <button onclick="removePollPreview()" class="text-gray-400 hover:text-gray-600 transition-colors">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="space-y-2">
+            ${pollData.options.map(option => `
+              <div class="p-2.5 bg-white rounded border border-blue-200 text-sm text-gray-700 flex items-center gap-2">
+                <input type="radio" name="poll_option" class="cursor-pointer" />
+                <span>${escapeHtml(option)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    function removePollPreview() {
+      const container = document.getElementById('poll-preview-container');
+      if (container) {
+        container.innerHTML = '';
+      }
+      pollData = null;
+    }
+    
+    // @mention Functions
+    function setupMentionAutocomplete() {
+      const postContent = document.getElementById('post-content');
+      
+      postContent.addEventListener('input', function() {
+        const text = this.value;
+        const lastAtIndex = text.lastIndexOf('@');
+        
+        if (lastAtIndex === -1) {
+          hideMentionSuggestions();
+          return;
+        }
+        
+        const afterAt = text.substring(lastAtIndex + 1);
+        
+        // Stop if we hit a comma or multiple spaces
+        if (afterAt.includes(',') || afterAt.split(' ').length > 2) {
+          hideMentionSuggestions();
+          return;
+        }
+        
+        // Show suggestions for search text (can contain spaces for full names)
+        showMentionSuggestions(this, afterAt.trim(), lastAtIndex);
+      });
+    }
+    
+    function showMentionSuggestions(textArea, searchText, atIndex) {
+      if (!searchText || searchText.length < 1) {
+        hideMentionSuggestions();
+        return;
+      }
+
+      // Nếu cache trống, gọi API để lấy tất cả users
+      if (allUsersCache.length === 0) {
+        fetch(`/api/users/search?name=`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.users) {
+              allUsersCache = data.users;
+              filterAndShowMentions(textArea, searchText, atIndex);
+            }
+          })
+          .catch(error => console.error('Error fetching users:', error));
+      } else {
+        // Nếu cache có data, filter client-side
+        filterAndShowMentions(textArea, searchText, atIndex);
+      }
+    }
+
+    function filterAndShowMentions(textArea, searchText, atIndex) {
+      // Filter users based on search text (case-insensitive)
+      const filtered = allUsersCache.filter(user => 
+        user.name.toLowerCase().includes(searchText.toLowerCase())
+      );
+
+      if (filtered.length === 0) {
+        showNoUserMessage();
+        return;
+      }
+
+      let suggestionList = document.getElementById('mention-suggestions');
+      
+      if (!suggestionList) {
+        suggestionList = document.createElement('div');
+        suggestionList.id = 'mention-suggestions';
+        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto';
+        textArea.parentElement.appendChild(suggestionList);
+      }
+
+      // Tính vị trí từ cursor
+      const textBeforeCursor = textArea.value.substring(0, atIndex);
+      const lines = textBeforeCursor.split('\n');
+      const currentLine = lines[lines.length - 1];
+      
+      suggestionList.style.left = (currentLine.length * 8) + 'px';
+      suggestionList.style.top = ((lines.length - 1) * 24) + 'px';
+
+      suggestionList.innerHTML = filtered.map(user => 
+        `<div class="px-3 py-2 hover:bg-blue-100 cursor-pointer text-sm font-medium" onclick="insertMention('${user.name}')">${user.name}</div>`
+      ).join('');
+    }
+
+    function showNoUserMessage() {
+      let suggestionList = document.getElementById('mention-suggestions');
+      if (!suggestionList) {
+        suggestionList = document.createElement('div');
+        suggestionList.id = 'mention-suggestions';
+        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-20';
+        const textArea = document.getElementById('post-content');
+        textArea.parentElement.appendChild(suggestionList);
+      }
+      
+      suggestionList.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500 italic">Không tìm thấy người dùng</div>';
+    }
+
+    function hideMentionSuggestions() {
+      const suggestionList = document.getElementById('mention-suggestions');
+      if (suggestionList) suggestionList.innerHTML = '';
+    }
+    
+    function insertMention(name) {
+      const postContent = document.getElementById('post-content');
+      const lastAtIndex = postContent.value.lastIndexOf('@');
+      
+      postContent.value = postContent.value.substring(0, lastAtIndex) + `@${name} `;
+      mentionedUsers.push(name);
+      
+      const suggestionList = document.getElementById('mention-suggestions');
+      if (suggestionList) suggestionList.innerHTML = '';
+    }
+    
+    // Hashtag Functions
+    function setupHashtagAutocomplete() {
+      const postTags = document.getElementById('post-tags');
+      
+      postTags.addEventListener('input', function() {
+        const text = this.value;
+        const lastHashIndex = text.lastIndexOf('#');
+        
+        if (lastHashIndex === -1) return;
+        
+        const afterHash = text.substring(lastHashIndex + 1);
+        if (afterHash.includes(',')) return;
+        
+        showHashtagSuggestions(this, afterHash);
+      });
+    }
+    
+    function showHashtagSuggestions(input, searchText) {
+      const popularTags = ['lúa', 'trồng trọt', 'chăn nuôi', 'phân bón', 'tưới tiêu', 'sâu bệnh'];
+      const filtered = popularTags.filter(tag => tag.toLowerCase().includes(searchText.toLowerCase()));
+      
+      if (filtered.length === 0) return;
+      
+      let suggestionList = document.getElementById('hashtag-suggestions');
+      if (!suggestionList) {
+        suggestionList = document.createElement('div');
+        suggestionList.id = 'hashtag-suggestions';
+        suggestionList.className = 'absolute bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto mt-1';
+        input.parentElement.style.position = 'relative';
+        input.parentElement.appendChild(suggestionList);
+      }
+      
+      suggestionList.innerHTML = filtered.map(tag => 
+        `<div class="px-3 py-2 hover:bg-green-100 cursor-pointer text-sm" onclick="insertHashtag('#${tag}')">#${tag}</div>`
+      ).join('');
+    }
+    
+    function insertHashtag(tag) {
+      const postTags = document.getElementById('post-tags');
+      const lastHashIndex = postTags.value.lastIndexOf('#');
+      
+      postTags.value = postTags.value.substring(0, lastHashIndex) + tag + ', ';
+      hashtags.push(tag.substring(1)); // Remove #
+      
+      const suggestionList = document.getElementById('hashtag-suggestions');
+      if (suggestionList) suggestionList.innerHTML = '';
+    }
+    
+    // Submit post
+    async function submitPost() {
+      const content = document.getElementById('post-content').value.trim();
+      const tags = document.getElementById('post-tags').value.trim();
+      
+      if (!content) {
+        alert('Vui lòng nhập nội dung bài viết');
+        return;
+      }
+      
+      const postData = {
+        title: '', // Empty title - no title field
+        content,
+        tags: tags.split(',').map(t => t.trim()).filter(t => t),
+        image_url: selectedImage,
+        poll: pollData,
+        mentioned_users: mentionedUsers
+      };
+      
+      try {
+        const response = await fetch('/api/forum/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          closeCreatePostModal();
+          loadPosts(); // Reload posts
+          showAlert('Đăng bài thành công!', 'success');
+          // Reset all
+          pollData = null;
+          mentionedUsers = [];
+          hashtags = [];
+          selectedImage = null;
+          document.getElementById('post-content').value = '';
+          document.getElementById('post-tags').value = '';
+          document.getElementById('image-preview-container').classList.add('hidden');
+        } else {
+          showAlert(data.message || 'Đăng bài thất bại', 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting post:', error);
+        showAlert('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
+      }
+    }
+    
+    // Submit poll vote
+    async function submitPollVote(postId) {
+      const selectedOptions = document.querySelectorAll(`input[name="poll_${postId}"]:checked`);
+      
+      if (selectedOptions.length === 0) {
+        alert('Vui lòng chọn ít nhất một lựa chọn');
+        return;
+      }
+      
+      // Get all selected option indices
+      const optionIndices = Array.from(selectedOptions).map(option => parseInt(option.value));
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/poll/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            option_index: optionIndices.length === 1 ? optionIndices[0] : optionIndices,
+            option_indices: optionIndices  // Send array for backend compatibility
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Reload posts to show updated poll results
+          loadPosts();
+          showAlert('Phiếu bầu của bạn đã được ghi nhận!', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi gửi phiếu bầu', 'error');
+        }
+      } catch (error) {
+        console.error('Error submitting poll vote:', error);
+        showAlert('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
+      }
+    }
+    
+    // Toggle like
+    async function toggleLike(postId) {
+      if (!isUserLoggedIn) {
+        alert('Vui lòng đăng nhập để thích bài viết');
+        window.location.href = '/login';
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Update UI
+          const likeBtn = document.querySelector(`.like-btn-${postId}`);
+          const likeIcon = likeBtn.querySelector('i');
+          const likeText = likeBtn.querySelector('span');
+          
+          if (data.liked) {
+            likeIcon.classList.remove('far');
+            likeIcon.classList.add('fas', 'text-blue-600');
+            likeText.textContent = 'Đã thích';
+            likeBtn.title = 'Bỏ thích';
+          } else {
+            likeIcon.classList.remove('fas', 'text-blue-600');
+            likeIcon.classList.add('far');
+            likeText.textContent = 'Thích';
+            likeBtn.title = 'Thích bài viết';
+          }
+          
+          // Update likes count in stats
+          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+          const likesCountEl = postCard.querySelector('.fa-thumbs-up').closest('button');
+          if (likesCountEl) {
+            const countSpan = likesCountEl.querySelector('.font-medium');
+            if (countSpan) {
+              countSpan.textContent = data.likes_count;
+            } else if (data.likes_count > 0) {
+              // Add count if it didn't exist before
+              likesCountEl.innerHTML = `
+                <i class="fas fa-thumbs-up text-green-600"></i>
+                <span class="font-medium">${data.likes_count}</span> thích
+              `;
+            }
+          }
+        } else {
+          alert(data.message || 'Lỗi khi thích bài viết');
+        }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+        alert('Lỗi kết nối. Vui lòng thử lại.');
+      }
+    }
+    
+    // Toggle comments section
+    async function toggleComments(postId) {
+      const commentsSection = document.getElementById(`comments-${postId}`);
+      
+      if (commentsSection.classList.contains('hidden')) {
+        commentsSection.classList.remove('hidden');
+        loadComments(postId);
+      } else {
+        commentsSection.classList.add('hidden');
+      }
+    }
+    
+    // Show likes list modal
+    async function showLikesList(postId) {
+      const modal = document.getElementById('likes-modal');
+      const content = document.getElementById('likes-list-content');
+      
+      modal.classList.add('active');
+      content.innerHTML = '<p class="text-center text-gray-500 text-sm">Đang tải...</p>';
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/likes`);
+        const data = await response.json();
+        
+        if (data.success) {
+          if (data.likes.length === 0) {
+            content.innerHTML = '<p class="text-center text-gray-500 text-sm">Chưa có ai thích bài viết này</p>';
+          } else {
+            content.innerHTML = data.likes.map(like => {
+              const userName = like.name || like.email?.split('@')[0] || 'Người dùng';
+              const userAvatar = like.avatar_url
+                ? `<img src="${like.avatar_url}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover" />`
+                : `<div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-base sm:text-lg font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+              
+              const profileLink = like.username_slug || like.user_id;
+              const timeAgo = getTimeAgo(like.created_at);
+              
+              return `
+                <a href="/profile/${profileLink}" class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-colors">
+                  ${userAvatar}
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-gray-800 text-sm sm:text-base truncate">${escapeHtml(userName)}</h4>
+                    <p class="text-xs text-gray-500">${timeAgo}</p>
+                  </div>
+                  <i class="fas fa-thumbs-up text-green-600 text-sm sm:text-base flex-shrink-0"></i>
+                </a>
+              `;
+            }).join('');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading likes:', error);
+        content.innerHTML = '<p class="text-center text-red-500 text-sm">Không thể tải danh sách</p>';
+      }
+    }
+    
+    // Close likes modal
+    function closeLikesModal() {
+      document.getElementById('likes-modal').classList.remove('active');
+    }
+    
+    // Load comments
+    async function loadComments(postId) {
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const commentsList = document.getElementById(`comments-list-${postId}`);
+          
+          if (data.comments.length === 0) {
+            commentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">Chưa có bình luận nào</p>';
+          } else {
+            commentsList.innerHTML = data.comments.map(comment => createCommentHTML(comment, postId)).join('');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading comments:', error);
+      }
+    }
+    
+    // Create comment HTML
+    function createCommentHTML(comment, postId) {
+      const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+      const userAvatar = comment.user_avatar
+        ? `<img src="${comment.user_avatar}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover" />`
+        : `<div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+      
+      const profileLink = comment.username_slug || comment.user_id;
+      const timeAgo = getTimeAgo(comment.created_at);
+      const likesCount = comment.likes_count || 0;
+      const repliesCount = comment.replies_count || 0;
+      const isLiked = comment.user_liked ? 'text-red-600 fas' : 'far';
+      
+      return `
+        <div class="flex gap-2 mb-3" id="comment-${comment.id}">
+          <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+            ${userAvatar}
+          </a>
+          <div class="flex-1 min-w-0">
+            <div class="comment-bubble bg-gray-100 rounded-2xl px-3 sm:px-4 py-2 inline-block">
+              <a href="/profile/${profileLink}" class="font-semibold text-xs sm:text-sm text-gray-800 hover:underline block">${escapeHtml(userName)}</a>
+              <p class="text-gray-700 text-sm sm:text-base break-words">${escapeHtml(comment.content)}</p>
+            </div>
+            <div class="flex gap-2 sm:gap-3 text-xs text-gray-500 mt-1 ml-2 sm:ml-4 flex-wrap">
+              <span>${timeAgo}</span>
+              <button onclick="toggleCommentLike(${comment.id}, this)" class="hover:text-blue-600 like-comment-btn-${comment.id}">
+                <i class="${isLiked} fa-thumbs-up"></i>
+                <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+              </button>
+              <button onclick="toggleCommentReplyBox(${comment.id})" class="hover:text-blue-600">
+                Trả lời
+              </button>
+              ${repliesCount > 0 ? `
+                <button onclick="toggleViewReplies(${comment.id}, ${postId})" class="hover:text-blue-600 font-medium" id="view-replies-btn-${comment.id}">
+                  <i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi
+                </button>
+              ` : ''}
+              ${currentUser && currentUser.id === comment.user_id ? `
+                <button onclick="deleteComment(${postId}, ${comment.id})" class="hover:text-red-600">Xóa</button>
+              ` : ''}
+            </div>
+            
+            <!-- Reply box (initially hidden) -->
+            <div id="reply-box-${comment.id}" class="hidden mt-2 ml-2 sm:ml-4">
+              <div class="flex gap-2">
+                <input 
+                  type="text" 
+                  id="reply-input-${comment.id}"
+                  placeholder="Viết trả lời..." 
+                  spellcheck="false"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                  onkeypress="if(event.key==='Enter') submitCommentReply(${comment.id}, ${postId})"
+                />
+                <button onclick="submitCommentReply(${comment.id}, ${postId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Replies container with connector line from avatar -->
+            <div id="replies-container-${comment.id}" class="hidden mt-2 relative replies-container">
+              <!-- Reply box for this comment -->
+              <div id="reply-box-${comment.id}" class="hidden mb-2 ml-2 sm:ml-4">
+                <div class="flex gap-2">
+                  <input 
+                    type="text" 
+                    id="reply-input-${comment.id}"
+                    placeholder="Viết trả lời..." 
+                    spellcheck="false"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                    onkeypress="if(event.key==='Enter') submitCommentReply(${comment.id}, ${postId})"
+                  />
+                  <button onclick="submitCommentReply(${comment.id}, ${postId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
+              
+            
+            <!-- Replies list -->
+            <div id="replies-${comment.id}" class="space-y-2">
+              <p class="text-gray-500 text-xs">Đang tải...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      `;
+    }    // Submit comment
+    async function submitComment(postId) {
+      const input = document.getElementById(`comment-input-${postId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          loadComments(postId);
+          
+          // Update comment count
+          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+          const commentCount = postCard.querySelector('.fa-comment').parentElement;
+          commentCount.innerHTML = `<i class="fas fa-comment"></i> ${data.comments_count} bình luận`;
+        }
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+      }
+    }
+    
+    // Toggle comment like
+    async function toggleCommentLike(commentId, button) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để thích bình luận');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-comment-btn-${commentId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking comment:', error);
+      }
+    }
+    
+    // Toggle comment reply box
+    function toggleCommentReplyBox(commentId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để trả lời');
+        return;
+      }
+      
+      const repliesContainer = document.getElementById(`replies-container-${commentId}`);
+      const replyBox = document.getElementById(`reply-box-${commentId}`);
+      const repliesList = document.getElementById(`replies-${commentId}`);
+      
+      // Show replies container if it's hidden
+      if (repliesContainer.classList.contains('hidden')) {
+        repliesContainer.classList.remove('hidden');
+        // Only load if replies list is empty (first time)
+        if (!repliesList.hasChildNodes() || repliesList.innerHTML.trim() === '') {
+          loadCommentReplies(commentId).then(() => {
+            // After loading, show the reply box
+            replyBox.classList.remove('hidden');
+            document.getElementById(`reply-input-${commentId}`).focus();
+          });
+          return; // Exit early, will handle show after load
+        }
+      }
+      
+      // Toggle the reply box
+      if (replyBox.classList.contains('hidden')) {
+        replyBox.classList.remove('hidden');
+        document.getElementById(`reply-input-${commentId}`).focus();
+      } else {
+        replyBox.classList.add('hidden');
+      }
+    }
+    
+    // Facebook-style toggle to view/hide replies
+    async function toggleViewReplies(commentId, postId) {
+      const repliesContainer = document.getElementById(`replies-container-${commentId}`);
+      const repliesList = document.getElementById(`replies-${commentId}`);
+      const viewBtn = document.getElementById(`view-replies-btn-${commentId}`);
+      
+      // If already showing, hide them
+      if (!repliesContainer.classList.contains('hidden')) {
+        repliesContainer.classList.add('hidden');
+        if (viewBtn) {
+          const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+          viewBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi`;
+        }
+        return;
+      }
+      
+      // Show container and load replies if not loaded yet
+      repliesContainer.classList.remove('hidden');
+      if (viewBtn) {
+        const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+        viewBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Ẩn ${repliesCount} phản hồi`;
+      }
+      
+      // Load replies if not loaded yet (check if it's the loading placeholder)
+      if (!repliesList.hasChildNodes() || repliesList.innerHTML.includes('Đang tải')) {
+        await loadCommentReplies(commentId);
+      }
+    }
+    
+    // Submit comment reply with mentioned user tracking
+    async function submitCommentReply(commentId, postId) {
+      const input = document.getElementById(`reply-input-${commentId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        // Get the parent comment's user ID (the person being replied to)
+        const parentCommentEl = document.getElementById(`comment-${commentId}`);
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        if (parentCommentEl) {
+          // Extract user name from the parent comment
+          repliedToUserName = parentCommentEl.querySelector('.font-semibold')?.textContent;
+          // Extract user ID from profile link
+          const profileLink = parentCommentEl.querySelector('a[href^="/profile"]');
+          if (profileLink) {
+            const href = profileLink.getAttribute('href');
+            const match = href.match(/\/profile\/(.+?)(?:$|\/)/);
+            if (match) {
+              const idPart = match[1];
+              // Try to extract numeric ID if available
+              const numMatch = idPart.match(/(\d+)/);
+              if (numMatch) {
+                repliedToUserId = parseInt(numMatch[1]);
+              }
+            }
+          }
+        }
+        
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            content,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          document.getElementById(`reply-box-${commentId}`).classList.add('hidden');
+          loadCommentReplies(commentId);
+        } else {
+          alert(data.message || 'Lỗi khi gửi trả lời');
+        }
+      } catch (error) {
+        console.error('Error submitting reply:', error);
+      }
+    }
+    
+    // Load comment replies with pagination
+    async function loadCommentReplies(commentId, loadMore = false) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const repliesContainer = document.getElementById(`replies-container-${commentId}`);
+          const repliesList = document.getElementById(`replies-${commentId}`);
+          
+          if (data.replies.length === 0) {
+            repliesList.innerHTML = '<p class="text-gray-500 text-xs">Chưa có trả lời</p>';
+            repliesContainer.classList.add('hidden');
+          } else {
+            // Show maximum 5 replies initially
+            const MAX_REPLIES = 5;
+            const allReplies = data.replies;
+            const displayedReplies = allReplies.slice(0, MAX_REPLIES);
+            const hasMore = allReplies.length > MAX_REPLIES;
+            
+            let repliesHTML = displayedReplies.map(reply => createReplyHTML(reply, commentId)).join('');
+            
+            // Add "View more" button if needed
+            if (hasMore) {
+              const moreCount = allReplies.length - MAX_REPLIES;
+              repliesHTML += `
+                <div class="flex justify-center mt-2">
+                  <button onclick="toggleMoreReplies(${commentId}, ${allReplies.length})" class="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium">
+                    Xem thêm ${moreCount} phản hồi
+                  </button>
+                </div>
+              `;
+            }
+            
+            repliesList.innerHTML = repliesHTML;
+            repliesContainer.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading replies:', error);
+      }
+    }
+    
+    // Toggle show more replies
+    async function toggleMoreReplies(commentId, totalReplies) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const repliesList = document.getElementById(`replies-${commentId}`);
+          let repliesHTML = data.replies.map(reply => createReplyHTML(reply, commentId)).join('');
+          repliesList.innerHTML = repliesHTML;
+          document.getElementById(`replies-container-${commentId}`).classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error loading more replies:', error);
+      }
+    }
+    
+    // Create reply HTML
+    function createReplyHTML(reply, commentId) {
+      const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+      const userAvatar = reply.user_avatar
+        ? `<img src="${reply.user_avatar}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover" />`
+        : `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+      
+      const profileLink = reply.username_slug || reply.user_id;
+      const timeAgo = getTimeAgo(reply.created_at);
+      const likesCount = reply.likes_count || 0;
+      const nestedRepliesCount = reply.nested_replies_count || 0;
+      const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+      
+      // Show info if this reply is a response to another user
+      const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+      
+      return `
+        <div class="relative" id="reply-${reply.id}" data-comment-id="${commentId}">
+          <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
+            <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+              ${userAvatar}
+            </a>
+            <div class="flex-1 min-w-0">
+              <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline">${escapeHtml(userName)}</a>
+                ${replyInfo ? `<span class="text-xs text-gray-600">${replyInfo}</span>` : ''}
+                <p class="text-gray-700 break-words">${escapeHtml(reply.content)}</p>
+              </div>
+              <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                <span>${timeAgo}</span>
+                <button onclick="toggleReplyLike(${reply.id})" class="hover:text-blue-600 like-reply-btn-${reply.id}">
+                  <i class="${isLiked} fa-thumbs-up"></i>
+                  <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                </button>
+                <button onclick="toggleReplyBox(${reply.id})" class="hover:text-blue-600">
+                  Trả lời
+                </button>
+                ${nestedRepliesCount > 0 ? `
+                  <button onclick="toggleViewNestedReplies(${reply.id}, ${commentId})" class="hover:text-blue-600 font-medium" id="view-nested-replies-btn-${reply.id}">
+                    <i class="fas fa-chevron-down"></i> Xem ${nestedRepliesCount} phản hồi
+                  </button>
+                ` : ''}
+                ${currentUser && currentUser.id === reply.user_id ? `
+                  <button onclick="deleteReply(${reply.id})" class="hover:text-red-600">Xóa</button>
+                ` : ''}
+              </div>
+              
+              <!-- Reply box to reply to this reply -->
+              <div id="child-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-4">
+                <div class="flex gap-2">
+                  <input 
+                    type="text" 
+                    id="child-reply-input-${reply.id}"
+                    placeholder="Viết trả lời..." 
+                    spellcheck="false"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                    onkeypress="if(event.key==='Enter') submitChildReply(${reply.id}, ${commentId})"
+                  />
+                  <button onclick="submitChildReply(${reply.id}, ${commentId})" class="px-3 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs flex-shrink-0">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Container for child replies with connector line -->
+          <div id="child-replies-${reply.id}" class="hidden mt-2 relative">
+            <div id="child-replies-list-${reply.id}" class="space-y-2 ml-2 sm:ml-4"></div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Toggle reply like
+    async function toggleReplyLike(replyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-reply-btn-${replyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking reply:', error);
+      }
+    }
+    
+    // Delete reply
+    async function deleteReply(replyId) {
+      if (!confirm('Bạn có chắc muốn xóa trả lời này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/replies/${replyId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Reload the page or remove the reply element
+          location.reload();
+        } else {
+          alert(data.message || 'Lỗi khi xóa trả lời');
+        }
+      } catch (error) {
+        console.error('Error deleting reply:', error);
+      }
+    }
+    
+    // Toggle reply box to reply to a reply
+    function toggleReplyBox(replyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để trả lời');
+        return;
+      }
+      
+      const childRepliesContainer = document.getElementById(`child-replies-${replyId}`);
+      const replyBox = document.getElementById(`child-reply-box-${replyId}`);
+      
+      // Get commentId from parent reply element
+      const replyElement = document.getElementById(`reply-${replyId}`);
+      const commentId = replyElement ? replyElement.getAttribute('data-comment-id') : null;
+      
+      // Show child replies container if it's hidden AND hasn't been loaded yet
+      if (childRepliesContainer && childRepliesContainer.classList.contains('hidden')) {
+        childRepliesContainer.classList.remove('hidden');
+        // Only load if replies list is empty (first time) AND we have commentId
+        const childRepliesList = document.getElementById(`child-replies-list-${replyId}`);
+        if (commentId && (!childRepliesList.hasChildNodes() || childRepliesList.innerHTML.trim() === '')) {
+          loadChildReplies(replyId, commentId);
+        }
+      }
+      
+      replyBox.classList.toggle('hidden');
+      
+      if (!replyBox.classList.contains('hidden')) {
+        document.getElementById(`child-reply-input-${replyId}`).focus();
+      }
+    }
+    
+    // Facebook-style toggle to view/hide nested replies (level 2)
+    async function toggleViewNestedReplies(replyId, commentId) {
+      const childRepliesContainer = document.getElementById(`child-replies-${replyId}`);
+      const childRepliesList = document.getElementById(`child-replies-list-${replyId}`);
+      const viewBtn = document.getElementById(`view-nested-replies-btn-${replyId}`);
+      
+      // If already showing, hide them
+      if (!childRepliesContainer.classList.contains('hidden')) {
+        childRepliesContainer.classList.add('hidden');
+        if (viewBtn) {
+          const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+          viewBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Xem ${repliesCount} phản hồi`;
+        }
+        return;
+      }
+      
+      // Show container and load replies if not loaded yet
+      childRepliesContainer.classList.remove('hidden');
+      if (viewBtn) {
+        const repliesCount = viewBtn.textContent.match(/\d+/)[0];
+        viewBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Ẩn ${repliesCount} phản hồi`;
+      }
+      
+      // Load replies if not loaded yet
+      if (!childRepliesList.hasChildNodes() || childRepliesList.innerHTML.trim() === '') {
+        await loadChildReplies(replyId, commentId);
+      }
+    }
+    
+    // Submit reply to a reply (child reply)
+    async function submitChildReply(parentReplyId, commentId) {
+      const input = document.getElementById(`child-reply-input-${parentReplyId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        // Get parent reply's user info
+        const parentReplyEl = document.getElementById(`reply-${parentReplyId}`);
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        if (parentReplyEl) {
+          const profileLink = parentReplyEl.querySelector('a[href^="/profile"]');
+          if (profileLink) {
+            repliedToUserName = parentReplyEl.querySelector('.font-semibold')?.textContent;
+            const href = profileLink.getAttribute('href');
+            const match = href.match(/\/profile\/(\d+)/);
+            if (match) {
+              repliedToUserId = parseInt(match[1]);
+            }
+          }
+        }
+        
+        // Submit as reply to the comment with parent_reply_id
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            content,
+            parent_reply_id: parentReplyId,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          document.getElementById(`child-reply-box-${parentReplyId}`).classList.add('hidden');
+          
+          // Load child replies
+          loadChildReplies(parentReplyId, commentId);
+        } else {
+          alert(data.message || 'Lỗi khi gửi trả lời');
+        }
+      } catch (error) {
+        console.error('Error submitting child reply:', error);
+      }
+    }
+    
+    // Load child replies (replies to a reply)
+    async function loadChildReplies(parentReplyId, commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${parentReplyId}/nested`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const childRepliesList = document.getElementById(`child-replies-list-${parentReplyId}`);
+          const childRepliesContainer = document.getElementById(`child-replies-${parentReplyId}`);
+          
+          if (data.replies.length === 0) {
+            childRepliesList.innerHTML = '';
+            childRepliesContainer.classList.add('hidden');
+          } else {
+            // Show maximum 5 child replies initially
+            const MAX_CHILD_REPLIES = 5;
+            const allReplies = data.replies;
+            const displayedReplies = allReplies.slice(0, MAX_CHILD_REPLIES);
+            const hasMore = allReplies.length > MAX_CHILD_REPLIES;
+            
+            let repliesHTML = displayedReplies.map(reply => {
+              const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+              const userAvatar = reply.user_avatar
+                ? `<img src="${reply.user_avatar}" class="w-5 h-5 rounded-full object-cover" />`
+                : `<div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+              
+              const profileLink = reply.username_slug || reply.user_id;
+              const timeAgo = getTimeAgo(reply.created_at);
+              const likesCount = reply.likes_count || 0;
+              const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+              const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs sm:text-sm">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+              
+              return `
+                <div class="relative" id="nested-reply-${reply.id}" data-parent-reply-id="${parentReplyId}" data-comment-id="${commentId}">
+                  <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
+                    <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                      <div class="w-5 h-5 rounded-full overflow-hidden">
+                        ${userAvatar}
+                      </div>
+                    </a>
+                    <div class="flex-1 min-w-0">
+                      <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                        <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs sm:text-sm">${escapeHtml(userName)}</a>
+                        ${replyInfo ? `<span class="text-xs sm:text-sm text-gray-600">${replyInfo}</span>` : ''}
+                        <p class="text-gray-700 break-words text-xs sm:text-sm">${escapeHtml(reply.content)}</p>
+                      </div>
+                      <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                        <span>${timeAgo}</span>
+                        <button onclick="toggleChildReplyLike(${reply.id})" class="hover:text-blue-600 like-child-reply-btn-${reply.id}">
+                          <i class="${isLiked} fa-thumbs-up"></i>
+                          <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                        </button>
+                        <button onclick="toggleNestedReplyBox(${reply.id})" class="hover:text-blue-600">
+                          Trả lời
+                        </button>
+                        ${currentUser && currentUser.id === reply.user_id ? `
+                          <button onclick="deleteChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                        ` : ''}
+                      </div>
+                      
+                      <!-- Nested reply box (cháu) -->
+                      <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3">
+                        <div class="flex gap-2">
+                          <input 
+                            type="text" 
+                            id="nested-reply-input-${reply.id}"
+                            placeholder="Viết trả lời..." 
+                            spellcheck="false"
+                            class="flex-1 px-2 py-1 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                            onkeypress="if(event.key==='Enter') submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})"
+                          />
+                          <button onclick="submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-2 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs sm:text-sm flex-shrink-0">
+                            <i class="fas fa-paper-plane"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                </div>
+                <!-- Container for nested-nested replies (cháu) -->
+                <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3 space-y-2">
+                  <div id="nested-child-replies-list-${reply.id}"></div>
+                </div>
+              </div>
+            `;
+          }).join('');            // Add "View more" button if needed
+            if (hasMore) {
+              const moreCount = allReplies.length - MAX_CHILD_REPLIES;
+              repliesHTML += `
+                <div class="flex justify-center mt-1">
+                  <button onclick="toggleMoreChildReplies(${parentReplyId}, ${commentId})" class="px-3 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium">
+                    Xem thêm ${moreCount} phản hồi
+                  </button>
+                </div>
+              `;
+            }
+            
+            childRepliesList.innerHTML = repliesHTML;
+            childRepliesContainer.classList.remove('hidden');
+            
+            // Load nested-nested replies (cháu) for each child reply
+            displayedReplies.forEach(reply => {
+              // Always show nested-child-replies container, even if empty
+              const container = document.getElementById(`nested-child-replies-${reply.id}`);
+              if (container) {
+                container.classList.remove('hidden');
+              }
+              loadNestedChildReplies(reply.id, commentId);
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading child replies:', error);
+      }
+    }
+    
+    // Toggle show more child replies
+    async function toggleMoreChildReplies(parentReplyId, commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${parentReplyId}/nested`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const childRepliesList = document.getElementById(`child-replies-list-${parentReplyId}`);
+          
+          let repliesHTML = data.replies.map(reply => {
+            const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+            const userAvatar = reply.user_avatar
+              ? `<img src="${reply.user_avatar}" class="w-5 h-5 rounded-full object-cover" />`
+              : `<div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+            
+            const profileLink = reply.username_slug || reply.user_id;
+            const timeAgo = getTimeAgo(reply.created_at);
+            const likesCount = reply.likes_count || 0;
+            const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+            const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-xs sm:text-sm">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+            
+            return `
+              <div class="relative" id="nested-reply-${reply.id}" data-parent-reply-id="${parentReplyId}" data-comment-id="${commentId}">
+                <div class="flex gap-2 bg-gray-50 rounded-lg p-2 text-xs sm:text-sm">
+                  <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                    <div class="w-5 h-5 rounded-full overflow-hidden">
+                      ${userAvatar}
+                    </div>
+                  </a>
+                  <div class="flex-1 min-w-0">
+                    <div class="bg-white rounded-lg px-2 py-1 inline-block max-w-full">
+                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-xs sm:text-sm">${escapeHtml(userName)}</a>
+                      ${replyInfo ? `<span class="text-xs sm:text-sm text-gray-600">${replyInfo}</span>` : ''}
+                      <p class="text-gray-700 break-words text-xs sm:text-sm">${escapeHtml(reply.content)}</p>
+                    </div>
+                    <div class="flex gap-2 text-xs text-gray-500 mt-1 ml-1 flex-wrap">
+                      <span>${timeAgo}</span>
+                      <button onclick="toggleChildReplyLike(${reply.id})" class="hover:text-blue-600 like-child-reply-btn-${reply.id}">
+                        <i class="${isLiked} fa-thumbs-up"></i>
+                        <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                      </button>
+                      <button onclick="toggleNestedReplyBox(${reply.id})" class="hover:text-blue-600">
+                        Trả lời
+                      </button>
+                      ${currentUser && currentUser.id === reply.user_id ? `
+                        <button onclick="deleteChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                      ` : ''}
+                    </div>
+                    
+                    <!-- Nested reply box (cháu) -->
+                    <div id="nested-reply-box-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3">
+                      <div class="flex gap-2">
+                        <input 
+                          type="text" 
+                          id="nested-reply-input-${reply.id}"
+                          placeholder="Viết trả lời..." 
+                          spellcheck="false"
+                          class="flex-1 px-2 py-1 border border-gray-300 rounded-full text-xs sm:text-sm focus:outline-none focus:border-green-600"
+                          onkeypress="if(event.key==='Enter') submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})"
+                        />
+                        <button onclick="submitNestedReply(${reply.id}, ${parentReplyId}, ${commentId})" class="px-2 py-1 bg-green-600 text-white rounded-full hover:bg-green-700 text-xs sm:text-sm flex-shrink-0">
+                          <i class="fas fa-paper-plane"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Container for nested-nested replies (cháu) -->
+                <div id="nested-child-replies-${reply.id}" class="hidden mt-2 ml-2 sm:ml-3 space-y-2">
+                  <div id="nested-child-replies-list-${reply.id}"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+          
+          childRepliesList.innerHTML = repliesHTML;
+          
+          // Load nested-nested replies (cháu) for all child replies
+          data.replies.forEach(reply => {
+            // Always show nested-child-replies container, even if empty
+            const container = document.getElementById(`nested-child-replies-${reply.id}`);
+            if (container) {
+              container.classList.remove('hidden');
+            }
+            loadNestedChildReplies(reply.id, commentId);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading more child replies:', error);
+      }
+    }
+    
+    // Toggle like on child reply
+    async function toggleChildReplyLike(replyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-child-reply-btn-${replyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking child reply:', error);
+      }
+    }
+    
+    // Delete child reply
+    async function deleteChildReply(replyId, commentId) {
+      if (!confirm('Bạn có chắc muốn xóa trả lời này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${replyId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.message || 'Lỗi khi xóa trả lời');
+        }
+      } catch (error) {
+        console.error('Error deleting child reply:', error);
+      }
+    }
+    
+    // Toggle nested reply box
+    
+    // Toggle nested reply box (cháu)
+    function toggleNestedReplyBox(nestedReplyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để trả lời');
+        return;
+      }
+      
+      const replyBox = document.getElementById(`nested-reply-box-${nestedReplyId}`);
+      replyBox.classList.toggle('hidden');
+      
+      if (!replyBox.classList.contains('hidden')) {
+        document.getElementById(`nested-reply-input-${nestedReplyId}`).focus();
+      }
+    }
+    
+    // Submit nested reply (cháu)
+    async function submitNestedReply(nestedReplyId, parentReplyId, commentId) {
+      const input = document.getElementById(`nested-reply-input-${nestedReplyId}`);
+      const content = input.value.trim();
+      
+      if (!content) return;
+      
+      try {
+        // Get nested reply's user info
+        const nestedReplyEl = document.getElementById(`nested-reply-${nestedReplyId}`);
+        
+        // Use data attributes as source of truth for parent and comment IDs
+        if (nestedReplyEl) {
+          const storedParentReplyId = nestedReplyEl.getAttribute('data-parent-reply-id');
+          const storedCommentId = nestedReplyEl.getAttribute('data-comment-id');
+          if (storedParentReplyId) parentReplyId = parseInt(storedParentReplyId);
+          if (storedCommentId) commentId = parseInt(storedCommentId);
+        }
+        
+        let repliedToUserId = null;
+        let repliedToUserName = null;
+        
+        if (nestedReplyEl) {
+          const profileLink = nestedReplyEl.querySelector('a[href^="/profile"]');
+          if (profileLink) {
+            repliedToUserName = nestedReplyEl.querySelector('.font-semibold')?.textContent;
+            const href = profileLink.getAttribute('href');
+            const match = href.match(/\/profile\/(\d+)/);
+            if (match) {
+              repliedToUserId = parseInt(match[1]);
+            }
+          }
+        }
+        
+        // Submit as reply with parent_reply_id pointing to the parent reply (keep same level)
+        const response = await fetch(`/api/forum/comments/${commentId}/replies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            content,
+            parent_reply_id: parentReplyId,
+            replied_to_user_id: repliedToUserId,
+            replied_to_user_name: repliedToUserName
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          document.getElementById(`nested-reply-box-${nestedReplyId}`).classList.add('hidden');
+          
+          // Reload all child replies of the parent reply to show the new reply
+          loadChildReplies(parentReplyId, commentId);
+        } else {
+          alert(data.message || 'Lỗi khi gửi trả lời');
+        }
+      } catch (error) {
+        console.error('Error submitting nested reply:', error);
+      }
+    }
+    
+    // Load nested-nested replies (cháu)
+    async function loadNestedChildReplies(parentNestedReplyId, commentId) {
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${parentNestedReplyId}/nested`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const nestedChildRepliesList = document.getElementById(`nested-child-replies-list-${parentNestedReplyId}`);
+          const nestedChildRepliesContainer = document.getElementById(`nested-child-replies-${parentNestedReplyId}`);
+          
+          if (data.replies.length === 0) {
+            nestedChildRepliesList.innerHTML = '';
+            nestedChildRepliesContainer.classList.add('hidden');
+          } else {
+            let repliesHTML = data.replies.map(reply => {
+              const userName = reply.user_name || reply.user_email?.split('@')[0] || 'Người dùng';
+              const userAvatar = reply.user_avatar
+                ? `<img src="${reply.user_avatar}" class="w-3 h-3 rounded-full object-cover" />`
+                : `<div class="w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-[10px] font-semibold">${userName.charAt(0).toUpperCase()}</div>`;
+              
+              const profileLink = reply.username_slug || reply.user_id;
+              const timeAgo = getTimeAgo(reply.created_at);
+              const likesCount = reply.likes_count || 0;
+              const isLiked = reply.user_liked ? 'text-blue-600 fas' : 'far';
+              const replyInfo = reply.replied_to_user_name ? `<span class="text-blue-600 text-[10px]">Đã trả lời ${escapeHtml(reply.replied_to_user_name)}</span> • ` : '';
+              
+              return `
+                <div class="flex gap-1 bg-gray-50 rounded-lg p-1 text-[10px]">
+                  <a href="/profile/${profileLink}" class="hover:opacity-80 transition-opacity flex-shrink-0">
+                    ${userAvatar}
+                  </a>
+                  <div class="flex-1 min-w-0">
+                    <div class="bg-white rounded-lg px-1.5 py-0.5 inline-block max-w-full">
+                      <a href="/profile/${profileLink}" class="font-semibold text-gray-800 hover:underline text-[10px]">${escapeHtml(userName)}</a>
+                      ${replyInfo ? `<span class="text-[10px] text-gray-600">${replyInfo}</span>` : ''}
+                      <p class="text-gray-700 break-words text-[10px]">${escapeHtml(reply.content)}</p>
+                    </div>
+                    <div class="flex gap-2 text-[10px] text-gray-500 mt-1 ml-1 flex-wrap">
+                      <span>${timeAgo}</span>
+                      <button onclick="toggleNestedChildReplyLike(${reply.id})" class="hover:text-blue-600 like-nested-child-reply-btn-${reply.id}">
+                        <i class="${isLiked} fa-thumbs-up"></i>
+                        <span class="ml-1">${likesCount > 0 ? likesCount : ''}</span>
+                      </button>
+                      ${currentUser && currentUser.id === reply.user_id ? `
+                        <button onclick="deleteNestedChildReply(${reply.id}, ${commentId})" class="hover:text-red-600">Xóa</button>
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            
+            nestedChildRepliesList.innerHTML = repliesHTML;
+            nestedChildRepliesContainer.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading nested child replies:', error);
+      }
+    }
+    
+    // Toggle like on nested-child reply (cháu)
+    async function toggleNestedChildReplyLike(replyId) {
+      if (!currentUser) {
+        alert('Vui lòng đăng nhập để thích trả lời');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${replyId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const likeBtn = document.querySelector(`.like-nested-child-reply-btn-${replyId}`);
+          if (data.liked) {
+            likeBtn.innerHTML = `<i class="fas fa-thumbs-up text-blue-600"></i> <span class="ml-1">${data.likes_count}</span>`;
+          } else {
+            likeBtn.innerHTML = `<i class="far fa-thumbs-up"></i> <span class="ml-1">${data.likes_count > 0 ? data.likes_count : ''}</span>`;
+          }
+        }
+      } catch (error) {
+        console.error('Error liking nested child reply:', error);
+      }
+    }
+    
+    // Delete nested-child reply (cháu)
+    async function deleteNestedChildReply(replyId, commentId) {
+      if (!confirm('Bạn có chắc muốn xóa trả lời này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/comments/${commentId}/replies/${replyId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.message || 'Lỗi khi xóa trả lời');
+        }
+      } catch (error) {
+        console.error('Error deleting nested child reply:', error);
+      }
+    }
+    
+    function togglePostMenu(event, postId) {
+      event.stopPropagation();
+      const menu = document.getElementById(`menu-${postId}`);
+      
+      // Close all other menus
+      document.querySelectorAll('.post-menu-dropdown.show').forEach(m => {
+        if (m !== menu) m.classList.remove('show');
+      });
+      
+      menu.classList.toggle('show');
+    }
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
+        menu.classList.remove('show');
+      });
+    });
+    
+    // Report post
+    async function reportPost(postId) {
+      const reason = prompt('Vui lòng cho biết lý do báo cáo:\n1. Spam\n2. Nội dung không phù hợp\n3. Lừa đảo\n4. Khác');
+      
+      if (!reason) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm.', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi báo cáo bài viết', 'error');
+        }
+      } catch (error) {
+        console.error('Error reporting post:', error);
+        showAlert('Có lỗi xảy ra', 'error');
+      }
+      
+      // Close menu
+      document.getElementById(`menu-${postId}`).classList.remove('show');
+    }
+    
+    // Edit post modal
+    function editPostModal(postId) {
+      const post = allPosts.find(p => p.id === postId);
+      if (!post) return;
+      
+      // Store postId for use in submitEditPost
+      window.currentEditPostId = postId;
+      
+      // Populate modal
+      document.getElementById('edit-post-content').value = post.content;
+      
+      // Populate user info
+      const userName = currentUser?.name || currentUser?.email?.split('@')[0] || 'Người dùng';
+      document.getElementById('edit-modal-user-name').textContent = userName;
+      
+      document.getElementById('edit-post-modal').classList.add('active');
+      
+      // Close menu
+      document.getElementById(`menu-${postId}`).classList.remove('show');
+    }
+    
+    // Close edit post modal
+    function closeEditPostModal() {
+      document.getElementById('edit-post-modal').classList.remove('active');
+      window.currentEditPostId = null;
+    }
+    
+    // Submit edited post
+    async function submitEditPost() {
+      const postId = window.currentEditPostId;
+      const content = document.getElementById('edit-post-content').value.trim();
+      
+      if (!content) {
+        showAlert('Nội dung không thể trống', 'error');
+        return;
+      }
+      
+      await updatePost(postId, content);
+      closeEditPostModal();
+    }
+    
+    // Update post
+    async function updatePost(postId, content) {
+      if (!content.trim()) {
+        showAlert('Nội dung không thể trống', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadPosts();
+          showAlert('Cập nhật bài viết thành công!', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi cập nhật bài viết', 'error');
+        }
+      } catch (error) {
+        console.error('Error updating post:', error);
+        showAlert('Có lỗi xảy ra', 'error');
+      }
+    }
+    
+    // Report post - Open modal
+    function reportPost(postId) {
+      window.currentReportPostId = postId;
+      document.getElementById('report-modal').classList.add('active');
+      document.getElementById(`menu-${postId}`).classList.remove('show');
+      // Reset form
+      document.querySelectorAll('input[name="report-reason"]')[0].checked = true;
+      document.getElementById('report-details').value = '';
+    }
+    
+    // Close report modal
+    function closeReportModal() {
+      document.getElementById('report-modal').classList.remove('active');
+      window.currentReportPostId = null;
+    }
+    
+    // Submit report
+    async function submitReportModal() {
+      const postId = window.currentReportPostId;
+      if (!postId) return;
+      
+      const reason = document.querySelector('input[name="report-reason"]:checked').value;
+      const details = document.getElementById('report-details').value.trim();
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason, details })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          closeReportModal();
+          showAlert('Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm.', 'success');
+        } else {
+          showAlert(data.message || 'Lỗi khi báo cáo bài viết', 'error');
+        }
+      } catch (error) {
+        console.error('Error reporting post:', error);
+        showAlert('Có lỗi xảy ra', 'error');
+      }
+    }
+    
+    // Delete post
+    async function deletePost(postId) {
+      if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadPosts();
+          showAlert('Đã xóa bài viết', 'success');
+        }
+      } catch (error) {
+        console.error('Error deleting post:', error);
+      }
+      
+      // Close menu
+      const menu = document.getElementById(`menu-${postId}`);
+      if (menu) menu.classList.remove('show');
+    }
+    
+    // Delete comment
+    async function deleteComment(postId, commentId) {
+      if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
+      
+      try {
+        const response = await fetch(`/api/forum/posts/${postId}/comments/${commentId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadComments(postId);
+          
+          // Update comment count
+          const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+          const commentCount = postCard.querySelector('.fa-comment').parentElement;
+          commentCount.innerHTML = `<i class="fas fa-comment"></i> ${data.comments_count} bình luận`;
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+      }
+    }
+    
+    // Show alert
+    function showAlert(message, type = 'success') {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+      } text-white`;
+      alertDiv.textContent = message;
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => alertDiv.remove(), 3000);
+    }
+
+    // Share modal functions
+
+    // Close modal on background click
+    document.getElementById('create-post-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeCreatePostModal();
+    });
+    
+    // Initialize
+    checkUserSession().then(() => {
+      loadPosts();
+    });
+  </script>
+  
+</body>
+</html>

@@ -1,0 +1,31 @@
+
+<div id="historyDialog" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-green-700">
+                <i class="fas fa-history mr-2"></i>Lịch sử hoạt động
+            </h3>
+            <button onclick="closeHistoryDialog()" class="text-gray-600 hover:text-red-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+            <button onclick="clearHistory()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">
+                <i class="fas fa-trash-alt mr-2"></i>Xóa lịch sử
+            </button>
+            <div class="flex gap-2">
+                <button onclick="exportHistory('json')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-file-export mr-2"></i>Xuất JSON
+                </button>
+                <button onclick="exportHistory('txt')" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
+                    <i class="fas fa-file-alt mr-2"></i>Xuất TXT
+                </button>
+            </div>
+        </div>
+
+        <div id="historyList" class="mt-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            
+        </div>
+    </div>
+</div>

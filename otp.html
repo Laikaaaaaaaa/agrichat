@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <title>Xác thực OTP - AgriSense AI</title>
+
+  <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  
+  <style>
+    body {
+      min-height: 100vh;
+      background-color: #ffffff;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-white">
+
+  <header class="bg-green-100 border-b border-green-200 shadow-sm">
+    <div class="h-20 flex items-center px-4 md:px-6 gap-3">
+      <button onclick="window.history.back()" class="text-white bg-green-600 hover:bg-green-700 transition-colors p-2 rounded-lg shadow-lg border-2 border-green-500" title="Quay lại">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <img src="/static/logo/logo.png" alt="AgriSense AI" class="h-12 md:h-14 w-auto object-contain">
+    </div>
+  </header>
+
+  <div class="max-w-md mx-auto px-4 py-8">
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">Xác thực OTP</h2>
+      <p class="text-sm text-gray-600 mb-6">Nhập mã OTP đã được gửi đến email <span id="email-display" class="font-medium"></span></p>
+
+      <div id="alert-message" class="hidden mb-4 p-3 rounded text-sm"></div>
+
+      <form id="otp-form" class="space-y-4">
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mã OTP (6 số)</label>
+          <input 
+            type="text" 
+            id="otp-code" 
+            name="otp-code" 
+            required 
+            maxlength="6"
+            pattern="[0-9]{6}"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600 text-center text-2xl tracking-widest"
+            placeholder="000000"
+          />
+        </div>
+
+        <div id="password-section">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="new-password" 
+              name="new-password" 
+              minlength="6"
+              class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600 pr-10"
+              placeholder="Tối thiểu 6 ký tự"
+            />
+            <button 
+              type="button" 
+              id="toggle-password"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              <i class="fas fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="confirm-password-section">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu mới</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="confirm-password" 
+              name="confirm-password" 
+              class="w-full px-3 py-2 border border-gray-300 rounded focus:border-green-600 pr-10"
+              placeholder="Nhập lại mật khẩu"
+            />
+            <button 
+              type="button" 
+              id="toggle-confirm-password"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              <i class="fas fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
+        >
+          Đặt lại mật khẩu
+        </button>
+      </form>
+
+      <div class="text-center mt-4 pt-4 border-t border-gray-200">
+        <button id="resend-otp" class="text-sm text-green-600 hover:text-green-700">
+          Gửi lại mã OTP
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Get email and type from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    const type = urlParams.get('type'); // 'forgot', 'login', or 'register'
+    
+    if (email) {
+      document.getElementById('email-display').textContent = email;
+    } else {
+      window.location.href = '/forgot_password';
+    }
+    
+    // Hide password fields for login and register (only show for forgot password)
+    if (type === 'login' || type === 'register') {
+      // Hide password sections completely
+      document.getElementById('password-section').style.display = 'none';
+      document.getElementById('confirm-password-section').style.display = 'none';
+      document.querySelector('button[type="submit"]').textContent = 'Xác thực';
+      
+      if (type === 'login') {
+        document.querySelector('h2').textContent = 'Xác thực đăng nhập';
+      } else if (type === 'register') {
+        document.querySelector('h2').textContent = 'Xác thực đăng ký';
+      }
+    } else {
+      // For forgot password, make password fields required
+      document.getElementById('new-password').required = true;
+      document.getElementById('confirm-password').required = true;
+    }
+    
+    // Toggle password visibility
+    function setupPasswordToggle(inputId, buttonId) {
+      document.getElementById(buttonId).addEventListener('click', function() {
+        const input = document.getElementById(inputId);
+        const icon = this.querySelector('i');
+        
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          input.type = 'password';
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      });
+    }
+    
+    setupPasswordToggle('new-password', 'toggle-password');
+    setupPasswordToggle('confirm-password', 'toggle-confirm-password');
+    
+    // Show alert message
+    function showAlert(message, type = 'error') {
+      const alertDiv = document.getElementById('alert-message');
+      alertDiv.className = `mb-4 p-3 rounded text-sm ${
+        type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 
+        type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+        'bg-blue-50 text-blue-700 border border-blue-200'
+      }`;
+      alertDiv.textContent = message;
+      alertDiv.classList.remove('hidden');
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          alertDiv.classList.add('hidden');
+        }, 3000);
+      }
+    }
+    
+    // Handle OTP form submission
+    document.getElementById('otp-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const otpCode = document.getElementById('otp-code').value;
+      
+      // Validation
+      if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+        showAlert('Mã OTP phải là 6 chữ số', 'error');
+        return;
+      }
+      
+      // Disable button during request
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Đang xử lý...';
+      
+      try {
+        if (type === 'login') {
+          // Manual login flow
+          const response = await fetch('/api/auth/login-complete', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ otp_code: otpCode })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // ✅ Set login flag BEFORE redirect (so index.html can migrate temp session)
+            localStorage.setItem('agrisense_user_logged_in', 'true');
+            showAlert('Đăng nhập thành công! Đang chuyển hướng...', 'success');
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1000);
+          } else {
+            showAlert(data.message || 'Xác thực thất bại', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        } else if (type === 'register') {
+          // Manual register flow
+          const response = await fetch('/api/auth/register-complete', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ otp_code: otpCode })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showAlert('Đăng ký thành công! Đang chuyển hướng...', 'success');
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1000);
+          } else {
+            showAlert(data.message || 'Xác thực thất bại', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        } else {
+          // Forgot password flow
+          const newPassword = document.getElementById('new-password').value;
+          const confirmPassword = document.getElementById('confirm-password').value;
+          
+          if (newPassword.length < 6) {
+            showAlert('Mật khẩu phải có ít nhất 6 ký tự', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+          
+          if (newPassword !== confirmPassword) {
+            showAlert('Mật khẩu xác nhận không khớp', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+          
+          // First verify OTP
+          const verifyResponse = await fetch('/api/auth/verify-otp', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, otp_code: otpCode })
+          });
+          
+          const verifyData = await verifyResponse.json();
+          
+          if (!verifyData.success) {
+            showAlert(verifyData.message || 'Mã OTP không đúng', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+          
+          // Then reset password
+          const resetResponse = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, new_password: newPassword })
+          });
+          
+          const resetData = await resetResponse.json();
+          
+          if (resetData.success) {
+            showAlert('Đổi mật khẩu thành công! Đang chuyển hướng...', 'success');
+            setTimeout(() => {
+              window.location.href = '/login?message=' + encodeURIComponent('Đổi mật khẩu thành công! Vui lòng đăng nhập.') + '&type=success';
+            }, 1500);
+          } else {
+            showAlert(resetData.message || 'Đổi mật khẩu thất bại', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+          }
+        }
+      } catch (error) {
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    });
+    
+    // Handle resend OTP
+    document.getElementById('resend-otp').addEventListener('click', async function() {
+      this.disabled = true;
+      this.textContent = 'Đang gửi...';
+      
+      try {
+        const response = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showAlert('Mã OTP mới đã được gửi!', 'success');
+        } else {
+          showAlert(data.message || 'Gửi mã OTP thất bại', 'error');
+        }
+      } catch (error) {
+        showAlert('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      }
+      
+      this.disabled = false;
+      this.textContent = 'Gửi lại mã OTP';
+    });
+  </script>
+  
+</body>
+</html>

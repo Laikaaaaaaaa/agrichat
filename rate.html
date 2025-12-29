@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriSense AI - Đánh giá</title>
+
+    <link rel="icon" type="image/x-icon" href="/static/favicon logo/favicon/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon logo/favicon/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon logo/favicon/favicon-96x96.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon logo/favicon/apple-touch-icon.png">
+    <link rel="manifest" href="/static/favicon logo/favicon/site.webmanifest">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #f0fdf4;
+            min-height: 100vh;
+        }
+        header {
+            background-color: #dcfce7;
+            border-bottom: 1px solid #bbf7d0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        .header-container {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            height: 80px;
+        }
+        @media (min-width: 768px) {
+            .header-container {
+                padding: 16px 24px;
+                height: 80px;
+            }
+        }
+        .header-left {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .back-btn {
+            color: white;
+            background-color: #16a34a;
+            border: 2px solid #15803d;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            min-width: 36px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .back-btn:hover {
+            background-color: #15803d;
+        }
+        .logo-img {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+        }
+        @media (min-width: 768px) {
+            .logo-img {
+                height: 56px;
+            }
+        }
+        .header-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        @media (min-width: 768px) {
+            .header-right {
+                gap: 16px;
+                font-size: 14px;
+            }
+        }
+        main {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 16px;
+            min-height: calc(100vh - 80px);
+        }
+        @media (min-width: 768px) {
+            main {
+                padding: 24px;
+            }
+        }
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .page-title i {
+            color: #16a34a;
+        }
+        .new-rating-btn {
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .new-rating-btn:hover {
+            background-color: #15803d;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #dcfce7;
+        }
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .modal-close:hover {
+            color: #1f2937;
+        }
+        .modal-body {
+            padding: 24px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s;
+            resize: vertical;
+            min-height: 100px;
+        }
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+        }
+        .star-rating {
+            display: flex;
+            gap: 12px;
+            font-size: 32px;
+        }
+        .star {
+            cursor: pointer;
+            color: #d1d5db;
+            transition: all 0.2s;
+        }
+        .star:hover,
+        .star.active {
+            color: #fbbf24;
+            transform: scale(1.1);
+        }
+        .rating-value {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .submit-btn,
+        .cancel-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+            border: none;
+        }
+        .submit-btn {
+            background-color: #16a34a;
+            color: white;
+        }
+        .submit-btn:hover {
+            background-color: #15803d;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+        .cancel-btn {
+            background-color: #e5e7eb;
+            color: #1f2937;
+        }
+        .cancel-btn:hover {
+            background-color: #d1d5db;
+        }
+
+        .ratings-list {
+            display: grid;
+            gap: 16px;
+        }
+        .rating-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        .rating-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .rating-header {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .rating-user-avatar {
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .rating-user-avatar img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #dcfce7;
+        }
+        .rating-user-avatar .avatar-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #16a34a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            border: 2px solid #dcfce7;
+        }
+        .rating-user-avatar:hover {
+            transform: scale(1.05);
+        }
+        .rating-user-info {
+            flex: 1;
+        }
+        .rating-user-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .rating-user-name:hover {
+            color: #16a34a;
+        }
+        .rating-user-email {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+        .rating-date {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        /* Post menu dropdown */
+        .post-menu-btn {
+            background: none;
+            border: none;
+            padding: 0.25rem;
+            cursor: pointer;
+            color: #9ca3af;
+            transition: color 0.2s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .post-menu-btn:hover {
+            color: #374151;
+        }
+        
+        .post-menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            margin-top: 0.5rem;
+        }
+        
+        .post-menu-dropdown.show {
+            display: flex;
+        }
+        
+        .post-menu-item {
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #374151;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+        }
+        
+        .post-menu-item:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .post-menu-item:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .post-menu-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .post-menu-item.delete:hover {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .post-menu-item i {
+            width: 1rem;
+            text-align: center;
+        }
+        .rating-stars {
+            color: #fbbf24;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .rating-content {
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .rating-image-container {
+            margin-top: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .rating-image-container img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .image-preview-container {
+            position: relative;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .image-preview-container img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
+        }
+        .remove-image-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+        .remove-image-btn:hover {
+            background-color: #f0fdf4;
+            transform: scale(1.1);
+        }
+        .image-upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            background-color: #f0fdf4;
+            border: 2px dashed #bbf7d0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #16a34a;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .image-upload-btn:hover {
+            border-color: #16a34a;
+            background-color: #dcfce7;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        .empty-state i {
+            font-size: 48px;
+            color: #d1d5db;
+            display: block;
+            margin-bottom: 16px;
+        }
+        .error-message,
+        .success-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+        .error-message {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        .success-message {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            flex-wrap: wrap;
+        }
+        .filter-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+        .filter-btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .filter-btn:hover {
+            border-color: #16a34a;
+            color: #16a34a;
+        }
+        .filter-btn.active {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+            color: #16a34a;
+        }
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 20px;
+            }
+            .new-rating-btn {
+                font-size: 12px;
+                padding: 8px 16px;
+            }
+            .modal-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+        }
+        /* Rating actions */
+        .rating-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .rating-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            transition: all 0.2s;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .rating-action-btn:hover {
+            background-color: #f0fdf4;
+            color: #16a34a;
+        }
+        .rating-action-btn.liked {
+            color: #16a34a;
+        }
+        .comments-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .comments-header {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .comment-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+        .comment-user-avatar-link {
+            display: flex;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .comment-user-avatar-link:hover {
+            opacity: 0.8;
+        }
+        .comment-user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .comment-user-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        @media (min-width: 640px) {
+            .comment-user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+        }
+        .comment-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .comment-bubble {
+            background-color: #f3f4f6;
+            border-radius: 18px;
+            padding: 8px 12px;
+            display: inline-block;
+            max-width: 85%;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        @media (min-width: 640px) {
+            .comment-bubble {
+                padding: 10px 14px;
+                max-width: 75%;
+                border-radius: 20px;
+            }
+        }
+        .comment-user-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #111827;
+            display: block;
+            margin-bottom: 2px;
+            text-decoration: none;
+        }
+        .comment-user-name:hover {
+            text-decoration: underline;
+        }
+        .comment-text {
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.4;
+        }
+        @media (min-width: 640px) {
+            .comment-text {
+                font-size: 14px;
+            }
+        }
+        .comment-meta {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+            padding-left: 0;
+        }
+        @media (min-width: 640px) {
+            .comment-meta {
+                gap: 12px;
+                font-size: 12px;
+            }
+        }
+        .comment-delete-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 11px;
+            padding: 0;
+            transition: color 0.2s;
+        }
+        .comment-delete-btn:hover {
+            color: #dc2626;
+        }
+        .comment-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .comment-form input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .comment-form input:focus {
+            outline: none;
+            border-color: #16a34a;
+            background-color: #f0fdf4;
+        }
+        .comment-form button {
+            padding: 8px 16px;
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .comment-form button:hover {
+            background-color: #15803d;
+        }
+        .toggle-comments-btn {
+            color: #16a34a;
+            cursor: pointer;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="header-left">
+                <button onclick="goBack()" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <img src="/static/logo/logo.png" alt="AgriSense AI Logo" class="logo-img">
+            </div>
+            <div class="header-right">
+                <span>AgriSense AI</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="main-content">
+            <div class="page-header">
+                <div class="page-title">
+                    <i class="fas fa-star"></i>
+                    <span>Đánh giá trang web</span>
+                </div>
+                <button class="new-rating-btn" onclick="openRatingModal()">
+                    <i class="fas fa-plus"></i>
+                    <span>Thêm đánh giá</span>
+                </button>
+            </div>
+
+            <div id="error-message" class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="error-text"></span>
+            </div>
+
+            <div id="success-message" class="success-message">
+                <i class="fas fa-check-circle"></i>
+                <span id="success-text"></span>
+            </div>
+
+            <div class="filter-bar">
+                <span class="filter-label">Lọc theo:</span>
+                <button class="filter-btn" onclick="filterRatings(0)">
+                    <i class="fas fa-list"></i>
+                    <span>Tất cả</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(5)">
+                    <i class="fas fa-star"></i>
+                    <span>5 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(4)">
+                    <i class="fas fa-star"></i>
+                    <span>4 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(3)">
+                    <i class="fas fa-star"></i>
+                    <span>3 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(2)">
+                    <i class="fas fa-star"></i>
+                    <span>2 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings(1)">
+                    <i class="fas fa-star"></i>
+                    <span>1 sao</span>
+                </button>
+                <button class="filter-btn" onclick="filterRatings('hasImage')">
+                    <i class="fas fa-image"></i>
+                    <span>Có ảnh</span>
+                </button>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <div id="ratings-container" class="ratings-list">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Chưa có đánh giá nào</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="rating-modal" class="modal-overlay" onclick="if(event.target === this) closeRatingModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-pen-fancy" style="color: #16a34a;"></i>
+                    Chia sẻ trải nghiệm
+                </h2>
+                <button class="modal-close" onclick="closeRatingModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="rate-form">
+                    <div class="form-group">
+                        <label>Đánh giá của bạn</label>
+                        <div class="star-rating" id="star-rating">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                        </div>
+                        <div class="rating-value">
+                            <span id="rating-selected">Vui lòng chọn số sao</span>
+                        </div>
+                        <input type="hidden" id="selected-rating" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rating-content">Chia sẻ cảm nghĩ của bạn</label>
+                        <textarea id="rating-content" placeholder="Bạn nghĩ gì về ứng dụng của chúng tôi?..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Thêm ảnh (tùy chọn)</label>
+                        <div id="image-preview-area" style="display:none;" class="image-preview-container">
+                            <img id="rating-image-preview" src="" alt="Preview"/>
+                            <button type="button" class="remove-image-btn" onclick="removeRatingImage()">
+                                <i class="fas fa-times" style="color: #dc2626;"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="image-upload-btn" onclick="document.getElementById('rating-image-input').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Chọn ảnh</span>
+                        </button>
+                        <input type="file" id="rating-image-input" accept="image/*" style="display:none;" onchange="previewRatingImage(event)"/>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="closeRatingModal()">Hủy</button>
+                <button class="submit-btn" onclick="submitRating()">Gửi đánh giá</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-rating-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Báo cáo đánh giá</h2>
+                <button onclick="closeReportRatingModal()" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Vui lòng chọn lý do báo cáo:</p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="spam" style="width: 16px; height: 16px; cursor: pointer;" checked>
+                        <span style="font-size: 14px;">Spam</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="inappropriate" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-size: 14px;">Nội dung không phù hợp</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="fraud" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-size: 14px;">Lừa đảo</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                        <input type="radio" name="rating-report-reason" value="other" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-size: 14px;">Khác</span>
+                    </label>
+                </div>
+                
+                <textarea id="rating-report-details" placeholder="Chi tiết thêm (tùy chọn)..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; height: 80px; font-size: 13px;" spellcheck="false"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeReportRatingModal()" style="flex: 1; padding: 10px; margin-right: 5px; background: #f0f0f0; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: background 0.2s;">Hủy</button>
+                <button onclick="submitReportRatingModal()" style="flex: 1; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: background 0.2s;">Báo cáo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-rating-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Chỉnh sửa đánh giá</h2>
+                <button class="close-btn" onclick="closeEditRatingModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-rating-form">
+                    <div class="form-group">
+                        <label>Nội dung</label>
+                        <textarea id="edit-rating-content" placeholder="Bạn nghĩ gì về ứng dụng của chúng tôi?..." required spellcheck="false"></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="closeEditRatingModal()">Hủy</button>
+                <button class="submit-btn" onclick="submitEditRating()">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_EMAILS = ['abc23072009@gmail.com', 'abc23072000@gmail.com'];
+        let currentUserEmail = null;
+        let selectedRating = 0;
+        let selectedRatingImage = null;
+        let currentFilter = 0;
+        let allRatings = [];
+
+        // Image preview functions
+        function previewRatingImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showError('Ảnh không được quá 5MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedRatingImage = e.target.result;
+                document.getElementById('rating-image-preview').src = selectedRatingImage;
+                document.getElementById('image-preview-area').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeRatingImage() {
+            selectedRatingImage = null;
+            document.getElementById('image-preview-area').style.display = 'none';
+            document.getElementById('rating-image-input').value = '';
+        }
+
+        // Filter functions
+        function filterRatings(stars) {
+            currentFilter = stars;
+            
+            // Update button active states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Find and activate the clicked button
+            event.target.closest('.filter-btn').classList.add('active');
+            
+            // Display filtered ratings
+            displayFilteredRatings();
+        }
+
+        function displayFilteredRatings() {
+            const container = document.getElementById('ratings-container');
+            
+            let filtered = allRatings;
+            if (currentFilter > 0) {
+                filtered = allRatings.filter(rating => rating.rating === currentFilter);
+            } else if (currentFilter === 'hasImage') {
+                filtered = allRatings.filter(rating => rating.image);
+            }
+            
+            if (filtered.length === 0) {
+                let emptyText = 'Chưa có đánh giá nào';
+                if (currentFilter > 0) {
+                    emptyText = `Không có đánh giá ${currentFilter} sao`;
+                } else if (currentFilter === 'hasImage') {
+                    emptyText = 'Không có đánh giá nào có ảnh';
+                }
+                
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>${emptyText}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filtered.map(rating => {
+                const userName = rating.name || 'A';
+                const firstLetter = userName.charAt(0).toUpperCase();
+                const userEmail = rating.email || '';
+                const userSlug = userEmail.split('@')[0];
+                
+                const avatarHTML = rating.avatar_url 
+                    ? `<img src="${rating.avatar_url}" alt="${userName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>`
+                    : '';
+                const placeholderHTML = !rating.avatar_url 
+                    ? `<div class="avatar-placeholder">${firstLetter}</div>`
+                    : '';
+                
+                const imageHTML = rating.image 
+                    ? `<div class="rating-image-container"><img src="${rating.image}" alt="Rating image"/></div>`
+                    : '';
+                
+                const likeClass = rating.user_liked ? 'liked' : '';
+                const likeIcon = rating.user_liked ? 'fas' : 'far';
+                
+                return `
+                <div class="rating-card">
+                    <div class="rating-header">
+                        <div class="rating-user-avatar" onclick="goToProfile('${userSlug}')">
+                            ${avatarHTML}
+                            ${placeholderHTML}
+                        </div>
+                        <div class="rating-user-info">
+                            <div class="rating-user-name" onclick="goToProfile('${userSlug}')">${userName}</div>
+                            <div class="rating-user-email">${userEmail}</div>
+                        </div>
+                        <div class="rating-date">${new Date(rating.createdAt).toLocaleDateString('vi-VN')}</div>
+                        
+                        <div class="relative" style="flex-shrink: 0; position: relative;">
+                            <button onclick="togglePostMenu(event, ${rating.id}, 'rating')" class="post-menu-btn" title="Thêm tùy chọn">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <div class="post-menu-dropdown" id="menu-${rating.id}">
+                                <button onclick="reportRating(${rating.id})" class="post-menu-item">
+                                    <i class="fas fa-flag"></i>
+                                    <span>Báo cáo</span>
+                                </button>
+                                ${currentUserEmail === userEmail ? `
+                                    <button onclick="editRatingModal(${rating.id})" class="post-menu-item">
+                                        <i class="fas fa-edit"></i>
+                                        <span>Chỉnh sửa</span>
+                                    </button>
+                                    <button onclick="deleteRating(${rating.id})" class="post-menu-item delete">
+                                        <i class="fas fa-trash"></i>
+                                        <span>Xóa</span>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rating-stars">${'★'.repeat(rating.rating)}${'☆'.repeat(5-rating.rating)}</div>
+                    <div class="rating-content">${rating.content}</div>
+                    ${imageHTML}
+                    
+                    <div class="rating-actions">
+                        <button class="rating-action-btn ${likeClass}" onclick="toggleRatingLike(${rating.id}, this)">
+                            <i class="${likeIcon} fa-thumbs-up"></i>
+                            <span>${rating.likes_count || 0}</span>
+                        </button>
+                        <button class="rating-action-btn" onclick="toggleRatingComments(${rating.id})">
+                            <i class="fas fa-comment"></i>
+                            <span>${rating.comments_count || 0}</span>
+                        </button>
+                    </div>
+                    
+                    <div class="comments-section" id="comments-${rating.id}" style="display:none;">
+                        <div class="comments-header">Bình luận (${rating.comments_count || 0})</div>
+                        <div class="comments-list" id="comments-list-${rating.id}"></div>
+                        <div class="comment-form">
+                            <input type="text" placeholder="Viết bình luận..." class="comment-input" id="comment-input-${rating.id}"/>
+                            <button onclick="submitRatingComment(${rating.id})">Gửi</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Modal functions
+        function openRatingModal() {
+            document.getElementById('rating-modal').classList.add('active');
+        }
+
+        function closeRatingModal() {
+            document.getElementById('rating-modal').classList.remove('active');
+        }
+
+        // Toggle post menu dropdown
+        function togglePostMenu(event, itemId, type = 'post') {
+            event.stopPropagation();
+            const menu = document.getElementById(`menu-${itemId}`);
+            
+            // Close all other menus
+            document.querySelectorAll('.post-menu-dropdown.show').forEach(m => {
+                if (m !== menu) m.classList.remove('show');
+            });
+            
+            menu.classList.toggle('show');
+        }
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        });
+        
+        // Report rating
+        async function reportRating(ratingId) {
+            const reason = prompt('Vui lòng cho biết lý do báo cáo:\n1. Spam\n2. Nội dung không phù hợp\n3. Lừa đảo\n4. Khác');
+            
+            if (!reason) return;
+            
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm.');
+                } else {
+                    showError(data.message || 'Lỗi khi báo cáo đánh giá');
+                }
+            } catch (error) {
+                console.error('Error reporting rating:', error);
+                showError('Có lỗi xảy ra');
+            }
+            
+            // Close menu
+            document.getElementById(`menu-${ratingId}`).classList.remove('show');
+        }
+        
+        // Edit rating modal
+        function editRatingModal(ratingId) {
+            const rating = allRatings.find(r => r.id === ratingId);
+            if (!rating) return;
+            
+            // Store ratingId for use in submitEditRating
+            window.currentEditRatingId = ratingId;
+            
+            // Populate modal
+            document.getElementById('edit-rating-content').value = rating.content;
+            document.getElementById('edit-rating-modal').classList.add('active');
+            
+            // Close menu
+            document.getElementById(`menu-${ratingId}`).classList.remove('show');
+        }
+        
+        // Close edit rating modal
+        function closeEditRatingModal() {
+            document.getElementById('edit-rating-modal').classList.remove('active');
+            window.currentEditRatingId = null;
+        }
+        
+        // Submit edited rating
+        async function submitEditRating() {
+            const ratingId = window.currentEditRatingId;
+            const content = document.getElementById('edit-rating-content').value.trim();
+            
+            if (!content) {
+                showError('Nội dung không thể trống');
+                return;
+            }
+            
+            await updateRating(ratingId, content);
+            closeEditRatingModal();
+        }
+        
+        // Update rating
+        async function updateRating(ratingId, content) {
+            if (!content.trim()) {
+                showError('Nội dung không thể trống');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadRatings();
+                    showSuccess('Cập nhật đánh giá thành công!');
+                } else {
+                    showError(data.message || 'Lỗi khi cập nhật đánh giá');
+                }
+            } catch (error) {
+                console.error('Error updating rating:', error);
+                showError('Có lỗi xảy ra');
+            }
+        }
+        
+        // Report rating - Open modal
+        function reportRating(ratingId) {
+            window.currentReportRatingId = ratingId;
+            document.getElementById('report-rating-modal').classList.add('active');
+            document.getElementById(`menu-${ratingId}`)?.classList.remove('show');
+            // Reset form
+            document.querySelectorAll('input[name="rating-report-reason"]')[0].checked = true;
+            document.getElementById('rating-report-details').value = '';
+        }
+        
+        // Close report modal
+        function closeReportRatingModal() {
+            document.getElementById('report-rating-modal').classList.remove('active');
+            window.currentReportRatingId = null;
+        }
+        
+        // Submit report
+        async function submitReportRatingModal() {
+            const ratingId = window.currentReportRatingId;
+            if (!ratingId) return;
+            
+            const reason = document.querySelector('input[name="rating-report-reason"]:checked').value;
+            const details = document.getElementById('rating-report-details').value.trim();
+            
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason, details })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeReportRatingModal();
+                    showSuccess('Cảm ơn bạn đã báo cáo');
+                } else {
+                    showError(data.message || 'Lỗi khi báo cáo đánh giá');
+                }
+            } catch (error) {
+                console.error('Error reporting rating:', error);
+                showError('Có lỗi xảy ra');
+            }
+        }
+        
+        // Delete rating
+        async function deleteRating(ratingId) {
+            if (!confirm('Bạn có chắc muốn xóa đánh giá này?')) return;
+            
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadRatings();
+                    showSuccess('Đã xóa đánh giá');
+                }
+            } catch (error) {
+                console.error('Error deleting rating:', error);
+            }
+            
+            // Close menu
+            const menu = document.getElementById(`menu-${ratingId}`);
+            if (menu) menu.classList.remove('show');
+        }
+
+        // Star rating handler
+        document.querySelectorAll('.star').forEach(star => {
+            star.addEventListener('click', function() {
+                selectedRating = parseInt(this.dataset.rating);
+                document.getElementById('selected-rating').value = selectedRating;
+                
+                document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+                for (let i = 1; i <= selectedRating; i++) {
+                    document.querySelector(`[data-rating="${i}"]`).classList.add('active');
+                }
+                
+                const ratingText = {
+                    1: '1 sao - Không hài lòng',
+                    2: '2 sao - Bình thường',
+                    3: '3 sao - Tốt',
+                    4: '4 sao - Rất tốt',
+                    5: '5 sao - Xuất sắc'
+                };
+                document.getElementById('rating-selected').textContent = ratingText[selectedRating];
+            });
+            
+            star.addEventListener('mouseover', function() {
+                const hoverRating = parseInt(this.dataset.rating);
+                document.querySelectorAll('.star').forEach((s, index) => {
+                    if ((index + 1) <= hoverRating) {
+                        s.style.color = '#fbbf24';
+                    } else {
+                        s.style.color = '#d1d5db';
+                    }
+                });
+            });
+        });
+
+        document.getElementById('star-rating').addEventListener('mouseleave', function() {
+            document.querySelectorAll('.star').forEach((s, index) => {
+                if ((index + 1) <= selectedRating) {
+                    s.style.color = '#fbbf24';
+                } else {
+                    s.style.color = '#d1d5db';
+                }
+            });
+        });
+
+        // Form submit
+        function submitRating() {
+            if (selectedRating === 0 || selectedRating < 1 || selectedRating > 5) {
+                showError('Vui lòng chọn số sao từ 1 đến 5');
+                return;
+            }
+            
+            const content = document.getElementById('rating-content').value.trim();
+            if (!content) {
+                showError('Vui lòng nhập nội dung đánh giá');
+                return;
+            }
+
+            submitRatingAsync();
+        }
+
+        async function submitRatingAsync() {
+            const content = document.getElementById('rating-content').value;
+            const image = selectedRatingImage;
+            
+            try {
+                const response = await fetch('/api/ratings/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rating: selectedRating,
+                        name: currentUserEmail,
+                        title: `Đánh giá ${selectedRating} sao`,
+                        content: content,
+                        image: image
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Cảm ơn bạn đã đánh giá!');
+                    document.getElementById('rate-form').reset();
+                    selectedRating = 0;
+                    selectedRatingImage = null;
+                    document.getElementById('selected-rating').value = 0;
+                    document.getElementById('image-preview-area').style.display = 'none';
+                    document.querySelectorAll('.star').forEach(s => {
+                        s.classList.remove('active');
+                        s.style.color = '#d1d5db';
+                    });
+                    document.getElementById('rating-selected').textContent = 'Vui lòng chọn số sao';
+                    
+                    setTimeout(() => {
+                        closeRatingModal();
+                        loadRatings();
+                    }, 1000);
+                } else {
+                    showError(data.message || 'Có lỗi khi gửi đánh giá');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        // Load ratings
+        async function loadRatings() {
+            try {
+                const response = await fetch('/api/ratings/list');
+                const data = await response.json();
+                
+                if (data.success && data.ratings.length > 0) {
+                    allRatings = data.ratings;
+                    currentFilter = 0;
+                    
+                    // Reset filter buttons
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    document.querySelector('.filter-btn.all-ratings').classList.add('active');
+                    
+                    displayFilteredRatings();
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải đánh giá:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            document.getElementById('error-text').textContent = message;
+            errorDiv.style.display = 'flex';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            document.getElementById('success-text').textContent = message;
+            successDiv.style.display = 'flex';
+            setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        function goToProfile(userSlug) {
+            window.location.href = `profile/${userSlug}`;
+        }
+
+        // Like/Unlike functions
+        async function toggleRatingLike(ratingId, btn) {
+            try {
+                const isLiked = btn.classList.contains('liked');
+                const endpoint = isLiked ? 'unlike' : 'like';
+                
+                const response = await fetch(`/api/ratings/${ratingId}/${endpoint}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    btn.classList.toggle('liked');
+                    
+                    // Update likes count
+                    const rating = allRatings.find(r => r.id === ratingId);
+                    if (rating) {
+                        rating.user_liked = !rating.user_liked;
+                        rating.likes_count += isLiked ? -1 : 1;
+                        
+                        // Update UI
+                        const likeCount = btn.querySelector('span');
+                        likeCount.textContent = rating.likes_count;
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                showError('Lỗi khi thích đánh giá');
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Get time ago string (matching forum.html)
+        function getTimeAgo(createdAt) {
+            const now = new Date();
+            const created = new Date(createdAt);
+            const seconds = Math.floor((now - created) / 1000);
+            
+            if (seconds < 60) return 'vừa xong';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} phút trước`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} giờ trước`;
+            const days = Math.floor(hours / 24);
+            if (days < 7) return `${days} ngày trước`;
+            const weeks = Math.floor(days / 7);
+            if (weeks < 4) return `${weeks} tuần trước`;
+            
+            return created.toLocaleDateString('vi-VN');
+        }
+
+        // Toggle comments section
+        async function toggleRatingComments(ratingId) {
+            const commentsSection = document.getElementById(`comments-${ratingId}`);
+            
+            if (commentsSection.style.display === 'none') {
+                commentsSection.style.display = 'block';
+                await loadRatingComments(ratingId);
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        }
+
+        // Load comments for rating
+        async function loadRatingComments(ratingId) {
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}/comments`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const commentsList = document.getElementById(`comments-list-${ratingId}`);
+                    
+                    if (data.comments.length === 0) {
+                        commentsList.innerHTML = '<p style="color: #9ca3af; font-size: 13px; text-align: center; padding: 16px 0;">Chưa có bình luận</p>';
+                        return;
+                    }
+                    
+                    commentsList.innerHTML = data.comments.map(comment => {
+                        const userName = comment.user_name || comment.user_email?.split('@')[0] || 'Người dùng';
+                        const userFirstLetter = userName.charAt(0).toUpperCase();
+                        const timeAgo = getTimeAgo(comment.created_at);
+                        
+                        // Create avatar HTML (image or placeholder with gradient)
+                        let avatarHTML;
+                        if (comment.avatar_url) {
+                            avatarHTML = `<img src="${comment.avatar_url}" class="comment-user-avatar" alt="${escapeHtml(userName)}" />`;
+                        } else {
+                            avatarHTML = `<div class="comment-user-avatar" style="background: linear-gradient(135deg, #16a34a, #15803d);">${userFirstLetter}</div>`;
+                        }
+                        
+                        return `
+                        <div class="comment-item">
+                            <a href="/profile/${comment.user_id}" class="comment-user-avatar-link">
+                                ${avatarHTML}
+                            </a>
+                            <div class="comment-content">
+                                <div class="comment-bubble">
+                                    <a href="/profile/${comment.user_id}" class="comment-user-name">${escapeHtml(userName)}</a>
+                                    <p class="comment-text">${escapeHtml(comment.content)}</p>
+                                </div>
+                                <div class="comment-meta">
+                                    <span>${timeAgo}</span>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading comments:', error);
+            }
+        }
+
+        // Submit comment
+        async function submitRatingComment(ratingId) {
+            const input = document.getElementById(`comment-input-${ratingId}`);
+            const content = input.value.trim();
+            
+            if (!content) {
+                showError('Bình luận không được để trống');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/ratings/${ratingId}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    input.value = '';
+                    showSuccess('Bình luận đã được thêm');
+                    
+                    // Update comments count
+                    const rating = allRatings.find(r => r.id === ratingId);
+                    if (rating) {
+                        rating.comments_count++;
+                    }
+                    
+                    // Reload comments
+                    await loadRatingComments(ratingId);
+                } else {
+                    showError(data.message || 'Lỗi khi thêm bình luận');
+                }
+            } catch (error) {
+                console.error('Error submitting comment:', error);
+                showError('Lỗi kết nối');
+            }
+        }
+
+        // Check auth and load data
+        async function init() {
+            try {
+                const response = await fetch('/api/auth/profile');
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    currentUserEmail = data.user.email;
+                    loadRatings();
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

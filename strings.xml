@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AgriSense</string>
+    <string name="app_description">Nền tảng Nông nghiệp thông minh</string>
+    <string name="error_loading_page">Lỗi tải trang</string>
+    <string name="error_network">Lỗi kết nối mạng</string>
+    <string name="page_loaded">Trang đã tải</string>
+    <string name="reload">Tải lại</string>
+</resources>

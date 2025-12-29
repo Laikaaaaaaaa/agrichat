@@ -35,7 +35,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DATASET_PATH = os.path.join(HERE, "dataset", "dataset.json")
 DEFAULT_MODEL_DIR = os.path.join(HERE, "model")
 DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "agrimind_textclf.pkl")
-DEFAULT_HF_MODEL_DIR = os.path.join(DEFAULT_MODEL_DIR, "agrimind_hf_textclf")
 
 
 LOGGER = logging.getLogger("agrimind")
@@ -53,18 +52,6 @@ def _normalize(text: str) -> str:
     text = text.replace("/", " ")
     text = re.sub(r"\s+", " ", text)
     return text
-
-
-def _strip_accents_keep_spaces(text: str) -> str:
-    if not text:
-        return ""
-    # Similar to _normalize but keep case? For augmentation we just want a simple variant.
-    t = text.strip().lower()
-    t = unicodedata.normalize("NFD", t)
-    t = "".join(ch for ch in t if unicodedata.category(ch) != "Mn")
-    t = t.replace("_", " ").replace("/", " ")
-    t = re.sub(r"\s+", " ", t)
-    return t
 
 
 @dataclass(frozen=True)
@@ -392,61 +379,6 @@ def _try_ml_predict_entry_id(question: str, model_path: str = DEFAULT_MODEL_PATH
         return None
 
 
-@lru_cache(maxsize=2)
-def _load_hf_model(model_dir: str) -> Optional[Tuple[Any, Any, List[str]]]:
-    """Lazy-load HF tokenizer+model+classes.
-
-    Returns (tokenizer, model, classes) or None.
-    """
-
-    try:
-        if not model_dir or not os.path.isdir(model_dir):
-            return None
-        labels_path = os.path.join(model_dir, "labels.json")
-        if not os.path.exists(labels_path):
-            return None
-        with open(labels_path, "r", encoding="utf-8") as f:
-            labels_payload = json.load(f)
-        classes = labels_payload.get("classes") or []
-        if not classes:
-            return None
-
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-        tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=True)
-        model = AutoModelForSequenceClassification.from_pretrained(model_dir)
-        model.eval()
-        return tokenizer, model, list(classes)
-    except Exception:
-        return None
-
-
-def _try_hf_predict_entry_id(question: str, model_dir: str = DEFAULT_HF_MODEL_DIR) -> Optional[Dict[str, Any]]:
-    """Predict a KB entry id using a fine-tuned HF classifier directory."""
-
-    try:
-        loaded = _load_hf_model(model_dir)
-        if not loaded:
-            return None
-        tokenizer, model, classes = loaded
-
-        import torch
-
-        inputs = tokenizer([question], truncation=True, padding=True, max_length=128, return_tensors="pt")
-        with torch.no_grad():
-            out = model(**inputs)
-            logits = out.logits[0]
-            probs = torch.softmax(logits, dim=-1)
-            best_idx = int(torch.argmax(probs).item())
-            prob = float(probs[best_idx].item())
-
-        if best_idx < 0 or best_idx >= len(classes):
-            return None
-        return {"id": classes[best_idx], "prob": prob, "type": "hf_transformer"}
-    except Exception:
-        return None
-
-
 def extract_entities(question: str, entries: List[KBEntry], lex: Dict[str, Any]) -> Dict[str, Any]:
     q_norm = _normalize(question)
 
@@ -624,8 +556,7 @@ def _choose_best_entry_indexed(
     index: KBIndex,
 ) -> Tuple[Optional[KBEntry], float, Optional[Dict[str, Any]]]:
     kb_entry, kb_conf = match_kb_indexed(extracted, entries, index)
-    # Prefer transformer when available; fall back to sklearn.
-    ml_pred = _try_hf_predict_entry_id(question) or _try_ml_predict_entry_id(question)
+    ml_pred = _try_ml_predict_entry_id(question)
 
     id_map = {e.id: e for e in entries}
     ml_entry = id_map.get(ml_pred["id"]) if ml_pred and ml_pred.get("id") else None
@@ -805,62 +736,21 @@ def generate_preview_prompt(question: str, extracted: Dict[str, Any], entry: Opt
 def _build_training_samples(entries: List[KBEntry]) -> Tuple[List[str], List[str]]:
     texts: List[str] = []
     labels: List[str] = []
-
-    # Small, deterministic augmentation: add accent-stripped and common alias swaps.
-    # Keeps the dataset dependency-free while improving robustness.
-    alias_swaps = [
-        ("heo", "lợn"),
-        ("lon", "heo"),
-        ("ga", "gà"),
-        ("bo", "bò"),
-        ("lua", "lúa"),
-        ("ngo", "ngô"),
-        ("bap", "ngô"),
-        ("ca", "cá"),
-        ("tom", "tôm"),
-    ]
-
-    def augment_one(t: str) -> List[str]:
-        base = str(t or "").strip()
-        if not base:
-            return []
-        variants: List[str] = [base]
-        variants.append(_strip_accents_keep_spaces(base))
-
-        low = _strip_accents_keep_spaces(base)
-        for a, b in alias_swaps:
-            if a in low:
-                variants.append(low.replace(a, b))
-        # de-dup, keep order
-        out: List[str] = []
-        seen = set()
-        for v in variants:
-            v2 = str(v).strip()
-            if not v2:
-                continue
-            k = v2
-            if k not in seen:
-                seen.add(k)
-                out.append(v2)
-        return out
     for e in entries:
         if e.examples:
             for ex in e.examples:
                 if ex and str(ex).strip():
-                    for v in augment_one(str(ex).strip()):
-                        texts.append(v)
-                        labels.append(e.id)
+                    texts.append(str(ex).strip())
+                    labels.append(e.id)
         else:
             # Fallback so every entry contributes at least one sample
-            for v in augment_one(f"{e.specie} {e.disease} {e.season}"):
-                texts.append(v)
-                labels.append(e.id)
+            texts.append(f"{e.specie} {e.disease} {e.season}")
+            labels.append(e.id)
 
         # Light canonical sample (helps stabilize training)
         canonical = f"{e.specie} bị {e.disease} ({e.season}). Triệu chứng: {', '.join(e.symptoms[:3])}."
-        for v in augment_one(canonical):
-            texts.append(v)
-            labels.append(e.id)
+        texts.append(canonical)
+        labels.append(e.id)
 
     return texts, labels
 
@@ -943,132 +833,6 @@ def cli_train(args: argparse.Namespace) -> int:
     print(f"✅ Classes (kb ids): {len(classes)}")
     print(f"✅ Train accuracy (sanity): {acc:.3f}")
     print(f"💾 Saved model: {out_path}")
-    return 0
-
-
-def cli_train_hf(args: argparse.Namespace) -> int:
-    """Train a Transformer text classifier (PhoBERT/XLM-R) from dataset examples.
-
-    Requires: torch, transformers, datasets (and often accelerate/sentencepiece).
-    Saves a Hugging Face checkpoint directory (not a pickle).
-    """
-
-    entries = load_dataset(args.dataset)
-    texts, labels = _build_training_samples(entries)
-    if not texts:
-        raise ValueError("No training samples found in dataset (examples empty)")
-
-    try:
-        from datasets import Dataset
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
-    except Exception as e:
-        raise RuntimeError(
-            "Missing HF dependencies. Install: pip install torch transformers datasets accelerate sentencepiece"
-        ) from e
-
-    classes = sorted(set(labels))
-    label2id = {c: i for i, c in enumerate(classes)}
-    id2label = {i: c for c, i in label2id.items()}
-
-    ds = Dataset.from_dict({"text": texts, "label": [label2id[y] for y in labels]})
-
-    # Ensure test set is large enough to include many classes; for many classes we use an integer size.
-    test_size = float(args.hf_test_size)
-    desired = int(round(test_size * len(ds)))
-    if desired < len(classes):
-        desired = len(classes)
-    if (len(ds) - desired) < max(1, len(classes)):
-        # if dataset is small, still keep at least 1 sample for training
-        desired = min(len(ds) - 1, desired)
-    if desired <= 0:
-        desired = 1
-
-    split = ds.train_test_split(test_size=desired, seed=int(args.seed), shuffle=True)
-    train_ds = split["train"]
-    eval_ds = split["test"]
-
-    tokenizer = AutoTokenizer.from_pretrained(args.hf_model, use_fast=True)
-
-    def tok(batch):
-        return tokenizer(batch["text"], truncation=True, padding="max_length", max_length=int(args.hf_max_length))
-
-    train_ds = train_ds.map(tok, batched=True, remove_columns=["text"])
-    eval_ds = eval_ds.map(tok, batched=True, remove_columns=["text"])
-    train_ds.set_format(type="torch")
-    eval_ds.set_format(type="torch")
-
-    model = AutoModelForSequenceClassification.from_pretrained(
-        args.hf_model,
-        num_labels=len(classes),
-        label2id=label2id,
-        id2label=id2label,
-    )
-
-    out_dir = args.hf_out or DEFAULT_HF_MODEL_DIR
-    os.makedirs(out_dir, exist_ok=True)
-
-    train_args = TrainingArguments(
-        output_dir=out_dir,
-        num_train_epochs=float(args.hf_epochs),
-        per_device_train_batch_size=int(args.hf_batch_size),
-        per_device_eval_batch_size=int(args.hf_batch_size),
-        learning_rate=float(args.hf_lr),
-        weight_decay=float(args.hf_weight_decay),
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        logging_steps=50,
-        report_to=[],
-        seed=int(args.seed),
-        fp16=bool(getattr(args, "hf_fp16", False)),
-        load_best_model_at_end=False,
-    )
-
-    def compute_metrics(eval_pred):
-        import numpy as np
-
-        logits, y_true = eval_pred
-        logits = np.asarray(logits)
-        y_true = np.asarray(y_true)
-        pred = np.argmax(logits, axis=1)
-        acc1 = float(np.mean(pred == y_true)) if len(y_true) else 0.0
-        # top-3
-        top3 = np.argsort(-logits, axis=1)[:, :3]
-        hits = 0
-        for i in range(len(y_true)):
-            if int(y_true[i]) in set(top3[i].tolist()):
-                hits += 1
-        acc3 = hits / max(1, len(y_true))
-        return {"accuracy@1": acc1, "accuracy@3": float(acc3)}
-
-    trainer = Trainer(
-        model=model,
-        args=train_args,
-        train_dataset=train_ds,
-        eval_dataset=eval_ds,
-        tokenizer=tokenizer,
-        compute_metrics=compute_metrics,
-    )
-
-    trainer.train()
-
-    # Save in HF format
-    trainer.save_model(out_dir)
-    tokenizer.save_pretrained(out_dir)
-    with open(os.path.join(out_dir, "labels.json"), "w", encoding="utf-8") as f:
-        json.dump({"classes": classes}, f, ensure_ascii=False, indent=2)
-
-    metrics = trainer.evaluate()
-    # Print friendly summary
-    print(f"✅ Trained samples: {len(texts)}")
-    print(f"✅ Classes (kb ids): {len(classes)}")
-    if metrics:
-        a1 = metrics.get("eval_accuracy@1")
-        a3 = metrics.get("eval_accuracy@3")
-        if a1 is not None:
-            print(f"📈 eval_accuracy@1: {float(a1):.3f}")
-        if a3 is not None:
-            print(f"📈 eval_accuracy@3: {float(a3):.3f}")
-    print(f"💾 Saved HF model dir: {out_dir}")
     return 0
 
 
@@ -1260,21 +1024,11 @@ def cli_serve(args: argparse.Namespace) -> int:
 def build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="AgriMind - entity extraction + KB + safety + prompt generator")
     p.add_argument("--dataset", default=DEFAULT_DATASET_PATH, help="Path to dataset.json")
-    p.add_argument("--mode", choices=["train", "train-hf"], default=None, help="Run a special mode (e.g. train)")
+    p.add_argument("--mode", choices=["train"], default=None, help="Run a special mode (e.g. train)")
     p.add_argument("--epoch", type=int, default=5, help="Epochs for --mode train")
     p.add_argument("--batch-size", type=int, default=32, help="Batch size for --mode train")
     p.add_argument("--seed", type=int, default=42, help="Random seed for --mode train")
     p.add_argument("--model-out", default=DEFAULT_MODEL_PATH, help="Output path for trained model")
-
-    # HF training args (only used when --mode train-hf)
-    p.add_argument("--hf-model", default="vinai/phobert-base", help="HF model name (e.g. vinai/phobert-base, xlm-roberta-base)")
-    p.add_argument("--hf-out", default=DEFAULT_HF_MODEL_DIR, help="Output dir for HF fine-tuned model")
-    p.add_argument("--hf-epochs", type=float, default=2.0)
-    p.add_argument("--hf-batch-size", type=int, default=8)
-    p.add_argument("--hf-lr", type=float, default=2e-5)
-    p.add_argument("--hf-weight-decay", type=float, default=0.01)
-    p.add_argument("--hf-max-length", type=int, default=128)
-    p.add_argument("--hf-test-size", type=float, default=0.2)
 
     sub = p.add_subparsers(dest="cmd")
 
@@ -1322,9 +1076,6 @@ def main() -> int:
 
     if args.mode == "train":
         return int(cli_train(args))
-
-    if args.mode == "train-hf":
-        return int(cli_train_hf(args))
 
     if hasattr(args, "func"):
         return int(args.func(args))

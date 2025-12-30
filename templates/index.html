@@ -1176,7 +1176,12 @@
           // Lưu vào chat history - ALWAYS save for bot messages
           if (window.chatHistoryManager && (htmlContent || true)) {
             console.log('💾 Saving HTML message to history (sender: ' + sender + '):', htmlContent.substring(0, 100) + '...');
-            window.chatHistoryManager.addMessage(sender, htmlContent, null, 'html');
+            const savedMessage = window.chatHistoryManager.addMessage(sender, htmlContent, null, 'html');
+            if (savedMessage && savedMessage.id) {
+              wrapper.dataset.messageId = savedMessage.id;
+              bubble.dataset.messageId = savedMessage.id;
+              wrapper.id = savedMessage.id;
+            }
           }
           
           resolve(wrapper);
@@ -1354,6 +1359,30 @@
         }
       });
     };
+
+    // Update an existing message in chat history
+    // (used for replacing the weather-consent bubble with the final weather text)
+    if (window.chatHistoryManager && !window.chatHistoryManager.updateMessage) {
+      window.chatHistoryManager.updateMessage = function(messageId, newContent, newType = 'text') {
+        try {
+          if (!messageId || !this.currentConversation || !this.currentConversation.messages) {
+            return false;
+          }
+          const msg = this.currentConversation.messages.find(m => m.id === messageId);
+          if (!msg) return false;
+          msg.content = newContent;
+          msg.type = newType;
+          msg.timestamp = new Date().toISOString();
+          this.currentConversation.lastUpdated = new Date().toISOString();
+          this.saveConversations();
+          this.saveCurrentSession();
+          return true;
+        } catch (e) {
+          console.warn('⚠️ Failed to update message:', e);
+          return false;
+        }
+      };
+    }
 
     // Biến để lưu nội dung tin nhắn hiện tại
     if (!window.botCurrentMessage) {
@@ -7084,10 +7113,78 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
   }
 
   // 🌦️ Weather location consent handler (called by buttons from server-rendered HTML)
-  window.handleLocationConsent = async function(consent) {
+  // It updates the SAME chat bubble (no new message bubble).
+  window.handleLocationConsent = async function(consent, triggerEl) {
     try {
       // Show a lightweight toast while processing
       try { showToast('⏳ Đang xử lý yêu cầu thời tiết...', 'info'); } catch (e) {}
+
+      const bubble = triggerEl ? triggerEl.closest('.message-bubble') : null;
+      const wrapper = triggerEl ? triggerEl.closest('.message-wrapper') : null;
+      const messageId = wrapper?.dataset?.messageId || bubble?.dataset?.messageId || null;
+
+      const setBubbleHtml = (html) => {
+        if (bubble) bubble.innerHTML = html;
+      };
+
+      const typewriterIntoBubble = async (text, speed = 5) => {
+        if (!bubble) {
+          // Fallback if bubble isn't found
+          await window.appendMessageWithTypewriter('bot', text, null, speed);
+          return;
+        }
+        bubble.innerHTML = '';
+
+        const textContainer = document.createElement('div');
+        textContainer.className = 'typewriter-container';
+        textContainer.style.cssText = 'position: relative; display: inline;';
+        bubble.appendChild(textContainer);
+
+        const originalText = text || '';
+        const normalizedText = normalizeMarkdown(originalText);
+        let currentIndex = 0;
+        let displayedText = '';
+
+        const chatBox = document.getElementById('chat-box');
+
+        await new Promise((resolve) => {
+          function step() {
+            if (currentIndex < normalizedText.length) {
+              const ch = normalizedText.charAt(currentIndex);
+              displayedText += ch;
+              const previewHtml = buildPreviewHtml(displayedText);
+              textContainer.innerHTML = previewHtml || '';
+              currentIndex++;
+
+              if (chatBox && !chatBox.dataset.userScrolling) {
+                chatBox.scrollTop = chatBox.scrollHeight;
+              }
+
+              let nextSpeed = Math.max(2, speed);
+              if (ch === ' ') nextSpeed = Math.max(2, speed * 0.3);
+              else if ('.!?'.includes(ch)) nextSpeed = speed * 1.4;
+              else if (',;:'.includes(ch)) nextSpeed = speed * 1.15;
+              else if (ch === '\n') nextSpeed = Math.max(1, speed * 0.4);
+
+              setTimeout(step, nextSpeed);
+            } else {
+              textContainer.innerHTML = renderBotMessage(originalText);
+              if (messageId && window.chatHistoryManager?.updateMessage) {
+                window.chatHistoryManager.updateMessage(messageId, originalText, 'text');
+              }
+              resolve();
+            }
+          }
+          setTimeout(step, 10);
+        });
+      };
+
+      // Disable buttons immediately & show loading in same bubble
+      if (bubble && triggerEl) {
+        const buttons = bubble.querySelectorAll('button');
+        buttons.forEach(b => b.disabled = true);
+        setBubbleHtml('<div class="text-sm">⏳ Đang xử lý…</div>');
+      }
 
       if (!consent) {
         const resp = await fetch('/api/location', {
@@ -7097,10 +7194,10 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
           body: JSON.stringify({ consent: false })
         });
         const result = await resp.json();
-        if (result?.success && result?.response) {
-          await window.appendMessageWithTypewriter('bot', result.response);
-        } else {
-          await window.appendMessageWithTypewriter('bot', '❌ Không thể lấy thời tiết mặc định.');
+        const text = (result?.response) || '❌ Không thể lấy thời tiết mặc định.';
+        await typewriterIntoBubble(text);
+        if (messageId && window.chatHistoryManager?.updateMessage) {
+          window.chatHistoryManager.updateMessage(messageId, text, 'text');
         }
         return;
       }
@@ -7113,7 +7210,11 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
           body: JSON.stringify({ consent: false })
         });
         const result = await resp.json();
-        await window.appendMessageWithTypewriter('bot', result?.response || '⚠️ Trình duyệt không hỗ trợ định vị. Mình dùng mặc định Hà Nội & TP.HCM.');
+        const text = result?.response || '⚠️ Trình duyệt không hỗ trợ định vị. Mình dùng mặc định Hà Nội & TP.HCM.';
+        await typewriterIntoBubble(text);
+        if (messageId && window.chatHistoryManager?.updateMessage) {
+          window.chatHistoryManager.updateMessage(messageId, text, 'text');
+        }
         return;
       }
 
@@ -7130,14 +7231,18 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
               body: JSON.stringify({ consent: true, lat, lon })
             });
             const result = await resp.json();
-            if (result?.success && result?.response) {
-              await window.appendMessageWithTypewriter('bot', result.response);
-            } else {
-              await window.appendMessageWithTypewriter('bot', '❌ Mình chưa lấy được thời tiết theo vị trí.');
+            const text = (result?.response) || '❌ Mình chưa lấy được thời tiết theo vị trí.';
+            await typewriterIntoBubble(text);
+            if (messageId && window.chatHistoryManager?.updateMessage) {
+              window.chatHistoryManager.updateMessage(messageId, text, 'text');
             }
           } catch (e) {
             console.error('❌ Error posting /api/location:', e);
-            await window.appendMessageWithTypewriter('bot', '❌ Lỗi khi gửi vị trí lên server.');
+            const text = '❌ Lỗi khi gửi vị trí lên server.';
+            await typewriterIntoBubble(text);
+            if (messageId && window.chatHistoryManager?.updateMessage) {
+              window.chatHistoryManager.updateMessage(messageId, text, 'text');
+            }
           }
         },
         async (err) => {
@@ -7150,7 +7255,11 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
             body: JSON.stringify({ consent: false })
           });
           const result = await resp.json();
-          await window.appendMessageWithTypewriter('bot', result?.response || '⚠️ Không lấy được vị trí. Mình dùng mặc định Hà Nội & TP.HCM.');
+          const text = result?.response || '⚠️ Không lấy được vị trí. Mình dùng mặc định Hà Nội & TP.HCM.';
+          await typewriterIntoBubble(text);
+          if (messageId && window.chatHistoryManager?.updateMessage) {
+            window.chatHistoryManager.updateMessage(messageId, text, 'text');
+          }
         },
         {
           enableHighAccuracy: true,
@@ -7160,7 +7269,12 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       );
     } catch (error) {
       console.error('❌ handleLocationConsent error:', error);
-      await window.appendMessageWithTypewriter('bot', '❌ Có lỗi khi xử lý quyền vị trí.');
+      if (triggerEl) {
+        const bubble = triggerEl.closest('.message-bubble');
+        if (bubble) bubble.innerHTML = renderBotMessage('❌ Có lỗi khi xử lý quyền vị trí.');
+      } else {
+        await window.appendMessageWithTypewriter('bot', '❌ Có lỗi khi xử lý quyền vị trí.');
+      }
     }
   };
   

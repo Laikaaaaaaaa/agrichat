@@ -1247,11 +1247,10 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
 
     def _weather_consent_html(self) -> str:
         return (
-            "<div>🌦️ Để trả lời chính xác thời tiết/khi hậu <strong>tại vị trí hiện tại</strong>, mình cần bạn cho phép lấy vị trí. "
-            "Bạn đồng ý không?</div>"
+            "<div>🌦️ Để trả lời chính xác thời tiết/khi hậu tại vị trí hiện tại, mình cần bạn cho phép lấy vị trí. Bạn đồng ý không?</div>"
             "<div class=\"mt-3 flex flex-wrap gap-2\">"
-            "  <button onclick=\"window.handleLocationConsent(true)\" class=\"px-3 py-2 rounded-lg bg-green-600 text-white text-sm\">Đồng ý</button>"
-            "  <button onclick=\"window.handleLocationConsent(false)\" class=\"px-3 py-2 rounded-lg bg-gray-300 text-gray-800 text-sm\">Từ chối</button>"
+            "  <button onclick=\"window.handleLocationConsent(true, this)\" class=\"px-3 py-2 rounded-lg bg-green-600 text-white text-sm\">Đồng ý</button>"
+            "  <button onclick=\"window.handleLocationConsent(false, this)\" class=\"px-3 py-2 rounded-lg bg-gray-300 text-gray-800 text-sm\">Từ chối</button>"
             "</div>"
             "<div class=\"mt-2 text-xs text-gray-500\">Nếu bạn từ chối, mình sẽ dùng dữ liệu mặc định cho <strong>Hà Nội</strong> và <strong>TP.HCM</strong>.</div>"
         )
@@ -1282,27 +1281,11 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
 
         consent = session.get("weather_geo_consent")
 
-        # Need permission first
-        if consent is None:
-            session["pending_weather_query"] = message
-            return {"type": "html", "response": self._weather_consent_html()}
-
-        # Denied => default Hanoi + HCMC
-        if consent is False:
-            hanoi = self._get_weather_city_fallback("Hà Nội", "Hà Nội", 21.0278, 105.8342)
-            hcm = self._get_weather_city_fallback("Hồ Chí Minh", "TP.HCM", 10.8231, 106.6297)
-            text = (
-                "🌦️ **Thời tiết hôm nay (mặc định do bạn từ chối vị trí)**\n\n"
-                + self._format_weather_markdown(hanoi, "Hà Nội")
-                + "\n\n"
-                + self._format_weather_markdown(hcm, "TP.HCM")
-            )
-            return {"type": "text", "response": text}
-
-        # consent True
+        # Ask for permission unless we already have consent + coordinates.
+        # If user denied before and asks again, we ask again.
         lat = session.get("weather_geo_lat")
         lon = session.get("weather_geo_lon")
-        if lat is None or lon is None:
+        if consent is not True or lat is None or lon is None:
             session["pending_weather_query"] = message
             return {"type": "html", "response": self._weather_consent_html()}
 
@@ -6869,13 +6852,19 @@ def set_location():
         session['weather_geo_city'] = city_name
         session['weather_geo_country'] = country_name
 
-        weather_data = api.get_weather_info_by_coords(lat, lon, city_name, country_name)
-        text = api._format_weather_markdown(weather_data, "Thời tiết hiện tại")
-        session.pop('pending_weather_query', None)
-        return jsonify({"success": True, "type": "text", "response": text})
+        try:
+            weather_data = api.get_weather_info_by_coords(lat, lon, city_name, country_name)
+            text = api._format_weather_markdown(weather_data, "Thời tiết hiện tại")
+            session.pop('pending_weather_query', None)
+            return jsonify({"success": True, "type": "text", "response": text})
+        except Exception as exc:
+            logging.error(f"❌ Weather fetch failed in /api/location: {exc}")
+            session.pop('pending_weather_query', None)
+            return jsonify({"success": True, "type": "text", "response": "❌ Mình chưa lấy được thời tiết theo vị trí. Bạn thử lại giúp mình nhé."})
     except Exception as e:
         logging.error(f"❌ Error in /api/location: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        # Avoid throwing 500 to the browser; return a safe message so UI can recover.
+        return jsonify({"success": True, "type": "text", "response": "❌ Có lỗi khi xử lý vị trí. Bạn thử lại giúp mình nhé."})
 
 
 # ==================== FORUM API ====================

@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "region_templates": {
+    "mien bac": [
+      "🌤️ **Khí hậu {place} (Miền Bắc)**\n\n- Kiểu khí hậu: **nhiệt đới gió mùa ẩm**, thường cảm nhận **4 mùa** rõ hơn so với nhiều vùng khác.\n- Hè (khoảng **5–9**): **nóng ẩm, mưa nhiều**, hay có mưa rào/giông.\n- Đông (khoảng **11–3**): **lạnh hơn, khô hơn**, có thể có các đợt rét.\n- Lưu ý: dễ phát sinh bệnh nấm khi ẩm cao; mùa lạnh cần che chắn/giữ ấm.",
+      "🌤️ **Khí hậu {place} (Miền Bắc)**\n\n- Tổng quan: **ẩm**, mưa theo mùa; nhiệt độ biến thiên mạnh theo thời điểm trong năm.\n- Mùa mưa chủ yếu rơi vào **mùa hè**, kèm dông sét.\n- Mùa đông có thể **lạnh kéo dài**, đặc biệt khi có gió mùa Đông Bắc.\n- Gợi ý canh tác: ưu tiên lịch thời vụ tránh rét/mưa cực đoan; chú ý thoát nước lúc mưa lớn.",
+      "🌤️ **Khí hậu {place} (Miền Bắc)**\n\n- Đặc trưng: **gió mùa** + **độ ẩm cao**; cảm giác thời tiết thay đổi khá nhanh.\n- Hè: nóng, oi; mưa dông xuất hiện nhiều.\n- Đông: lạnh hơn, thường khô hơn; có thể có nồm ẩm giai đoạn giao mùa.\n- Lưu ý nông nghiệp: quản lý ẩm (nấm/bệnh), theo dõi dự báo rét cho chăn nuôi."
+    ],
+
+    "mien trung": [
+      "🌤️ **Khí hậu {place} (Miền Trung)**\n\n- Kiểu khí hậu: **nhiệt đới gió mùa**, phân hóa mạnh theo **Bắc Trung Bộ / Nam Trung Bộ**.\n- Nhiều nơi có **mùa mưa tập trung** (thường rơi vào **cuối năm**) và **mùa khô nắng nóng**.\n- Dễ chịu ảnh hưởng **bão/áp thấp nhiệt đới**.\n- Lưu ý: chủ động phương án **mưa bão – ngập úng** và giai đoạn **khô hạn**.",
+      "🌤️ **Khí hậu {place} (Miền Trung)**\n\n- Tổng quan: thời tiết có thể **khắc nghiệt theo mùa** (nắng nóng gay gắt, rồi mưa dồn dập).\n- Gió phơn (Lào) có thể làm **nắng nóng, hanh khô** ở một số thời điểm.\n- Mùa mưa thường đến muộn hơn so với Miền Bắc; mưa lớn dễ gây lũ quét/sạt lở vùng núi.\n- Gợi ý: tăng cường che chắn, tiêu thoát nước và theo dõi cảnh báo bão.",
+      "🌤️ **Khí hậu {place} (Miền Trung)**\n\n- Đặc trưng: biên độ thời tiết theo mùa rõ; nhiều khu vực chịu tác động mạnh của bão.\n- Mùa khô: nắng nhiều, có thể thiếu nước cục bộ.\n- Mùa mưa: mưa lớn ngắn hạn, nguy cơ ngập và gió mạnh.\n- Lưu ý nông nghiệp: bố trí mùa vụ, gia cố vườn/chuồng trại trước mùa bão."
+    ],
+
+    "tay nguyen": [
+      "🌤️ **Khí hậu {place} (Tây Nguyên)**\n\n- Kiểu khí hậu: **cao nguyên nhiệt đới**, nhìn chung mát hơn đồng bằng; **ngày–đêm chênh nhiệt** rõ.\n- 2 mùa: **mưa (5–10)** và **khô (11–4)**.\n- Mùa khô dễ thiếu nước; mùa mưa độ ẩm cao, dễ bệnh nấm.\n- Gợi ý: tưới tiết kiệm, che phủ giữ ẩm và theo dõi mưa đầu mùa để bón phân.",
+      "🌤️ **Khí hậu {place} (Tây Nguyên)**\n\n- Tổng quan: khí hậu cao nguyên, thường **mát ban đêm** và nắng ban ngày.\n- Mùa mưa kéo dài, mưa có thể dồn vào một số tháng cao điểm.\n- Mùa khô: độ ẩm giảm mạnh, cây lâu năm dễ stress hạn.\n- Lưu ý: dự trữ nước (ao/hồ/bể), tỉa cành tạo tán hợp lý để giảm thoát hơi.",
+      "🌤️ **Khí hậu {place} (Tây Nguyên)**\n\n- Đặc trưng: **mùa khô rõ**, gió và nắng mạnh; **mùa mưa** thì ẩm cao.\n- Biên độ nhiệt ngày–đêm lớn nên cần chú ý giống/cây phù hợp.\n- Gợi ý: quản lý cỏ dại – che phủ, và phòng bệnh nấm trong giai đoạn ẩm.",
+      "🌤️ **Khí hậu {place} (Tây Nguyên)**\n\n- Điểm nổi bật: cao độ làm nhiệt độ dễ chịu hơn; mùa khô kéo dài.\n- Mùa mưa thuận lợi sinh trưởng nhưng cũng tăng nguy cơ bệnh do ẩm.\n- Lưu ý: cân đối nước–dinh dưỡng theo mùa; tránh bón phân lúc mưa dồn dập."
+    ],
+
+    "mien nam": [
+      "🌤️ **Khí hậu {place} (Miền Nam)**\n\n- Kiểu khí hậu: **nóng ẩm quanh năm**, ít lạnh.\n- 2 mùa: **mưa (5–11)** và **khô (12–4)**.\n- Mưa rào thường xuất hiện buổi chiều, độ ẩm cao.\n- Lưu ý: bệnh do ẩm mùa mưa; mùa khô chú ý tưới và chống nắng.",
+      "🌤️ **Khí hậu {place} (Miền Nam)**\n\n- Tổng quan: nhiệt độ khá ổn định; biến động chủ yếu theo **mưa–khô**.\n- Mùa mưa kéo dài, đôi khi có mưa lớn ngắn hạn.\n- Mùa khô nắng nhiều, bốc hơi mạnh.\n- Gợi ý: quản lý nước hợp lý; vùng ven biển theo dõi **xâm nhập mặn**.",
+      "🌤️ **Khí hậu {place} (Miền Nam)**\n\n- Đặc trưng: khí hậu nhiệt đới, nóng; gió mùa làm phân hóa mùa mưa/khô.\n- Mùa mưa thuận lợi sinh trưởng nhưng tăng sâu bệnh; mùa khô cần che phủ, giảm bốc hơi.\n- Lưu ý nông nghiệp: chủ động lịch phun phòng bệnh theo đợt mưa và đảm bảo thoát nước."
+    ],
+
+    "mien tay": [
+      "🌤️ **Khí hậu {place} (Miền Tây / ĐBSCL)**\n\n- Kiểu khí hậu: **nóng ẩm**, 2 mùa rõ: **mưa (5–11)** và **khô (12–4)**.\n- Mùa mưa có thể gặp **ngập/lũ**; mùa khô có nguy cơ **hạn – xâm nhập mặn**.\n- Đặc trưng sản xuất: lúa, cây ăn trái, thủy sản (tôm/cá), phụ thuộc quản lý nước theo mùa.\n- Tỉnh tiêu biểu: **Cà Mau, An Giang, Cần Thơ, Kiên Giang, Đồng Tháp, Sóc Trăng, Bạc Liêu**.",
+      "🌤️ **Khí hậu {place} (Miền Tây / ĐBSCL)**\n\n- Tổng quan: nóng quanh năm, mưa nhiều vào mùa mưa; độ ẩm cao.\n- Thời kỳ nước lớn có thể ảnh hưởng vườn/ao nuôi; mùa khô cần kiểm soát mặn.\n- Gợi ý: theo dõi lịch triều, chủ động cống/đập, và trữ nước ngọt khi bước vào mùa khô.\n- Gắn với địa phương: khí hậu đặc trưng thường được nhắc qua các tỉnh như **Cà Mau, An Giang**…",
+      "🌤️ **Khí hậu {place} (Miền Tây / ĐBSCL)**\n\n- Đặc trưng: hệ thống sông ngòi dày đặc, khí hậu nhiệt đới gió mùa; biến động theo mùa nước.\n- Mùa mưa: thuận lợi phát triển thủy sản nhưng dễ bệnh do ẩm; mùa khô: rủi ro mặn/thiếu nước.\n- Lưu ý: quản lý nước là trọng tâm (cấp–thoát–trữ), nhất là vùng ven biển."
+    ]
+  },
+
+  "province_overrides": {
+    "ha noi": [
+      "🌤️ **Khí hậu Hà Nội**\n\n- Hà Nội thuộc **Miền Bắc**, khí hậu **nhiệt đới gió mùa ẩm**.\n- Hè: **nóng ẩm, mưa nhiều** (thường 5–9).\n- Đông: **lạnh và khô hơn**, có đợt rét (thường 11–3).\n- Gợi ý: mùa nồm ẩm dễ phát sinh nấm bệnh; mùa đông chú ý giữ ấm cho vật nuôi.",
+      "🌤️ **Khí hậu Hà Nội**\n\n- Tổng quan: thời tiết có **4 mùa**, mưa tập trung nhiều vào mùa hè.\n- Thời kỳ giao mùa dễ có nồm ẩm (ẩm cao).\n- Mùa đông đôi khi có rét đậm/rét hại.\n- Gợi ý: ưu tiên thoát nước tốt mùa mưa; chuẩn bị che ấm chuồng trại khi rét.",
+      "🌤️ **Khí hậu Hà Nội**\n\n- Đặc trưng: gió mùa làm thay đổi thời tiết theo đợt; độ ẩm cao.\n- Hè nóng và oi; đông lạnh hơn và khô hơn.\n- Gợi ý: theo dõi dự báo rét/mưa dông để chủ động chăm sóc cây trồng, vật nuôi."
+    ],
+
+    "lao cai": [
+      "🌤️ **Khí hậu Lào Cai**\n\n- Lào Cai là tỉnh **miền núi cao**, khí hậu **mát hơn đồng bằng** và phân hóa theo độ cao.\n- Mùa đông có thể **rất lạnh**, vùng cao có thể có **sương muối**; mùa hè **mát hơn**, có mưa nhiều.\n- Gợi ý: chú ý **rét** cho cây/ vật nuôi mùa đông; mùa mưa quản lý **ẩm** để hạn chế nấm bệnh.",
+      "🌤️ **Khí hậu Lào Cai**\n\n- Tổng quan: chịu ảnh hưởng địa hình núi cao nên nhiệt độ thường thấp hơn, nhất là vùng như Sa Pa.\n- Mùa đông lạnh, có thể xuất hiện sương muối ở vùng cao; mùa mưa ẩm, dễ nấm bệnh.\n- Gợi ý: che chắn chống rét, và quản lý thoát nước – ẩm độ trong mùa mưa.",
+      "🌤️ **Khí hậu Lào Cai**\n\n- Đặc trưng: khí hậu mát, chênh nhiệt theo độ cao rõ.\n- Mùa đông lạnh hơn nhiều so với đồng bằng; mùa hè dịu hơn nhưng mưa nhiều.\n- Gợi ý: chọn giống/cây phù hợp vùng cao; phòng bệnh do ẩm và sương mù."
+    ],
+
+    "tp ho chi minh": [
+      "🌤️ **Khí hậu TP. Hồ Chí Minh**\n\n- Khí hậu **nhiệt đới gió mùa**, **nóng quanh năm**.\n- 2 mùa rõ: **mùa mưa (5–11)** và **mùa khô (12–4)**.\n- Mùa mưa thường mưa rào chiều; mùa khô nắng nhiều.\n- Gợi ý: phòng bệnh do ẩm cao vào mùa mưa; chủ động nước tưới mùa khô.",
+      "🌤️ **Khí hậu TP. Hồ Chí Minh**\n\n- Tổng quan: nhiệt độ khá ổn định; khác biệt chính là **mưa–khô**.\n- Mùa mưa hay có mưa rào và độ ẩm cao; mùa khô nắng mạnh.\n- Gợi ý: tăng thoát nước vườn/chuồng mùa mưa; che nắng và tưới hợp lý mùa khô.",
+      "🌤️ **Khí hậu TP. Hồ Chí Minh**\n\n- Đặc trưng: nóng, ẩm; thời tiết thay đổi theo các đợt mưa.\n- Gợi ý: kiểm soát nấm bệnh và côn trùng khi ẩm cao; theo dõi dự báo mưa để lên lịch phun/tưới phù hợp."
+    ]
+  },
+
+  "mountainous_aliases": [
+    "ha giang",
+    "cao bang",
+    "bac kan",
+    "tuyen quang",
+    "lao cai",
+    "dien bien",
+    "lai chau",
+    "son la",
+    "yen bai",
+    "hoa binh",
+    "lang son"
+  ],
+
+  "mekong_aliases": [
+    "mien tay",
+    "dong bang song cuu long",
+    "dbscl",
+    "mekong"
+  ]
+}

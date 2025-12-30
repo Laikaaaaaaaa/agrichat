@@ -164,6 +164,40 @@ def _load_domain_guard_module():
     return module
 
 
+@lru_cache(maxsize=1)
+def _load_weather_intent_module():
+    """Load weather intent module from path (folder name contains a space)."""
+
+    weather_path = os.path.join(HERE, "machine learning", "weather_intent.py")
+    if not os.path.exists(weather_path):
+        raise FileNotFoundError(f"Weather intent module not found: {weather_path}")
+
+    spec = importlib.util.spec_from_file_location("weather_intent_runtime", weather_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Cannot load weather intent module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _is_weather_intent(user_message: str) -> bool:
+    try:
+        if not isinstance(user_message, str):
+            return False
+        msg = user_message.strip()
+        if not msg:
+            return False
+        mod = _load_weather_intent_module()
+        fn = getattr(mod, "is_weather_intent", None)
+        if fn is None:
+            return False
+        return bool(fn(msg))
+    except Exception:
+        return False
+
+
 def _try_local_greeting_response(user_message: str):
     """Return a canned greeting reply if message is greeting-only, else None."""
 
@@ -638,6 +672,11 @@ class Api:
         self.geography_prompt = """
 Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh và thân thiện của Việt Nam.
 
+    **XƯNG HÔ & CHÀO HỎI (BẮT BUỘC):**
+    - Xưng hô: **mình/bạn**.
+    - Nếu cần mở đầu: dùng **"Chào bạn"**.
+    - **KHÔNG** dùng cụm "Chào bà con" hoặc gọi người dùng là "bà con".
+
 **PHONG CÁCH TRẢ LỜI - BẮT BUỘC:**
 🎨 Sử dụng EMOJI phù hợp THƯỜNG XUYÊN (ít nhất 2-3 emoji mỗi câu):
    🌱 Cây trồng | 🐟 Cá/thủy sản | 🐄 Gia súc | 🐔 Gia cầm | 🚜 Máy móc
@@ -647,6 +686,12 @@ Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh và th
 📝 Sử dụng MARKDOWN để làm nổi bật:
    - **In đậm** cho từ khóa quan trọng, tên loài, số liệu
    - *In nghiêng* cho thuật ngữ chuyên môn, tên khoa học
+
+📐 **BỐ CỤC (BẮT BUỘC):**
+- Viết **có xuống dòng**, không dồn thành một đoạn 1 dòng.
+- Mỗi bullet là 1 dòng bắt đầu bằng `- `.
+- Mỗi bước hành động dùng `1.` `2.`... và xuống dòng rõ ràng.
+- Có dòng trống giữa các phần chính.
    
 VÍ DỤ: "🐟 **Cá trê** là loài *ăn tạp*, đặc biệt **thích ăn sâu bọ** 🐛! Tiêu thụ **5-10% trọng lượng** mỗi ngày! 💪"
 
@@ -669,8 +714,32 @@ VÍ DỤ: "🐟 **Cá trê** là loài *ăn tạp*, đặc biệt **thích ăn s
 
 **KHI CÂU HỎI NGOÀI PHẠM VI:**
 - Trả lời xin lỗi lịch sự, ví dụ:
-"Xin lỗi, tôi là AgriSense AI - chuyên gia nông nghiệp. Tôi chỉ trả lời về nông nghiệp và lĩnh vực liên quan. 🌱"
+"Xin lỗi, mình là AgriSense AI - chuyên gia nông nghiệp. Mình chỉ hỗ trợ các câu hỏi về nông nghiệp và lĩnh vực liên quan. 🌱"
 """
+
+    @staticmethod
+    def _postprocess_ai_response(text: str) -> str:
+        if not isinstance(text, str):
+            return text
+
+        out = text.strip()
+        if not out:
+            return out
+
+        # Enforce greeting style
+        out = re.sub(r"^\s*(Chào\s+)bà\s+con\b", r"\1bạn", out, flags=re.IGNORECASE)
+        out = re.sub(r"^\s*(chao\s+)ba\s+con\b", r"\1ban", out, flags=re.IGNORECASE)
+
+        # Insert line breaks for common single-line blob patterns
+        out = out.replace(":  - ", ":\n- ")
+        out = out.replace(": - ", ":\n- ")
+        out = re.sub(r"(?<!\n)\s+-\s+", "\n- ", out)
+        out = re.sub(r"\s{2,}(\d+)\.\s+", r"\n\1. ", out)
+
+        # Clean excessive whitespace/newlines
+        out = re.sub(r"\n{3,}", "\n\n", out)
+        out = re.sub(r"[ \t]{2,}", " ", out)
+        return out.strip()
         
         self.image_analysis_prompt = """
 Bạn là AgriSense AI - Chuyên gia phân tích hình ảnh nông nghiệp/môi trường. 
@@ -698,7 +767,12 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
         
         # Unsplash API endpoint (free tier)
         self.unsplash_api_url = "https://api.unsplash.com/search/photos"
-        self.weatherapi_key = os.getenv("WEATHER_API_KEY", "").strip() or None
+        # WeatherAPI key (support both env var names)
+        self.weatherapi_key = (
+            os.getenv("WEATHER_API_KEY", "").strip()
+            or os.getenv("WEATHERAPI_KEY", "").strip()
+            or None
+        )
         if not self.weatherapi_key:
             logging.warning("⚠️  WEATHER_API_KEY chưa được cấu hình. Chức năng thời tiết có thể không hoạt động.")
 
@@ -724,6 +798,526 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             "longitude": default_lon,
             "tz_id": default_tz
         }
+
+    def _format_weather_markdown(self, weather: dict, title: str) -> str:
+        if not isinstance(weather, dict):
+            return "❌ Không thể lấy dữ liệu thời tiết."
+
+        if not weather.get("success", True) and weather.get("message"):
+            return f"❌ {weather.get('message')}"
+
+        loc_name = weather.get("location_name") or weather.get("city") or "Vị trí của bạn"
+        condition = weather.get("condition") or "Không xác định"
+
+        def fmt(v, unit=""):
+            if v is None or v == "":
+                return "—"
+            try:
+                if isinstance(v, (int, float)):
+                    if float(v).is_integer():
+                        return f"{int(v)}{unit}"
+                    return f"{float(v):.1f}{unit}"
+            except Exception:
+                pass
+            return f"{v}{unit}"
+
+        temp = fmt(weather.get("temp"), "°C")
+        feels = fmt(weather.get("feels_like"), "°C")
+        hum = fmt(weather.get("humidity"), "%")
+        wind = fmt(weather.get("wind_kph"), " km/h")
+        wind_dir = weather.get("wind_dir_vi") or weather.get("wind_dir") or "—"
+        precip = fmt(weather.get("precip_mm"), " mm")
+        updated = weather.get("last_updated") or "—"
+
+        return (
+            f"🌦️ **{title}**\n"
+            f"📍 *{loc_name}*\n\n"
+            f"- Điều kiện: **{condition}**\n"
+            f"- Nhiệt độ: **{temp}** (cảm giác như **{feels}**)\n"
+            f"- Độ ẩm: **{hum}**\n"
+            f"- Gió: **{wind}** ({wind_dir})\n"
+            f"- Lượng mưa: **{precip}**\n"
+            f"- Cập nhật: {updated}"
+        )
+
+    # ------------------------------------------------------------------
+    # Vietnam location (province/region) support for weather queries
+    # ------------------------------------------------------------------
+
+    # NOTE: Keys/aliases are normalized via _normalize_text (lowercase, no accents, non-alnum -> space).
+    _VN_PROVINCE_COORDS = [
+        # Miền Bắc
+        {"name": "Hà Nội", "lat": 21.0285, "lon": 105.8542, "region": "mien bac", "aliases": ["ha noi", "hanoi", "hn"]},
+        {"name": "Hà Giang", "lat": 22.8025, "lon": 104.9784, "region": "mien bac", "aliases": ["ha giang"]},
+        {"name": "Cao Bằng", "lat": 22.6666, "lon": 106.2588, "region": "mien bac", "aliases": ["cao bang"]},
+        {"name": "Bắc Kạn", "lat": 22.1474, "lon": 105.8348, "region": "mien bac", "aliases": ["bac kan", "bac can"]},
+        {"name": "Tuyên Quang", "lat": 21.8236, "lon": 105.2146, "region": "mien bac", "aliases": ["tuyen quang"]},
+        {"name": "Lào Cai", "lat": 22.4809, "lon": 103.9755, "region": "mien bac", "aliases": ["lao cai"]},
+        {"name": "Điện Biên", "lat": 21.3850, "lon": 103.0170, "region": "mien bac", "aliases": ["dien bien"]},
+        {"name": "Lai Châu", "lat": 22.3862, "lon": 103.4703, "region": "mien bac", "aliases": ["lai chau"]},
+        {"name": "Sơn La", "lat": 21.3256, "lon": 103.9188, "region": "mien bac", "aliases": ["son la"]},
+        {"name": "Yên Bái", "lat": 21.7168, "lon": 104.8986, "region": "mien bac", "aliases": ["yen bai"]},
+        {"name": "Hòa Bình", "lat": 20.8172, "lon": 105.3376, "region": "mien bac", "aliases": ["hoa binh"]},
+        {"name": "Thái Nguyên", "lat": 21.5942, "lon": 105.8480, "region": "mien bac", "aliases": ["thai nguyen"]},
+        {"name": "Lạng Sơn", "lat": 21.8537, "lon": 106.7615, "region": "mien bac", "aliases": ["lang son"]},
+        {"name": "Quảng Ninh", "lat": 21.0064, "lon": 107.2925, "region": "mien bac", "aliases": ["quang ninh"]},
+        {"name": "Bắc Giang", "lat": 21.2819, "lon": 106.1975, "region": "mien bac", "aliases": ["bac giang"]},
+        {"name": "Phú Thọ", "lat": 21.3227, "lon": 105.4019, "region": "mien bac", "aliases": ["phu tho"]},
+        {"name": "Vĩnh Phúc", "lat": 21.3609, "lon": 105.5474, "region": "mien bac", "aliases": ["vinh phuc"]},
+        {"name": "Bắc Ninh", "lat": 21.1861, "lon": 106.0763, "region": "mien bac", "aliases": ["bac ninh"]},
+        {"name": "Hải Dương", "lat": 20.9386, "lon": 106.3207, "region": "mien bac", "aliases": ["hai duong"]},
+        {"name": "Hải Phòng", "lat": 20.8449, "lon": 106.6881, "region": "mien bac", "aliases": ["hai phong", "haiphong"]},
+        {"name": "Hưng Yên", "lat": 20.8526, "lon": 106.0169, "region": "mien bac", "aliases": ["hung yen"]},
+        {"name": "Thái Bình", "lat": 20.4463, "lon": 106.3366, "region": "mien bac", "aliases": ["thai binh"]},
+        {"name": "Hà Nam", "lat": 20.5835, "lon": 105.9229, "region": "mien bac", "aliases": ["ha nam"]},
+        {"name": "Nam Định", "lat": 20.4388, "lon": 106.1621, "region": "mien bac", "aliases": ["nam dinh"]},
+        {"name": "Ninh Bình", "lat": 20.2506, "lon": 105.9745, "region": "mien bac", "aliases": ["ninh binh"]},
+
+        # Miền Trung
+        {"name": "Thanh Hóa", "lat": 19.8067, "lon": 105.7852, "region": "mien trung", "aliases": ["thanh hoa"]},
+        {"name": "Nghệ An", "lat": 18.6796, "lon": 105.6813, "region": "mien trung", "aliases": ["nghe an"]},
+        {"name": "Hà Tĩnh", "lat": 18.3559, "lon": 105.8877, "region": "mien trung", "aliases": ["ha tinh"]},
+        {"name": "Quảng Bình", "lat": 17.6103, "lon": 106.3487, "region": "mien trung", "aliases": ["quang binh"]},
+        {"name": "Quảng Trị", "lat": 16.7943, "lon": 107.0450, "region": "mien trung", "aliases": ["quang tri"]},
+        {"name": "Thừa Thiên Huế", "lat": 16.4637, "lon": 107.5909, "region": "mien trung", "aliases": ["thua thien hue", "hue"]},
+        {"name": "Đà Nẵng", "lat": 16.0544, "lon": 108.2022, "region": "mien trung", "aliases": ["da nang", "danang"]},
+        {"name": "Quảng Nam", "lat": 15.5394, "lon": 108.0191, "region": "mien trung", "aliases": ["quang nam"]},
+        {"name": "Quảng Ngãi", "lat": 15.1214, "lon": 108.8044, "region": "mien trung", "aliases": ["quang ngai"]},
+        {"name": "Bình Định", "lat": 13.7820, "lon": 109.2196, "region": "mien trung", "aliases": ["binh dinh"]},
+        {"name": "Phú Yên", "lat": 13.0882, "lon": 109.0929, "region": "mien trung", "aliases": ["phu yen"]},
+        {"name": "Khánh Hòa", "lat": 12.2388, "lon": 109.1967, "region": "mien trung", "aliases": ["khanh hoa"]},
+        {"name": "Ninh Thuận", "lat": 11.6739, "lon": 108.8629, "region": "mien trung", "aliases": ["ninh thuan"]},
+        {"name": "Bình Thuận", "lat": 10.9289, "lon": 108.1021, "region": "mien trung", "aliases": ["binh thuan"]},
+
+        # Tây Nguyên
+        {"name": "Kon Tum", "lat": 14.3545, "lon": 108.0076, "region": "tay nguyen", "aliases": ["kon tum", "kontum"]},
+        {"name": "Gia Lai", "lat": 13.9833, "lon": 108.0000, "region": "tay nguyen", "aliases": ["gia lai", "gialai"]},
+        {"name": "Đắk Lắk", "lat": 12.7100, "lon": 108.2378, "region": "tay nguyen", "aliases": ["dak lak", "daklak", "dak lac"]},
+        {"name": "Đắk Nông", "lat": 12.2646, "lon": 107.6098, "region": "tay nguyen", "aliases": ["dak nong", "daknong"]},
+        {"name": "Lâm Đồng", "lat": 11.5753, "lon": 108.1429, "region": "tay nguyen", "aliases": ["lam dong", "lamdong", "da lat", "dalat"]},
+
+        # Miền Nam
+        {"name": "Bình Phước", "lat": 11.7512, "lon": 106.7235, "region": "mien nam", "aliases": ["binh phuoc"]},
+        {"name": "Tây Ninh", "lat": 11.3352, "lon": 106.1099, "region": "mien nam", "aliases": ["tay ninh"]},
+        {"name": "Bình Dương", "lat": 11.3254, "lon": 106.4770, "region": "mien nam", "aliases": ["binh duong"]},
+        {"name": "Đồng Nai", "lat": 11.0686, "lon": 107.1676, "region": "mien nam", "aliases": ["dong nai"]},
+        {"name": "Bà Rịa - Vũng Tàu", "lat": 10.5417, "lon": 107.2429, "region": "mien nam", "aliases": ["ba ria vung tau", "vung tau", "ba ria"]},
+        {"name": "TP. Hồ Chí Minh", "lat": 10.8231, "lon": 106.6297, "region": "mien nam", "aliases": ["tp ho chi minh", "tphcm", "tp hcm", "ho chi minh", "hcm", "sai gon", "saigon"]},
+        {"name": "Long An", "lat": 10.6956, "lon": 106.2431, "region": "mien nam", "aliases": ["long an"]},
+        {"name": "Tiền Giang", "lat": 10.4493, "lon": 106.3421, "region": "mien nam", "aliases": ["tien giang"]},
+        {"name": "Bến Tre", "lat": 10.2434, "lon": 106.3750, "region": "mien nam", "aliases": ["ben tre", "bentre"]},
+        {"name": "Trà Vinh", "lat": 9.9513, "lon": 106.3346, "region": "mien nam", "aliases": ["tra vinh", "travinh"]},
+        {"name": "Vĩnh Long", "lat": 10.2530, "lon": 105.9722, "region": "mien nam", "aliases": ["vinh long", "vinhlong"]},
+        {"name": "Đồng Tháp", "lat": 10.5355, "lon": 105.6290, "region": "mien nam", "aliases": ["dong thap", "dongthap"]},
+        {"name": "An Giang", "lat": 10.5216, "lon": 105.1259, "region": "mien nam", "aliases": ["an giang", "angiang"]},
+        {"name": "Kiên Giang", "lat": 10.0125, "lon": 105.0809, "region": "mien nam", "aliases": ["kien giang", "kiengiang"]},
+        {"name": "Cần Thơ", "lat": 10.0452, "lon": 105.7469, "region": "mien nam", "aliases": ["can tho", "cantho"]},
+        {"name": "Hậu Giang", "lat": 9.7579, "lon": 105.6413, "region": "mien nam", "aliases": ["hau giang", "haugiang"]},
+        {"name": "Sóc Trăng", "lat": 9.6030, "lon": 105.9739, "region": "mien nam", "aliases": ["soc trang", "soctrang"]},
+        {"name": "Bạc Liêu", "lat": 9.2940, "lon": 105.7216, "region": "mien nam", "aliases": ["bac lieu", "baclieu"]},
+        {"name": "Cà Mau", "lat": 9.1760, "lon": 105.1524, "region": "mien nam", "aliases": ["ca mau", "camau"]},
+    ]
+
+    @classmethod
+    @lru_cache(maxsize=1)
+    def _vn_alias_index(cls):
+        items = []
+        for rec in cls._VN_PROVINCE_COORDS:
+            name_norm = cls._normalize_text(rec.get("name", ""))
+            if name_norm:
+                items.append((name_norm, rec))
+            for a in rec.get("aliases") or []:
+                a_norm = cls._normalize_text(a)
+                if a_norm:
+                    items.append((a_norm, rec))
+
+        # Prefer longer matches first to avoid partial collisions.
+        items.sort(key=lambda x: len(x[0]), reverse=True)
+        return items
+
+    @classmethod
+    @lru_cache(maxsize=8)
+    def _region_centroid(cls, region_key: str):
+        region_key = cls._normalize_text(region_key)
+
+        if region_key in {"mien tay", "dong bang song cuu long", "dbscl", "mekong"}:
+            # Approximate centroid for Mekong Delta using a representative subset present in our province list.
+            mekong_names = {
+                "long an",
+                "tien giang",
+                "ben tre",
+                "tra vinh",
+                "vinh long",
+                "dong thap",
+                "an giang",
+                "kien giang",
+                "can tho",
+                "hau giang",
+                "soc trang",
+                "bac lieu",
+                "ca mau",
+            }
+            pts = []
+            for rec in cls._VN_PROVINCE_COORDS:
+                rec_name = cls._normalize_text(rec.get("name", ""))
+                if rec_name in mekong_names:
+                    pts.append(rec)
+            if not pts:
+                return None
+            lat = sum(float(p.get("lat")) for p in pts) / len(pts)
+            lon = sum(float(p.get("lon")) for p in pts) / len(pts)
+            return (lat, lon)
+
+        pts = [r for r in cls._VN_PROVINCE_COORDS if cls._normalize_text(r.get("region", "")) == region_key]
+        if not pts:
+            return None
+        lat = sum(float(p.get("lat")) for p in pts) / len(pts)
+        lon = sum(float(p.get("lon")) for p in pts) / len(pts)
+        return (lat, lon)
+
+    def _extract_weather_location_target(self, message: str):
+        """Extract province/city or region from a weather question.
+
+        Returns a dict like:
+        - {kind:'province', name:'Hà Giang', lat:..., lon:...}
+        - {kind:'region', name:'Miền Bắc', lat:..., lon:...}
+        or None.
+        """
+
+        norm = self._normalize_text(message)
+        if not norm:
+            return None
+
+        # Region detection first
+        region_phrases = [
+            ("mien bac", "Miền Bắc"),
+            ("mien trung", "Miền Trung"),
+            ("tay nguyen", "Tây Nguyên"),
+            ("mien nam", "Miền Nam"),
+            ("mien tay", "Miền Tây"),
+            ("dbscl", "Miền Tây"),
+            ("dong bang song cuu long", "Miền Tây"),
+            ("mekong", "Miền Tây"),
+        ]
+        for key, display in region_phrases:
+            if key in norm:
+                c = self._region_centroid(key)
+                if c:
+                    return {"kind": "region", "name": display, "lat": c[0], "lon": c[1]}
+
+        # Province/city match
+        padded = f" {norm} "
+        for alias_norm, rec in self._vn_alias_index():
+            # Require word boundary-ish match
+            if f" {alias_norm} " in padded:
+                return {"kind": "province", "name": rec["name"], "lat": rec["lat"], "lon": rec["lon"], "region": rec.get("region")}
+
+        return None
+
+    # ------------------------------------------------------------------
+    # Climate replies dataset (for "khí hậu" questions)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def _load_climate_replies_dataset():
+        dataset_path = os.path.join(os.path.dirname(__file__), "machine learning", "dataset", "climate_replies.json")
+        try:
+            with open(dataset_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return None
+            return data
+        except Exception as e:
+            logging.warning("⚠️  Failed to load climate replies dataset: %s", e)
+            return None
+
+    def _is_climate_question(self, message: str) -> bool:
+        norm = self._normalize_text(message)
+        if not norm:
+            return False
+        # Keep it conservative: only route to climate dataset when user explicitly asks about climate/seasonal characteristics.
+        climate_markers = [
+            "khi hau",
+            "dac trung",
+            "mua mua",
+            "mua kho",
+            "mua dong",
+            "mua he",
+            "mua thu",
+            "mua xuan",
+        ]
+        return any(m in norm for m in climate_markers)
+
+    def _format_climate_reply(self, place: str, template: str) -> str:
+        return (template or "").replace("{place}", place)
+
+    def _choose_climate_template_variant(self, value, seed_text: str) -> str | None:
+        """Accept either a string template or a list of string templates.
+
+        Picks a deterministic variant based on seed_text so replies look diverse
+        across different user phrasings but don't randomly change every refresh.
+        """
+
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            options = [v for v in value if isinstance(v, str) and v.strip()]
+            if not options:
+                return None
+            # Deterministic index from sha256
+            import hashlib
+
+            h = hashlib.sha256((seed_text or "").encode("utf-8")).digest()
+            idx = int(h[0]) % len(options)
+            return options[idx]
+        return None
+
+    def _get_climate_reply_for_target(self, target: dict, message: str = "") -> str | None:
+        data = self._load_climate_replies_dataset()
+        if not data:
+            return None
+
+        place = target.get("name") or ""
+        place_norm = self._normalize_text(place)
+        msg_norm = self._normalize_text(message)
+        seed = f"{place_norm}|{msg_norm}|{target.get('kind','')}"
+
+        overrides = data.get("province_overrides") or {}
+        if place_norm in overrides:
+            tpl = self._choose_climate_template_variant(overrides[place_norm], seed)
+            if tpl:
+                return tpl
+
+        if target.get("kind") == "region":
+            # Map display to template keys
+            display_norm = self._normalize_text(place)
+            if "mien tay" in display_norm:
+                key = "mien tay"
+            elif "tay nguyen" in display_norm:
+                key = "tay nguyen"
+            elif "mien trung" in display_norm:
+                key = "mien trung"
+            elif "mien bac" in display_norm:
+                key = "mien bac"
+            else:
+                key = "mien nam"
+
+            tpl_value = (data.get("region_templates") or {}).get(key)
+            tpl = self._choose_climate_template_variant(tpl_value, seed)
+            if not tpl:
+                return None
+            return self._format_climate_reply(place, tpl)
+
+        # Province default: choose by region and some simple mountainous heuristic
+        region_key = self._normalize_text(target.get("region") or "")
+        if not region_key:
+            # fall back by lat (rough heuristic)
+            region_key = "mien bac" if float(target.get("lat", 0.0)) >= 16.0 else "mien nam"
+
+        tpl_key = region_key
+        mountainous = set(self._load_climate_replies_dataset().get("mountainous_aliases") or [])
+        # If the province is a known mountainous alias, still use Miền Bắc template but add a short note.
+        tpl_value = (data.get("region_templates") or {}).get(tpl_key)
+        tpl = self._choose_climate_template_variant(tpl_value, seed)
+        if not tpl:
+            return None
+
+        reply = self._format_climate_reply(place, tpl)
+        if place_norm in mountainous:
+            reply += "\n\n- Ghi chú địa hình: khu vực **miền núi/cao** thường **mát hơn**, chênh lệch nhiệt ngày–đêm lớn hơn."
+        return reply
+
+    def _get_weather_city_fallback(self, city_query: str, display_name: str, lat: float, lon: float) -> dict:
+        """Fetch weather for a city. Prefer WeatherAPI, fallback to Open-Meteo with fixed coords."""
+
+        # Try WeatherAPI by city name first
+        if self.weatherapi_key:
+            try:
+                params = {
+                    "key": self.weatherapi_key,
+                    "q": city_query,
+                    "aqi": "no",
+                    "lang": "vi",
+                }
+                resp = requests.get("https://api.weatherapi.com/v1/current.json", params=params, timeout=6)
+                if resp.ok:
+                    data = resp.json()
+                    current = data.get("current") or {}
+                    location = data.get("location") or {}
+                    condition_data = current.get("condition") or {}
+                    icon = condition_data.get("icon")
+                    if icon and icon.startswith("//"):
+                        icon = f"https:{icon}"
+
+                    return {
+                        "success": True,
+                        "city": display_name,
+                        "country": location.get("country") or "Việt Nam",
+                        "location_name": display_name,
+                        "location_country": location.get("country") or "Việt Nam",
+                        "condition": condition_data.get("text") or "Không xác định",
+                        "temp": self._safe_float(current.get("temp_c")),
+                        "humidity": self._safe_float(current.get("humidity")),
+                        "feels_like": self._safe_float(current.get("feelslike_c")),
+                        "wind_kph": self._safe_float(current.get("wind_kph")),
+                        "wind_degree": self._safe_float(current.get("wind_degree")),
+                        "wind_dir": current.get("wind_dir"),
+                        "wind_dir_vi": self._wind_direction_vi_from_compass(current.get("wind_dir")),
+                        "precip_mm": self._safe_float(current.get("precip_mm")),
+                        "cloud": self._safe_float(current.get("cloud")),
+                        "is_day": current.get("is_day"),
+                        "uv": self._safe_float(current.get("uv")),
+                        "pressure_mb": self._safe_float(current.get("pressure_mb")),
+                        "gust_kph": self._safe_float(current.get("gust_kph")),
+                        "visibility_km": self._safe_float(current.get("vis_km")),
+                        "last_updated": current.get("last_updated"),
+                        "icon": icon,
+                        "source": "weatherapi-city",
+                        "timezone": location.get("tz_id"),
+                        "tz_id": location.get("tz_id"),
+                    }
+            except Exception as exc:
+                logging.warning("⚠️ WeatherAPI city lookup failed: %s", exc)
+
+        # Fallback to Open-Meteo with fixed coordinates
+        try:
+            params = {
+                "latitude": lat,
+                "longitude": lon,
+                "current": "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,is_day,cloud_cover,wind_speed_10m,wind_direction_10m",
+                "timezone": "auto",
+            }
+            resp = requests.get("https://api.open-meteo.com/v1/forecast", params=params, timeout=6)
+            if resp.ok:
+                data = resp.json()
+                current = data.get("current") or {}
+                code = current.get("weather_code")
+                descriptions = {
+                    0: "Trời quang đãng",
+                    1: "Trời quang mây",
+                    2: "Có mây thưa",
+                    3: "Nhiều mây",
+                    45: "Sương mù",
+                    48: "Sương mù đóng băng",
+                    51: "Mưa phùn nhẹ",
+                    53: "Mưa phùn",
+                    55: "Mưa phùn dày đặc",
+                    56: "Mưa phùn băng nhẹ",
+                    57: "Mưa phùn băng",
+                    61: "Mưa nhẹ",
+                    63: "Mưa vừa",
+                    65: "Mưa to",
+                    71: "Tuyết nhẹ",
+                    73: "Tuyết vừa",
+                    75: "Tuyết to",
+                    80: "Mưa rào nhẹ",
+                    81: "Mưa rào",
+                    82: "Mưa rào mạnh",
+                    95: "Dông",
+                    96: "Dông kèm mưa đá nhẹ",
+                    99: "Dông kèm mưa đá lớn",
+                }
+                return {
+                    "success": True,
+                    "city": display_name,
+                    "country": "Việt Nam",
+                    "location_name": display_name,
+                    "location_country": "Việt Nam",
+                    "condition": descriptions.get(code, "Thời tiết không xác định"),
+                    "temp": self._safe_float(current.get("temperature_2m")),
+                    "feels_like": self._safe_float(current.get("apparent_temperature")),
+                    "humidity": self._safe_float(current.get("relative_humidity_2m")),
+                    "precip_mm": self._safe_float(current.get("precipitation")),
+                    "wind_kph": self._safe_float(current.get("wind_speed_10m")),
+                    "wind_degree": self._safe_float(current.get("wind_direction_10m")),
+                    "wind_dir_vi": self._wind_direction_from_degree(self._safe_float(current.get("wind_direction_10m"))),
+                    "last_updated": current.get("time"),
+                    "source": "open-meteo-city",
+                    "timezone": data.get("timezone"),
+                }
+        except Exception as exc:
+            logging.warning("⚠️ Open-Meteo city fallback failed: %s", exc)
+
+        return {"success": False, "message": "Không thể lấy dữ liệu thời tiết."}
+
+    def _weather_consent_html(self) -> str:
+        return (
+            "<div>🌦️ Để trả lời chính xác thời tiết/khi hậu <strong>tại vị trí hiện tại</strong>, mình cần bạn cho phép lấy vị trí. "
+            "Bạn đồng ý không?</div>"
+            "<div class=\"mt-3 flex flex-wrap gap-2\">"
+            "  <button onclick=\"window.handleLocationConsent(true)\" class=\"px-3 py-2 rounded-lg bg-green-600 text-white text-sm\">Đồng ý</button>"
+            "  <button onclick=\"window.handleLocationConsent(false)\" class=\"px-3 py-2 rounded-lg bg-gray-300 text-gray-800 text-sm\">Từ chối</button>"
+            "</div>"
+            "<div class=\"mt-2 text-xs text-gray-500\">Nếu bạn từ chối, mình sẽ dùng dữ liệu mặc định cho <strong>Hà Nội</strong> và <strong>TP.HCM</strong>.</div>"
+        )
+
+    def _handle_weather_intent(self, message: str):
+        """Weather flow with location permission.
+
+        Returns:
+        - None if not weather intent
+        - dict payload {type, response} for the /api/chat handler
+        """
+
+        if not _is_weather_intent(message):
+            return None
+
+        # If user asked weather for a specific province/city or region, use known lat/lon (no geolocation needed).
+        target = self._extract_weather_location_target(message)
+        if target:
+            # Climate questions: answer from dataset (characteristic climate) instead of realtime weather.
+            if self._is_climate_question(message):
+                climate_reply = self._get_climate_reply_for_target(target, message=message)
+                if climate_reply:
+                    return {"type": "text", "response": climate_reply}
+
+            weather = self.get_weather_info_by_coords(float(target["lat"]), float(target["lon"]), target["name"], "Việt Nam")
+            title = "Thời tiết" if target.get("kind") == "province" else "Thời tiết khu vực"
+            return {"type": "text", "response": self._format_weather_markdown(weather, f"{title}: {target['name']}")}
+
+        consent = session.get("weather_geo_consent")
+
+        # Need permission first
+        if consent is None:
+            session["pending_weather_query"] = message
+            return {"type": "html", "response": self._weather_consent_html()}
+
+        # Denied => default Hanoi + HCMC
+        if consent is False:
+            hanoi = self._get_weather_city_fallback("Hà Nội", "Hà Nội", 21.0278, 105.8342)
+            hcm = self._get_weather_city_fallback("Hồ Chí Minh", "TP.HCM", 10.8231, 106.6297)
+            text = (
+                "🌦️ **Thời tiết hôm nay (mặc định do bạn từ chối vị trí)**\n\n"
+                + self._format_weather_markdown(hanoi, "Hà Nội")
+                + "\n\n"
+                + self._format_weather_markdown(hcm, "TP.HCM")
+            )
+            return {"type": "text", "response": text}
+
+        # consent True
+        lat = session.get("weather_geo_lat")
+        lon = session.get("weather_geo_lon")
+        if lat is None or lon is None:
+            session["pending_weather_query"] = message
+            return {"type": "html", "response": self._weather_consent_html()}
+
+        try:
+            lat_f = float(lat)
+            lon_f = float(lon)
+        except Exception:
+            session.pop("weather_geo_lat", None)
+            session.pop("weather_geo_lon", None)
+            session["pending_weather_query"] = message
+            return {"type": "html", "response": self._weather_consent_html()}
+
+        # Use precise coordinates; location naming is handled by /api/weather route too, but here we keep it simple.
+        city = session.get("weather_geo_city") or f"Vị trí ({lat_f:.2f}, {lon_f:.2f})"
+        country = session.get("weather_geo_country") or "Việt Nam"
+        weather = self.get_weather_info_by_coords(lat_f, lon_f, city, country)
+        return {"type": "text", "response": self._format_weather_markdown(weather, "Thời tiết hiện tại")}
 
     def _get_long_text_threshold(self) -> int:
         try:
@@ -839,6 +1433,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
         without_diacritics = ''.join(
             ch for ch in normalized if unicodedata.category(ch) != 'Mn'
         )
+        # Vietnamese special letter
+        without_diacritics = without_diacritics.replace('đ', 'd').replace('Đ', 'd')
         clean_chars = [ch if ch.isalnum() or ch.isspace() else ' ' for ch in without_diacritics]
         clean_text = ''.join(clean_chars)
         return ' '.join(clean_text.split())
@@ -1885,6 +2481,17 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                 self.add_to_conversation_history(message, "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾")
                 return "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾"
 
+            # ✅ Weather / climate intent (uses WeatherAPI + location consent)
+            weather_payload = self._handle_weather_intent(message)
+            if weather_payload is not None:
+                try:
+                    resp_text = weather_payload.get("response") if isinstance(weather_payload, dict) else str(weather_payload)
+                    if isinstance(resp_text, str) and resp_text:
+                        self.add_to_conversation_history(message, resp_text)
+                except Exception:
+                    pass
+                return weather_payload
+
             # ✅ ROUTING PIPELINE (as requested):
             # 1) Complexity -> if complex: go straight to LLM
             # 2) Greeting -> reply locally
@@ -1999,7 +2606,7 @@ Hãy trả lời câu hỏi trên, nhớ tham khảo lịch sử nếu có liên
             else:
                 prompt_for_llm = self._build_prompt_via_agrimind(message)
                 response = self.generate_content_with_fallback(prompt_for_llm)
-            ai_response = response.text
+            ai_response = self._postprocess_ai_response(response.text)
             
             # Lưu cuộc hội thoại vào trí nhớ
             self.add_to_conversation_history(message, ai_response)
@@ -5880,7 +6487,27 @@ def chat():
         else:
             logging.info("🤖 Calling api.chat...")
             response = api.chat(message, mode)
-            
+
+            # Allow structured responses: {response, type, ...}
+            if isinstance(response, dict):
+                payload_type = response.get("type", "text")
+                response_text = response.get("response", "")
+                extra_payload = {k: v for k, v in response.items() if k not in {"type", "response"}}
+                if not isinstance(response_text, str):
+                    response_text = str(response_text)
+
+                encryption = ChatMessageEncryption(user_id)
+                encrypted_response = encryption.encrypt(response_text)
+
+                out = {
+                    "response": response_text,
+                    "encrypted": encrypted_response,
+                    "success": True,
+                    "type": payload_type,
+                }
+                out.update(extra_payload)
+                return jsonify(out)
+
             # Ensure response is a string
             if not isinstance(response, str):
                 logging.warning(f"⚠️ Response is not string, converting: {type(response)}")
@@ -6114,6 +6741,139 @@ def weather():
     except Exception as e:
         logging.error(f"Lỗi weather API: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/location', methods=['POST'])
+def set_location():
+    """Save location consent + coordinates into session for weather intent routing."""
+
+    try:
+        data = request.get_json() or {}
+        consent = data.get('consent', None)
+
+        if consent is None:
+            return jsonify({"success": False, "error": "Missing consent"}), 400
+
+        # User denies: store flag and return default cities weather.
+        if consent is False:
+            session['weather_geo_consent'] = False
+            session.pop('weather_geo_lat', None)
+            session.pop('weather_geo_lon', None)
+            session.pop('weather_geo_city', None)
+            session.pop('weather_geo_country', None)
+
+            hanoi = api._get_weather_city_fallback("Hà Nội", "Hà Nội", 21.0278, 105.8342)
+            hcm = api._get_weather_city_fallback("Hồ Chí Minh", "TP.HCM", 10.8231, 106.6297)
+            text = (
+                "🌦️ **Thời tiết hôm nay (mặc định do bạn từ chối vị trí)**\n\n"
+                + api._format_weather_markdown(hanoi, "Hà Nội")
+                + "\n\n"
+                + api._format_weather_markdown(hcm, "TP.HCM")
+            )
+
+            session.pop('pending_weather_query', None)
+            return jsonify({"success": True, "type": "text", "response": text})
+
+        # consent True
+        try:
+            lat = float(data.get('lat'))
+            lon = float(data.get('lon'))
+        except Exception:
+            return jsonify({"success": False, "error": "Missing or invalid lat/lon"}), 400
+
+        session['weather_geo_consent'] = True
+        session['weather_geo_lat'] = lat
+        session['weather_geo_lon'] = lon
+
+        city_name = None
+        country_name = 'Việt Nam'
+        cache_key = f"{lat:.4f},{lon:.4f}"
+        now = time.time()
+
+        # Cache hit
+        if cache_key in api._nominatim_cache:
+            cached_data = api._nominatim_cache.get(cache_key) or {}
+            cache_age = now - cached_data.get('timestamp', 0)
+            if cache_age < api.nominatim_cache_ttl:
+                city_name = cached_data.get('city_name')
+                country_name = cached_data.get('country_name', 'Việt Nam')
+
+        # Nominatim reverse geocode
+        if not city_name:
+            try:
+                nominatim_url = (
+                    f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=10&language=vi"
+                )
+                headers = {'User-Agent': 'AgriSense-AI/1.0'}
+                geocode_resp = requests.get(nominatim_url, headers=headers, timeout=5)
+                if geocode_resp.ok:
+                    geo_data = geocode_resp.json()
+                    address = geo_data.get('address', {})
+                    ward = address.get('suburb') or address.get('neighbourhood') or address.get('village')
+                    district = address.get('county') or address.get('district')
+                    city = address.get('city') or address.get('town')
+                    province = address.get('state') or address.get('province')
+                    country = address.get('country', 'Việt Nam')
+
+                    location_parts = []
+                    if ward:
+                        location_parts.append(ward)
+                    if district and district not in location_parts:
+                        location_parts.append(district)
+                    if province and province not in location_parts:
+                        location_parts.append(province)
+                    elif city and city not in location_parts:
+                        location_parts.append(city)
+
+                    city_name = ', '.join(location_parts) if location_parts else None
+                    country_name = country
+
+                    api._nominatim_cache[cache_key] = {
+                        'timestamp': now,
+                        'city_name': city_name,
+                        'country_name': country_name,
+                        'ward': ward,
+                        'district': district,
+                        'province': province,
+                        'raw_address': geo_data.get('display_name', '')
+                    }
+            except Exception as exc:
+                logging.warning(f"⚠️ Nominatim error (api/location): {exc}")
+
+        # WeatherAPI fallback for location name
+        if not city_name and api.weatherapi_key:
+            try:
+                params = {"key": api.weatherapi_key, "q": f"{lat},{lon}", "aqi": "no", "lang": "vi"}
+                resp = requests.get("https://api.weatherapi.com/v1/current.json", params=params, timeout=6)
+                if resp.ok:
+                    data_wa = resp.json()
+                    location = data_wa.get('location') or {}
+                    wa_city = location.get('name')
+                    wa_region = location.get('region')
+                    parts = []
+                    if wa_city:
+                        parts.append(wa_city)
+                    if wa_region and wa_region not in parts:
+                        parts.append(wa_region)
+                    if parts:
+                        city_name = ', '.join(parts)
+                        country_name = location.get('country') or 'Việt Nam'
+            except Exception as exc:
+                logging.warning(f"⚠️ WeatherAPI reverse geocode fallback failed (api/location): {exc}")
+
+        if not city_name:
+            city_name = f"Vị trí ({lat:.2f}, {lon:.2f})"
+
+        session['weather_geo_city'] = city_name
+        session['weather_geo_country'] = country_name
+
+        weather_data = api.get_weather_info_by_coords(lat, lon, city_name, country_name)
+        text = api._format_weather_markdown(weather_data, "Thời tiết hiện tại")
+        session.pop('pending_weather_query', None)
+        return jsonify({"success": True, "type": "text", "response": text})
+    except Exception as e:
+        logging.error(f"❌ Error in /api/location: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==================== FORUM API ====================

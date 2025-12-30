@@ -1452,9 +1452,20 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                     logging.info("🔄 Chuyển sang Gemini fallback...")
 
         # TRY 2: Gemini (Fallback)
-        max_attempts = 3
-        retry_delay = 0
-        base_delay = 3
+        # NOTE: Hosted platforms (Heroku/Render/etc.) often have strict request timeouts.
+        # Keep retries bounded and configurable to reduce 503 timeouts.
+        try:
+            max_attempts = int(os.environ.get("GEMINI_MAX_ATTEMPTS", "2"))
+        except Exception:
+            max_attempts = 2
+        max_attempts = max(1, min(5, max_attempts))
+
+        retry_delay = 0.0
+        try:
+            base_delay = float(os.environ.get("GEMINI_RETRY_BASE_DELAY_S", "0"))
+        except Exception:
+            base_delay = 0.0
+        base_delay = max(0.0, min(20.0, base_delay))
 
         for attempt in range(max_attempts):
             try:
@@ -1462,15 +1473,21 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                     delay = retry_delay if retry_delay > 0 else base_delay
                     logging.info(f"Đợi {delay} giây trước khi thử lại Gemini (lần thử {attempt + 1}/{max_attempts})...")
                     time.sleep(delay)
-                    retry_delay = 0
+                    retry_delay = 0.0
 
                 if not hasattr(self, 'model') or self.model is None:
                     logging.info("Đang khởi tạo lại Gemini model...")
                     if not self.initialize_gemini_model():
                         raise Exception("Không thể khởi tạo Gemini model")
 
+                # Small backoff between attempts (keep very small by default)
                 if attempt > 0:
-                    time.sleep(0.8)
+                    try:
+                        jitter = float(os.environ.get("GEMINI_RETRY_JITTER_S", "0"))
+                    except Exception:
+                        jitter = 0.0
+                    if jitter > 0:
+                        time.sleep(min(2.0, max(0.0, jitter)))
 
                 generation_config = {
                     "temperature": 0.9,
@@ -1613,11 +1630,17 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
         }
 
         try:
+            try:
+                timeout_s = float(os.environ.get("OPENAI_HTTP_TIMEOUT_S", "18"))
+            except Exception:
+                timeout_s = 18.0
+            timeout_s = max(5.0, min(60.0, timeout_s))
+
             response = requests.post(
                 url,
                 headers=headers,
                 json=payload,
-                timeout=30
+                timeout=timeout_s
             )
             response.raise_for_status()
             data = response.json()

@@ -45,6 +45,50 @@
     // Expose location helper to non-module scripts
     window.getUserLocationWithRetry = getUserLocationWithRetry;
   </script>
+
+  <script>
+    // Mobile keyboard handling (ChatGPT-like): keep composer above keyboard
+    (function () {
+      const root = document.documentElement;
+
+      function updateViewportVars() {
+        try {
+          const vv = window.visualViewport;
+          const appHeight = vv ? vv.height : window.innerHeight;
+          root.style.setProperty('--app-height', `${Math.round(appHeight)}px`);
+
+          let keyboardInset = 0;
+          if (vv) {
+            keyboardInset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+          }
+          root.style.setProperty('--keyboard-inset', `${Math.round(keyboardInset)}px`);
+
+          const controls = document.querySelector('.chat-controls');
+          if (controls) {
+            const h = controls.getBoundingClientRect().height;
+            if (h && Number.isFinite(h)) {
+              root.style.setProperty('--composer-h', `${Math.round(h)}px`);
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      window.addEventListener('resize', updateViewportVars, { passive: true });
+      window.addEventListener('orientationchange', updateViewportVars, { passive: true });
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateViewportVars, { passive: true });
+        window.visualViewport.addEventListener('scroll', updateViewportVars, { passive: true });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        updateViewportVars();
+        setTimeout(updateViewportVars, 250);
+      });
+    })();
+  </script>
   <style>
     /* WebView Optimization */
     * {
@@ -69,6 +113,12 @@
       left: 0;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+    }
+
+    :root {
+      --app-height: 100vh;
+      --keyboard-inset: 0px;
+      --composer-h: 72px;
     }
     
     /* Support for dvh units (dynamic viewport height) */
@@ -1942,7 +1992,7 @@
       display:flex;
       position:relative;
       width:100%;
-      height:calc(100vh - 80px);
+      height:calc(var(--app-height, 100vh) - 80px);
       transition: padding-left 0.36s cubic-bezier(0.25,0.46,0.45,0.94);
       will-change:padding-left;
       padding-left:0;
@@ -1982,8 +2032,8 @@
         top:80px;
         left:0;
         bottom:0;
-        height: calc(100vh - 80px);
-        max-height: calc(100vh - 80px);
+        height: calc(var(--app-height, 100vh) - 80px);
+        max-height: calc(var(--app-height, 100vh) - 80px);
         transform:translateX(calc(-1 * var(--sidebar-w)));
         transition:transform 0.28s ease;
         z-index:4500; /* Mobile: sidebar trên backdrop */
@@ -2069,10 +2119,10 @@
       }
       
       .chat-controls {
-        position: sticky !important;
-        bottom: 0 !important;
+        position: fixed !important;
         left: 0 !important;
         right: 0 !important;
+        bottom: calc(var(--keyboard-inset, 0px) + env(safe-area-inset-bottom)) !important;
         background: white !important;
         padding: 0.75rem !important;
         border-top: 1px solid #e5e7eb !important;
@@ -2087,7 +2137,7 @@
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         margin-bottom: 0 !important;
-        padding-bottom: 1rem !important;
+        padding-bottom: calc(var(--composer-h, 72px) + 16px) !important;
       }
       
       /* Ensure buttons are touch-friendly on mobile */

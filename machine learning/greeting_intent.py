@@ -30,11 +30,12 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DATASET_PATH = os.path.join(HERE, "dataset", "greeting_intent.json")
+DEFAULT_REPLIES_PATH = os.path.join(HERE, "dataset", "greeting_replies.json")
 DEFAULT_MODEL_DIR = os.path.join(HERE, "model")
 DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "greeting_intent.pkl")
 
@@ -290,8 +291,149 @@ _GREET_REPLIES = [
 ]
 
 
+@lru_cache(maxsize=1)
+def _load_greeting_replies(path: str = DEFAULT_REPLIES_PATH) -> List[str]:
+    """Load greeting reply texts from dataset.
+
+    Accepts:
+    - JSON list of strings
+    - JSON list of {"text": "..."}
+    """
+
+    if not os.path.exists(path):
+        return []
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, list):
+            return []
+
+        out: List[str] = []
+        for row in data:
+            if isinstance(row, str):
+                text = row.strip()
+            elif isinstance(row, dict):
+                text = str(row.get("text") or "").strip()
+            else:
+                continue
+
+            if text:
+                out.append(text)
+
+        return out
+    except Exception:
+        return []
+
+
+def _build_markov_chain(texts: Iterable[str]) -> Dict[Tuple[str, str], List[str]]:
+    """Build a 2-gram Markov chain: (w1,w2)->[w3,...]."""
+
+    chain: Dict[Tuple[str, str], List[str]] = {}
+    for t in texts:
+        t = (t or "").strip()
+        if not t:
+            continue
+
+        # Keep punctuation as separate tokens.
+        tokens = re.findall(r"\w+|[^\w\s]", t, flags=re.UNICODE)
+        if len(tokens) < 3:
+            continue
+
+        tokens = ["<s>", "<s>"] + tokens + ["</s>"]
+        for i in range(len(tokens) - 2):
+            key = (tokens[i], tokens[i + 1])
+            nxt = tokens[i + 2]
+            chain.setdefault(key, []).append(nxt)
+
+    return chain
+
+
+def _markov_generate(chain: Dict[Tuple[str, str], List[str]], max_tokens: int = 36) -> Optional[str]:
+    if not chain:
+        return None
+
+    w1, w2 = "<s>", "<s>"
+    out: List[str] = []
+    for _ in range(max_tokens):
+        options = chain.get((w1, w2))
+        if not options:
+            break
+        w3 = random.choice(options)
+        if w3 == "</s>":
+            break
+        out.append(w3)
+        w1, w2 = w2, w3
+
+    if not out:
+        return None
+
+    # Join tokens with simple punctuation rules.
+    s = ""
+    for tok in out:
+        if re.fullmatch(r"[^\w\s]", tok):
+            s = (s.rstrip() + tok).strip()
+        else:
+            s = (s + " " + tok).strip()
+
+    s = re.sub(r"\s+", " ", s).strip()
+    if not s:
+        return None
+
+    # Basic quality constraints: length + must contain greeting signal.
+    if len(s) < 18:
+        return None
+    norm = _normalize(s)
+    if not any(x in norm for x in ["xin chao", "chao", "hello", "hi", "alo"]):
+        return None
+
+    if not re.search(r"[.!?]$", s):
+        s = s + "!"
+    return s
+
+
 def generate_greeting_reply() -> str:
-    return random.choice(_GREET_REPLIES)
+    """Generate a more natural greeting reply.
+
+    Default behavior uses `dataset/greeting_replies.json` (100+ reply styles) if present.
+
+    Env:
+    - GREETING_REPLY_MODE=sample|markov|mixed  (default: mixed)
+    - GREETING_REPLY_MARKOV_PROB=0.35         (only for mixed)
+    """
+
+    replies = _load_greeting_replies()
+    base = replies if replies else _GREET_REPLIES
+
+    mode = (os.environ.get("GREETING_REPLY_MODE") or "mixed").strip().lower()
+    if mode not in {"sample", "markov", "mixed"}:
+        mode = "mixed"
+
+    if mode == "sample":
+        return random.choice(base)
+
+    chain = _build_markov_chain(base)
+    if mode == "markov":
+        for _ in range(12):
+            s = _markov_generate(chain)
+            if s:
+                return s
+        return random.choice(base)
+
+    # mixed
+    try:
+        p = float(os.environ.get("GREETING_REPLY_MARKOV_PROB", "0.35"))
+    except Exception:
+        p = 0.35
+    p = max(0.0, min(1.0, p))
+
+    if random.random() < p:
+        for _ in range(10):
+            s = _markov_generate(chain)
+            if s:
+                return s
+
+    return random.choice(base)
 
 
 def cli_train(args: argparse.Namespace) -> int:

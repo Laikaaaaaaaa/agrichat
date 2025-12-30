@@ -41,6 +41,8 @@ DEFAULT_DATASET_PATH = os.path.join(HERE, "dataset", "weather_intent.json")
 DEFAULT_MODEL_DIR = os.path.join(HERE, "model")
 DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "weather_intent.pkl")
 
+_AUTO_TRAIN_TRIED = False
+
 
 def _normalize(text: str) -> str:
     if not text:
@@ -186,6 +188,63 @@ def _resolve_model_path() -> Optional[str]:
 
     if os.path.exists(DEFAULT_MODEL_PATH) and os.path.getsize(DEFAULT_MODEL_PATH) > 0:
         return DEFAULT_MODEL_PATH
+
+    # Many deployments ignore *.pkl; allow an opt-in runtime auto-train to keep ML enabled.
+    auto_train = (os.environ.get("WEATHER_INTENT_AUTO_TRAIN") or "1").strip().lower()
+    if auto_train in {"0", "false", "no", "off"}:
+        return None
+
+    global _AUTO_TRAIN_TRIED
+    if _AUTO_TRAIN_TRIED:
+        return None
+    _AUTO_TRAIN_TRIED = True
+
+    try:
+        data = _load_dataset(DEFAULT_DATASET_PATH)
+
+        texts: List[str] = []
+        labels: List[int] = []
+        for row in data:
+            t = str(row.get("text") or "").strip()
+            y = row.get("label")
+            if not t:
+                continue
+            if y not in (0, 1, True, False):
+                continue
+            texts.append(t)
+            labels.append(int(bool(y)))
+
+        if not texts:
+            return None
+
+        from sklearn.feature_extraction.text import HashingVectorizer
+        from sklearn.linear_model import SGDClassifier
+
+        vectorizer = HashingVectorizer(
+            n_features=2**16,
+            alternate_sign=False,
+            ngram_range=(1, 2),
+            norm="l2",
+        )
+
+        X = vectorizer.transform(texts)
+        clf = SGDClassifier(loss="log_loss", alpha=1e-5, random_state=42, max_iter=2000, tol=1e-3)
+        clf.fit(X, labels)
+
+        os.makedirs(DEFAULT_MODEL_DIR, exist_ok=True)
+        payload = {
+            "classifier": clf,
+            "vectorizer": {"n_features": 2**16, "ngram_range": (1, 2), "norm": "l2"},
+            "meta": {"samples": len(texts), "seed": 42, "auto_trained": True},
+        }
+
+        with open(DEFAULT_MODEL_PATH, "wb") as f:
+            pickle.dump(payload, f)
+
+        if os.path.exists(DEFAULT_MODEL_PATH) and os.path.getsize(DEFAULT_MODEL_PATH) > 0:
+            return DEFAULT_MODEL_PATH
+    except Exception:
+        return None
 
     return None
 

@@ -45,6 +45,11 @@ from image_search_memory import (
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urljoin
 
+try:
+    from zoneinfo import ZoneInfo
+except Exception:
+    ZoneInfo = None
+
 
 def _get_client_ip_from_request(req) -> str | None:
     """Best-effort client IP extraction behind common proxies."""
@@ -193,6 +198,45 @@ def _load_weather_intent_module():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+@lru_cache(maxsize=1)
+def _load_weather_timeframe_module():
+    """Load weather timeframe module from path (folder name contains a space)."""
+
+    tf_path = os.path.join(HERE, "machine learning", "weather_timeframe.py")
+    if not os.path.exists(tf_path):
+        raise FileNotFoundError(f"Weather timeframe module not found: {tf_path}")
+
+    spec = importlib.util.spec_from_file_location("weather_timeframe_runtime", tf_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Cannot load weather timeframe module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _predict_weather_timeframe(user_message: str) -> dict | None:
+    """Best-effort timeframe predictor. Returns timeframe dict or None."""
+
+    try:
+        if not isinstance(user_message, str):
+            return None
+        msg = user_message.strip()
+        if not msg:
+            return None
+        mod = _load_weather_timeframe_module()
+        fn = getattr(mod, "predict_timeframe", None)
+        if fn is None:
+            return None
+        out = fn(msg)
+        if isinstance(out, dict) and out.get("type"):
+            return out
+        return None
+    except Exception:
+        return None
 
 
 def _is_weather_intent(user_message: str) -> bool:
@@ -864,6 +908,282 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             f"- Cập nhật: {updated}"
         )
 
+    def _is_tomorrow_weather_query(self, message: str) -> bool:
+        """Detect whether user asks for tomorrow/forecast rather than current weather."""
+
+        norm = self._normalize_text(message or "")
+        if not norm:
+            return False
+
+        # Explicit phrases
+        if "ngay mai" in norm:
+            return True
+
+        # "mai" as a standalone word (after normalization)
+        if re.search(r"\bmai\b", norm):
+            return True
+
+        # Forecast-related
+        if "du bao" in norm or "forecast" in norm:
+            return True
+
+        return False
+
+    def _today_in_default_weather_tz(self):
+        tz_name = (self.default_location or {}).get("tz_id") or "Asia/Ho_Chi_Minh"
+        if ZoneInfo:
+            try:
+                return datetime.now(ZoneInfo(str(tz_name))).date()
+            except Exception:
+                pass
+        return datetime.now().date()
+
+    def _parse_weather_time_request(self, message: str) -> dict:
+        """Parse user timeframe for weather queries.
+
+        Returns a dict with one of:
+        - {"type": "current"}
+        - {"type": "forecast_day", "day_offset": 1, "label": "ngày mai"}
+        - {"type": "history_day", "day_offset": -1, "label": "hôm qua"}
+        - {"type": "forecast_range", "start_offset": 1, "days": 3, "label": "3 ngày tới"}
+        - {"type": "history_range", "start_offset": -7, "days": 7, "label": "tuần trước"}
+        """
+
+        # First: numeric ranges are best handled deterministically.
+        # (This keeps ML from having to learn many numeric variants.)
+        norm = self._normalize_text(message or "")
+        if not norm:
+            return {"type": "current"}
+
+        # Range patterns first
+        m = re.search(r"\b(\d{1,2})\s*ngay\s*(toi|nua|sau|tiep|tiep theo)\b", norm)
+        if m:
+            days = max(1, min(14, int(m.group(1))))
+            return {"type": "forecast_range", "start_offset": 1, "days": days, "label": f"{days} ngày tới"}
+
+        m = re.search(r"\b(\d{1,2})\s*ngay\s*truoc\b", norm)
+        if m:
+            days = max(1, min(14, int(m.group(1))))
+            return {"type": "history_range", "start_offset": -days, "days": days, "label": f"{days} ngày trước"}
+
+        # Second: ML-based prediction (optional). If it returns a structured timeframe, use it.
+        ml = _predict_weather_timeframe(message)
+        if isinstance(ml, dict) and ml.get("type"):
+            return ml
+
+        if "tuan truoc" in norm:
+            return {"type": "history_range", "start_offset": -7, "days": 7, "label": "tuần trước"}
+        if "tuan toi" in norm or "tuan sau" in norm:
+            return {"type": "forecast_range", "start_offset": 1, "days": 7, "label": "tuần tới"}
+        if "tuan nay" in norm:
+            return {"type": "forecast_range", "start_offset": 0, "days": 7, "label": "tuần này"}
+
+        # Specific day offsets
+        if "hom qua" in norm or re.search(r"\bhom qua\b", norm):
+            return {"type": "history_day", "day_offset": -1, "label": "hôm qua"}
+        if "hom kia" in norm or "bua hom" in norm or "hom truoc" in norm:
+            return {"type": "history_day", "day_offset": -2, "label": "hôm kia"}
+
+        # Day-after-tomorrow variants (must check before generic "mai")
+        if "ngay kia" in norm or "ngay mot" in norm or "mai mot" in norm:
+            return {"type": "forecast_day", "day_offset": 2, "label": "ngày kia"}
+
+        # Tomorrow/forecast keywords
+        if "ngay mai" in norm or re.search(r"\bmai\b", norm) or "du bao" in norm or "forecast" in norm:
+            return {"type": "forecast_day", "day_offset": 1, "label": "ngày mai"}
+
+        return {"type": "current"}
+
+    def _open_meteo_weather_code_to_text(self, code):
+        mapping = {
+            0: "Trời quang đãng",
+            1: "Trời quang mây",
+            2: "Có mây thưa",
+            3: "Nhiều mây",
+            45: "Sương mù",
+            48: "Sương mù đóng băng",
+            51: "Mưa phùn nhẹ",
+            53: "Mưa phùn",
+            55: "Mưa phùn dày đặc",
+            61: "Mưa nhẹ",
+            63: "Mưa vừa",
+            65: "Mưa to",
+            71: "Tuyết nhẹ",
+            73: "Tuyết vừa",
+            75: "Tuyết to",
+            80: "Mưa rào nhẹ",
+            81: "Mưa rào",
+            82: "Mưa rào mạnh",
+            95: "Dông",
+            96: "Dông kèm mưa đá nhẹ",
+            99: "Dông kèm mưa đá lớn",
+        }
+        try:
+            if code is None:
+                return "Thời tiết không xác định"
+            return mapping.get(int(code), "Thời tiết không xác định")
+        except Exception:
+            return "Thời tiết không xác định"
+
+    def _open_meteo_get_daily_range(self, lat: float, lon: float, start_date: str, end_date: str, use_archive: bool):
+        """Fetch daily weather series from Open-Meteo (forecast or archive)."""
+
+        base_url = "https://archive-api.open-meteo.com/v1/archive" if use_archive else "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
+            "timezone": "auto",
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        resp = requests.get(base_url, params=params, timeout=10)
+        resp.raise_for_status()
+        data = resp.json() or {}
+        daily = data.get("daily") or {}
+
+        times = daily.get("time") or []
+        codes = daily.get("weather_code") or []
+        tmax = daily.get("temperature_2m_max") or []
+        tmin = daily.get("temperature_2m_min") or []
+        precip = daily.get("precipitation_sum") or []
+        windmax = daily.get("wind_speed_10m_max") or []
+
+        out = []
+        for i, d in enumerate(times):
+            out.append(
+                {
+                    "date": d,
+                    "condition": self._open_meteo_weather_code_to_text((codes[i] if i < len(codes) else None)),
+                    "min_temp": self._safe_float(tmin[i] if i < len(tmin) else None),
+                    "max_temp": self._safe_float(tmax[i] if i < len(tmax) else None),
+                    "total_precip_mm": self._safe_float(precip[i] if i < len(precip) else None),
+                    "max_wind_kph": self._safe_float(windmax[i] if i < len(windmax) else None),
+                }
+            )
+        return out
+
+    def get_weather_daily_series_by_coords(self, lat: float, lon: float, city_name: str, country_name: str, start_offset: int, days: int):
+        """Get a daily series for a date window relative to 'today' in default weather timezone."""
+
+        base = self._today_in_default_weather_tz()
+        start_date = base + timedelta(days=int(start_offset))
+        end_date = start_date + timedelta(days=int(max(1, days)) - 1)
+        use_archive = end_date < base
+
+        try:
+            series = self._open_meteo_get_daily_range(
+                float(lat),
+                float(lon),
+                start_date.isoformat(),
+                end_date.isoformat(),
+                use_archive=use_archive,
+            )
+            return {
+                "success": True,
+                "city": city_name,
+                "country": country_name,
+                "location_name": city_name,
+                "location_country": country_name,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "series": series,
+                "source": "open-meteo-archive" if use_archive else "open-meteo-forecast",
+            }
+        except Exception as exc:
+            logging.warning("⚠️ Open-Meteo daily series failed: %s", exc)
+            return {
+                "success": False,
+                "city": city_name,
+                "country": country_name,
+                "location_name": city_name,
+                "location_country": country_name,
+                "message": "Không thể lấy dữ liệu thời tiết theo mốc thời gian yêu cầu.",
+            }
+
+    def _format_weather_daily_series_markdown(self, payload: dict, title: str) -> str:
+        if not isinstance(payload, dict):
+            return "❌ Không thể lấy dữ liệu thời tiết."
+        if not payload.get("success", True) and payload.get("message"):
+            return f"❌ {payload.get('message')}"
+
+        loc_name = payload.get("location_name") or payload.get("city") or "Vị trí của bạn"
+        series = payload.get("series") or []
+        if not series:
+            return "❌ Không có dữ liệu ngày phù hợp."
+
+        lines = [f"🌦️ **{title}**", f"📍 *{loc_name}*", ""]
+        for day in series:
+            date_text = day.get("date") or "—"
+            cond = day.get("condition") or "Không xác định"
+            tmin = day.get("min_temp")
+            tmax = day.get("max_temp")
+            precip = day.get("total_precip_mm")
+            wind = day.get("max_wind_kph")
+
+            def fmt(v, unit=""):
+                if v is None or v == "":
+                    return "—"
+                try:
+                    if isinstance(v, (int, float)):
+                        if float(v).is_integer():
+                            return f"{int(v)}{unit}"
+                        return f"{float(v):.1f}{unit}"
+                except Exception:
+                    pass
+                return f"{v}{unit}"
+
+            lines.append(
+                f"- {date_text}: **{cond}**, **{fmt(tmin, '°C')} – {fmt(tmax, '°C')}**, mưa **{fmt(precip, ' mm')}**, gió max **{fmt(wind, ' km/h')}**"
+            )
+
+        return "\n".join(lines).strip()
+
+    def _format_weather_forecast_markdown(self, forecast: dict, title: str) -> str:
+        if not isinstance(forecast, dict):
+            return "❌ Không thể lấy dữ liệu dự báo thời tiết."
+        if not forecast.get("success", True) and forecast.get("message"):
+            return f"❌ {forecast.get('message')}"
+
+        loc_name = forecast.get("location_name") or forecast.get("city") or "Vị trí của bạn"
+        date_text = forecast.get("date") or "ngày mai"
+        condition = forecast.get("condition") or "Không xác định"
+
+        def fmt(v, unit=""):
+            if v is None or v == "":
+                return "—"
+            try:
+                if isinstance(v, (int, float)):
+                    if float(v).is_integer():
+                        return f"{int(v)}{unit}"
+                    return f"{float(v):.1f}{unit}"
+            except Exception:
+                pass
+            return f"{v}{unit}"
+
+        tmin = fmt(forecast.get("min_temp"), "°C")
+        tmax = fmt(forecast.get("max_temp"), "°C")
+        tavg = fmt(forecast.get("avg_temp"), "°C")
+        hum = fmt(forecast.get("avg_humidity"), "%")
+        wind = fmt(forecast.get("max_wind_kph"), " km/h")
+        precip = fmt(forecast.get("total_precip_mm"), " mm")
+        rain_chance = fmt(forecast.get("chance_of_rain"), "%")
+        sunrise = forecast.get("sunrise") or "—"
+        sunset = forecast.get("sunset") or "—"
+
+        return (
+            f"🌦️ **{title}**\n"
+            f"📍 *{loc_name}*\n"
+            f"🗓️ *{date_text}*\n\n"
+            f"- Điều kiện: **{condition}**\n"
+            f"- Nhiệt độ: **{tmin} – {tmax}** (TB **{tavg}**)\n"
+            f"- Độ ẩm TB: **{hum}**\n"
+            f"- Gió mạnh nhất: **{wind}**\n"
+            f"- Lượng mưa dự kiến: **{precip}**\n"
+            f"- Xác suất mưa: **{rain_chance}**\n"
+            f"- Mặt trời: **{sunrise}** / **{sunset}**"
+        )
+
     # ------------------------------------------------------------------
     # Vietnam location (province/region) support for weather queries
     # ------------------------------------------------------------------
@@ -1269,7 +1589,7 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
 
     def _weather_consent_html(self) -> str:
         return (
-            "<div>🌦️ Để trả lời chính xác thời tiết/khi hậu tại vị trí hiện tại, mình cần bạn cho phép lấy vị trí. Bạn đồng ý không?</div>"
+            "<div>🌦️ Để trả lời chính xác thời tiết/khí hậu tại vị trí hiện tại, mình cần bạn cho phép lấy vị trí. Bạn đồng ý không?</div>"
             "<div class=\"mt-3 flex flex-wrap gap-2\">"
             "  <button onclick=\"window.handleLocationConsent(true, this)\" class=\"px-3 py-2 rounded-lg bg-green-600 text-white text-sm\">Đồng ý</button>"
             "  <button onclick=\"window.handleLocationConsent(false, this)\" class=\"px-3 py-2 rounded-lg bg-gray-300 text-gray-800 text-sm\">Từ chối</button>"
@@ -1288,14 +1608,56 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
         if not _is_weather_intent(message):
             return None
 
+        time_req = self._parse_weather_time_request(message)
+
         # If user asked weather for a specific province/city or region, use known lat/lon (no geolocation needed).
         target = self._extract_weather_location_target(message)
         if target:
             # Climate questions: answer from dataset (characteristic climate) instead of realtime weather.
-            if self._is_climate_question(message):
+            if self._is_climate_question(message) and time_req.get("type") == "current":
                 climate_reply = self._get_climate_reply_for_target(target, message=message)
                 if climate_reply:
                     return {"type": "text", "response": climate_reply}
+
+            if time_req.get("type") == "forecast_day":
+                day_offset = int(time_req.get("day_offset") or 1)
+                fc = self.get_weather_forecast_by_coords(
+                    float(target["lat"]),
+                    float(target["lon"]),
+                    target["name"],
+                    "Việt Nam",
+                    days=max(2, day_offset + 1),
+                    day_offset=day_offset,
+                )
+                label = time_req.get("label") or "dự báo"
+                title = f"Dự báo thời tiết {label}" if target.get("kind") == "province" else f"Dự báo thời tiết {label} (khu vực)"
+                return {"type": "text", "response": self._format_weather_forecast_markdown(fc, f"{title}: {target['name']}")}
+
+            if time_req.get("type") in ("forecast_range", "history_range"):
+                payload = self.get_weather_daily_series_by_coords(
+                    float(target["lat"]),
+                    float(target["lon"]),
+                    target["name"],
+                    "Việt Nam",
+                    start_offset=int(time_req.get("start_offset") or 0),
+                    days=int(time_req.get("days") or 1),
+                )
+                label = time_req.get("label") or "nhiều ngày"
+                title = f"Thời tiết {label}" if target.get("kind") == "province" else f"Thời tiết {label} (khu vực)"
+                return {"type": "text", "response": self._format_weather_daily_series_markdown(payload, f"{title}: {target['name']}")}
+
+            if time_req.get("type") == "history_day":
+                payload = self.get_weather_daily_series_by_coords(
+                    float(target["lat"]),
+                    float(target["lon"]),
+                    target["name"],
+                    "Việt Nam",
+                    start_offset=int(time_req.get("day_offset") or -1),
+                    days=1,
+                )
+                label = time_req.get("label") or "hôm qua"
+                title = f"Thời tiết {label}" if target.get("kind") == "province" else f"Thời tiết {label} (khu vực)"
+                return {"type": "text", "response": self._format_weather_daily_series_markdown(payload, f"{title}: {target['name']}")}
 
             weather = self.get_weather_info_by_coords(float(target["lat"]), float(target["lon"]), target["name"], "Việt Nam")
             title = "Thời tiết" if target.get("kind") == "province" else "Thời tiết khu vực"
@@ -1317,11 +1679,38 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
 
         if (lat is None or lon is None) and geo_method == "ip":
             client_ip = _get_client_ip_from_request(request)
-            weather = self.get_weather_info(client_ip=client_ip)
-            return {
-                "type": "text",
-                "response": self._format_weather_markdown(weather, "Thời tiết gần bạn (ước tính theo IP)")
-            }
+            # Populate IP cache and derive lat/lon (used for forecast/history/range)
+            ip_current = self.get_weather_info(client_ip=client_ip)
+            ip_loc = (getattr(self, "_ip_location_cache", {}) or {}).get("data") or {}
+            lat_ip = self._safe_float(ip_loc.get("latitude"))
+            lon_ip = self._safe_float(ip_loc.get("longitude"))
+            city_ip = ip_current.get("location_name") or ip_current.get("city") or (ip_loc.get("city") or "Vị trí của bạn")
+            country_ip = ip_current.get("location_country") or ip_current.get("country") or (ip_loc.get("country_name") or "Việt Nam")
+
+            if time_req.get("type") == "forecast_day":
+                day_offset = int(time_req.get("day_offset") or 1)
+                fc = self.get_weather_forecast_by_coords(lat_ip, lon_ip, city_ip, country_ip, days=max(2, day_offset + 1), day_offset=day_offset)
+                label = time_req.get("label") or "ngày mai"
+                return {"type": "text", "response": self._format_weather_forecast_markdown(fc, f"Dự báo thời tiết {label} (ước tính theo IP)")}
+
+            if time_req.get("type") in ("forecast_range", "history_range"):
+                payload = self.get_weather_daily_series_by_coords(
+                    lat_ip,
+                    lon_ip,
+                    city_ip,
+                    country_ip,
+                    start_offset=int(time_req.get("start_offset") or 0),
+                    days=int(time_req.get("days") or 1),
+                )
+                label = time_req.get("label") or "nhiều ngày"
+                return {"type": "text", "response": self._format_weather_daily_series_markdown(payload, f"Thời tiết {label} (ước tính theo IP)")}
+
+            if time_req.get("type") == "history_day":
+                payload = self.get_weather_daily_series_by_coords(lat_ip, lon_ip, city_ip, country_ip, start_offset=int(time_req.get("day_offset") or -1), days=1)
+                label = time_req.get("label") or "hôm qua"
+                return {"type": "text", "response": self._format_weather_daily_series_markdown(payload, f"Thời tiết {label} (ước tính theo IP)")}
+
+            return {"type": "text", "response": self._format_weather_markdown(ip_current, "Thời tiết gần bạn (ước tính theo IP)")}
 
         if lat is None or lon is None:
             session["pending_weather_query"] = message
@@ -1339,6 +1728,29 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
         # Use precise coordinates; location naming is handled by /api/weather route too, but here we keep it simple.
         city = session.get("weather_geo_city") or f"Vị trí ({lat_f:.2f}, {lon_f:.2f})"
         country = session.get("weather_geo_country") or "Việt Nam"
+        if time_req.get("type") == "forecast_day":
+            day_offset = int(time_req.get("day_offset") or 1)
+            fc = self.get_weather_forecast_by_coords(lat_f, lon_f, city, country, days=max(2, day_offset + 1), day_offset=day_offset)
+            label = time_req.get("label") or "ngày mai"
+            return {"type": "text", "response": self._format_weather_forecast_markdown(fc, f"Dự báo thời tiết {label}")}
+
+        if time_req.get("type") in ("forecast_range", "history_range"):
+            payload = self.get_weather_daily_series_by_coords(
+                lat_f,
+                lon_f,
+                city,
+                country,
+                start_offset=int(time_req.get("start_offset") or 0),
+                days=int(time_req.get("days") or 1),
+            )
+            label = time_req.get("label") or "nhiều ngày"
+            return {"type": "text", "response": self._format_weather_daily_series_markdown(payload, f"Thời tiết {label}")}
+
+        if time_req.get("type") == "history_day":
+            payload = self.get_weather_daily_series_by_coords(lat_f, lon_f, city, country, start_offset=int(time_req.get("day_offset") or -1), days=1)
+            label = time_req.get("label") or "hôm qua"
+            return {"type": "text", "response": self._format_weather_daily_series_markdown(payload, f"Thời tiết {label}")}
+
         weather = self.get_weather_info_by_coords(lat_f, lon_f, city, country)
         return {"type": "text", "response": self._format_weather_markdown(weather, "Thời tiết hiện tại")}
 
@@ -1993,6 +2405,130 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             "location_name": city_name,  # Add location_name even for errors
             "location_country": country_name,
             "message": "Không thể lấy dữ liệu thời tiết"
+        }
+
+    def get_weather_forecast_by_coords(self, lat, lon, city_name, country_name, days: int = 2, day_offset: int = 1):
+        """Get daily forecast using coordinates. Default returns tomorrow (day_offset=1)."""
+
+        logging.info(f"🌦️ get_weather_forecast_by_coords: lat={lat}, lon={lon}, city={city_name}, day_offset={day_offset}")
+
+        # Try WeatherAPI forecast first
+        try:
+            if self.weatherapi_key:
+                params = {
+                    "key": self.weatherapi_key,
+                    "q": f"{lat},{lon}",
+                    "days": max(2, int(days or 2)),
+                    "aqi": "no",
+                    "alerts": "no",
+                    "lang": "vi",
+                }
+                resp = requests.get("https://api.weatherapi.com/v1/forecast.json", params=params, timeout=8)
+                if resp.ok:
+                    data = resp.json() or {}
+                    location = data.get("location") or {}
+                    forecast = (data.get("forecast") or {}).get("forecastday") or []
+                    idx = int(day_offset or 1)
+                    if 0 <= idx < len(forecast):
+                        day = forecast[idx] or {}
+                        day_info = day.get("day") or {}
+                        astro = day.get("astro") or {}
+                        cond = (day_info.get("condition") or {}).get("text") or "Không xác định"
+                        return {
+                            "success": True,
+                            "city": city_name,
+                            "country": country_name,
+                            "location_name": city_name,
+                            "location_country": country_name,
+                            "date": day.get("date"),
+                            "condition": cond,
+                            "min_temp": self._safe_float(day_info.get("mintemp_c")),
+                            "max_temp": self._safe_float(day_info.get("maxtemp_c")),
+                            "avg_temp": self._safe_float(day_info.get("avgtemp_c")),
+                            "avg_humidity": self._safe_float(day_info.get("avghumidity")),
+                            "max_wind_kph": self._safe_float(day_info.get("maxwind_kph")),
+                            "total_precip_mm": self._safe_float(day_info.get("totalprecip_mm")),
+                            "chance_of_rain": self._safe_float(day_info.get("daily_chance_of_rain")),
+                            "sunrise": astro.get("sunrise"),
+                            "sunset": astro.get("sunset"),
+                            "source": "weatherapi-forecast-coords",
+                            "timezone": location.get("tz_id"),
+                        }
+        except Exception as e:
+            logging.warning(f"⚠️ WeatherAPI forecast failed: {e}")
+
+        # Fall back to Open-Meteo daily forecast
+        try:
+            weather_code_descriptions = {
+                0: "Trời quang đãng",
+                1: "Trời quang mây",
+                2: "Có mây thưa",
+                3: "Nhiều mây",
+                45: "Sương mù",
+                48: "Sương mù đóng băng",
+                51: "Mưa phùn nhẹ",
+                53: "Mưa phùn",
+                55: "Mưa phùn dày đặc",
+                61: "Mưa nhẹ",
+                63: "Mưa vừa",
+                65: "Mưa to",
+                71: "Tuyết nhẹ",
+                73: "Tuyết vừa",
+                75: "Tuyết to",
+                80: "Mưa rào nhẹ",
+                81: "Mưa rào",
+                82: "Mưa rào mạnh",
+                95: "Dông",
+                96: "Dông kèm mưa đá nhẹ",
+                99: "Dông kèm mưa đá lớn",
+            }
+
+            params = {
+                "latitude": lat,
+                "longitude": lon,
+                "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
+                "forecast_days": max(2, int(days or 2)),
+                "timezone": "auto",
+            }
+            resp = requests.get("https://api.open-meteo.com/v1/forecast", params=params, timeout=8)
+            if resp.ok:
+                data = resp.json() or {}
+                daily = data.get("daily") or {}
+                times = daily.get("time") or []
+                idx = int(day_offset or 1)
+                if 0 <= idx < len(times):
+                    code = (daily.get("weather_code") or [None])[idx]
+                    condition = weather_code_descriptions.get(code, "Thời tiết không xác định")
+                    return {
+                        "success": True,
+                        "city": city_name,
+                        "country": country_name,
+                        "location_name": city_name,
+                        "location_country": country_name,
+                        "date": times[idx],
+                        "condition": condition,
+                        "min_temp": self._safe_float((daily.get("temperature_2m_min") or [None])[idx]),
+                        "max_temp": self._safe_float((daily.get("temperature_2m_max") or [None])[idx]),
+                        "avg_temp": None,
+                        "avg_humidity": None,
+                        "max_wind_kph": self._safe_float((daily.get("wind_speed_10m_max") or [None])[idx]),
+                        "total_precip_mm": self._safe_float((daily.get("precipitation_sum") or [None])[idx]),
+                        "chance_of_rain": None,
+                        "sunrise": None,
+                        "sunset": None,
+                        "source": "open-meteo-forecast-coords",
+                        "timezone": data.get("timezone"),
+                    }
+        except Exception as e:
+            logging.warning(f"⚠️ Open-Meteo daily forecast failed: {e}")
+
+        return {
+            "success": False,
+            "city": city_name,
+            "country": country_name,
+            "location_name": city_name,
+            "location_country": country_name,
+            "message": "Không thể lấy dữ liệu dự báo thời tiết."
         }
 
     def initialize_gemini_model(self):
@@ -6778,14 +7314,63 @@ def set_location():
             session.pop('weather_geo_city', None)
             session.pop('weather_geo_country', None)
 
-            hanoi = api._get_weather_city_fallback("Hà Nội", "Hà Nội", 21.0278, 105.8342)
-            hcm = api._get_weather_city_fallback("Hồ Chí Minh", "TP.HCM", 10.8231, 106.6297)
-            text = (
-                "🌦️ **Thời tiết hôm nay (mặc định do bạn từ chối vị trí)**\n\n"
-                + api._format_weather_markdown(hanoi, "Hà Nội")
-                + "\n\n"
-                + api._format_weather_markdown(hcm, "TP.HCM")
-            )
+            pending = session.get('pending_weather_query')
+            time_req = api._parse_weather_time_request(pending or "")
+
+            if time_req.get("type") == "forecast_day":
+                day_offset = int(time_req.get("day_offset") or 1)
+                label = time_req.get("label") or "ngày mai"
+                hanoi_fc = api.get_weather_forecast_by_coords(21.0278, 105.8342, "Hà Nội", "Việt Nam", days=max(2, day_offset + 1), day_offset=day_offset)
+                hcm_fc = api.get_weather_forecast_by_coords(10.8231, 106.6297, "TP.HCM", "Việt Nam", days=max(2, day_offset + 1), day_offset=day_offset)
+                text = (
+                    f"🌦️ **Dự báo thời tiết {label} (mặc định do bạn từ chối vị trí)**\n\n"
+                    + api._format_weather_forecast_markdown(hanoi_fc, "Hà Nội")
+                    + "\n\n"
+                    + api._format_weather_forecast_markdown(hcm_fc, "TP.HCM")
+                )
+            elif time_req.get("type") in ("forecast_range", "history_range"):
+                label = time_req.get("label") or "nhiều ngày"
+                hanoi_series = api.get_weather_daily_series_by_coords(
+                    21.0278,
+                    105.8342,
+                    "Hà Nội",
+                    "Việt Nam",
+                    start_offset=int(time_req.get("start_offset") or 0),
+                    days=int(time_req.get("days") or 1),
+                )
+                hcm_series = api.get_weather_daily_series_by_coords(
+                    10.8231,
+                    106.6297,
+                    "TP.HCM",
+                    "Việt Nam",
+                    start_offset=int(time_req.get("start_offset") or 0),
+                    days=int(time_req.get("days") or 1),
+                )
+                text = (
+                    f"🌦️ **Thời tiết {label} (mặc định do bạn từ chối vị trí)**\n\n"
+                    + api._format_weather_daily_series_markdown(hanoi_series, "Hà Nội")
+                    + "\n\n"
+                    + api._format_weather_daily_series_markdown(hcm_series, "TP.HCM")
+                )
+            elif time_req.get("type") == "history_day":
+                label = time_req.get("label") or "hôm qua"
+                hanoi_series = api.get_weather_daily_series_by_coords(21.0278, 105.8342, "Hà Nội", "Việt Nam", start_offset=int(time_req.get("day_offset") or -1), days=1)
+                hcm_series = api.get_weather_daily_series_by_coords(10.8231, 106.6297, "TP.HCM", "Việt Nam", start_offset=int(time_req.get("day_offset") or -1), days=1)
+                text = (
+                    f"🌦️ **Thời tiết {label} (mặc định do bạn từ chối vị trí)**\n\n"
+                    + api._format_weather_daily_series_markdown(hanoi_series, "Hà Nội")
+                    + "\n\n"
+                    + api._format_weather_daily_series_markdown(hcm_series, "TP.HCM")
+                )
+            else:
+                hanoi = api._get_weather_city_fallback("Hà Nội", "Hà Nội", 21.0278, 105.8342)
+                hcm = api._get_weather_city_fallback("Hồ Chí Minh", "TP.HCM", 10.8231, 106.6297)
+                text = (
+                    "🌦️ **Thời tiết hôm nay (mặc định do bạn từ chối vị trí)**\n\n"
+                    + api._format_weather_markdown(hanoi, "Hà Nội")
+                    + "\n\n"
+                    + api._format_weather_markdown(hcm, "TP.HCM")
+                )
 
             session.pop('pending_weather_query', None)
             return jsonify({"success": True, "type": "text", "response": text})
@@ -6801,9 +7386,39 @@ def set_location():
             session.pop('weather_geo_lon', None)
 
             client_ip = _get_client_ip_from_request(request)
-            weather_data = api.get_weather_info(client_ip=client_ip)
-            title = "Thời tiết gần bạn (ước tính theo IP)"
-            text = api._format_weather_markdown(weather_data, title)
+            pending = session.get('pending_weather_query')
+            time_req = api._parse_weather_time_request(pending or "")
+
+            ip_current = api.get_weather_info(client_ip=client_ip)
+            ip_loc = (getattr(api, "_ip_location_cache", {}) or {}).get("data") or {}
+            lat_ip = api._safe_float(ip_loc.get("latitude"))
+            lon_ip = api._safe_float(ip_loc.get("longitude"))
+            city_ip = ip_current.get("location_name") or ip_current.get("city") or (ip_loc.get("city") or "Vị trí của bạn")
+            country_ip = ip_current.get("location_country") or ip_current.get("country") or (ip_loc.get("country_name") or "Việt Nam")
+
+            if time_req.get("type") == "forecast_day":
+                day_offset = int(time_req.get("day_offset") or 1)
+                label = time_req.get("label") or "ngày mai"
+                fc = api.get_weather_forecast_by_coords(lat_ip, lon_ip, city_ip, country_ip, days=max(2, day_offset + 1), day_offset=day_offset)
+                text = api._format_weather_forecast_markdown(fc, f"Dự báo thời tiết {label} (ước tính theo IP)")
+            elif time_req.get("type") in ("forecast_range", "history_range"):
+                label = time_req.get("label") or "nhiều ngày"
+                payload = api.get_weather_daily_series_by_coords(
+                    lat_ip,
+                    lon_ip,
+                    city_ip,
+                    country_ip,
+                    start_offset=int(time_req.get("start_offset") or 0),
+                    days=int(time_req.get("days") or 1),
+                )
+                text = api._format_weather_daily_series_markdown(payload, f"Thời tiết {label} (ước tính theo IP)")
+            elif time_req.get("type") == "history_day":
+                label = time_req.get("label") or "hôm qua"
+                payload = api.get_weather_daily_series_by_coords(lat_ip, lon_ip, city_ip, country_ip, start_offset=int(time_req.get("day_offset") or -1), days=1)
+                text = api._format_weather_daily_series_markdown(payload, f"Thời tiết {label} (ước tính theo IP)")
+            else:
+                text = api._format_weather_markdown(ip_current, "Thời tiết gần bạn (ước tính theo IP)")
+
             session.pop('pending_weather_query', None)
             return jsonify({"success": True, "type": "text", "response": text})
 
@@ -6901,8 +7516,33 @@ def set_location():
         session['weather_geo_country'] = country_name
 
         try:
-            weather_data = api.get_weather_info_by_coords(lat, lon, city_name, country_name)
-            text = api._format_weather_markdown(weather_data, "Thời tiết hiện tại")
+            pending = session.get('pending_weather_query')
+            time_req = api._parse_weather_time_request(pending or "")
+
+            if time_req.get("type") == "forecast_day":
+                day_offset = int(time_req.get("day_offset") or 1)
+                label = time_req.get("label") or "ngày mai"
+                fc = api.get_weather_forecast_by_coords(lat, lon, city_name, country_name, days=max(2, day_offset + 1), day_offset=day_offset)
+                text = api._format_weather_forecast_markdown(fc, f"Dự báo thời tiết {label}")
+            elif time_req.get("type") in ("forecast_range", "history_range"):
+                label = time_req.get("label") or "nhiều ngày"
+                payload = api.get_weather_daily_series_by_coords(
+                    lat,
+                    lon,
+                    city_name,
+                    country_name,
+                    start_offset=int(time_req.get("start_offset") or 0),
+                    days=int(time_req.get("days") or 1),
+                )
+                text = api._format_weather_daily_series_markdown(payload, f"Thời tiết {label}")
+            elif time_req.get("type") == "history_day":
+                label = time_req.get("label") or "hôm qua"
+                payload = api.get_weather_daily_series_by_coords(lat, lon, city_name, country_name, start_offset=int(time_req.get("day_offset") or -1), days=1)
+                text = api._format_weather_daily_series_markdown(payload, f"Thời tiết {label}")
+            else:
+                weather_data = api.get_weather_info_by_coords(lat, lon, city_name, country_name)
+                text = api._format_weather_markdown(weather_data, "Thời tiết hiện tại")
+
             session.pop('pending_weather_query', None)
             return jsonify({"success": True, "type": "text", "response": text})
         except Exception as exc:

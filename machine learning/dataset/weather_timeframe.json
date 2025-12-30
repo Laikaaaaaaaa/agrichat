@@ -1,0 +1,36 @@
+[
+  {"text": "Thời tiết bây giờ thế nào?", "label": "current"},
+  {"text": "Nhiệt độ hiện tại bao nhiêu?", "label": "current"},
+  {"text": "Thời tiết hôm nay ra sao?", "label": "current"},
+  {"text": "Hôm nay có mưa không?", "label": "current"},
+  {"text": "Tối nay có mưa không?", "label": "current"},
+  {"text": "Sáng nay trời lạnh không?", "label": "current"},
+  {"text": "Chiều nay gió mạnh không?", "label": "current"},
+  {"text": "Thời tiết hiện tại ở chỗ tôi", "label": "current"},
+
+  {"text": "Ngày mai trời nắng hay mưa?", "label": "forecast_tomorrow"},
+  {"text": "Mai có mưa không?", "label": "forecast_tomorrow"},
+  {"text": "Dự báo thời tiết ngày mai", "label": "forecast_tomorrow"},
+  {"text": "Ngày mai nhiệt độ khoảng bao nhiêu?", "label": "forecast_tomorrow"},
+  {"text": "Forecast for tomorrow", "label": "forecast_tomorrow"},
+
+  {"text": "Ngày kia có mưa không?", "label": "forecast_day_after"},
+  {"text": "Ngày mốt có nắng không?", "label": "forecast_day_after"},
+  {"text": "Mai mốt trời thế nào?", "label": "forecast_day_after"},
+  {"text": "Dự báo thời tiết ngày kia", "label": "forecast_day_after"},
+
+  {"text": "Hôm qua trời có mưa không?", "label": "history_yesterday"},
+  {"text": "Thời tiết hôm qua thế nào?", "label": "history_yesterday"},
+  {"text": "Hôm qua nhiệt độ bao nhiêu?", "label": "history_yesterday"},
+
+  {"text": "Hôm kia trời thế nào?", "label": "history_day_before"},
+  {"text": "Bữa hôm trời có mưa không?", "label": "history_day_before"},
+
+  {"text": "Thời tiết tuần trước ra sao?", "label": "history_range"},
+  {"text": "Tuần trước có mưa nhiều không?", "label": "history_range"},
+  {"text": "Khí hậu tuần trước như thế nào?", "label": "history_range"},
+
+  {"text": "Dự báo thời tiết tuần tới", "label": "forecast_range"},
+  {"text": "Tuần tới có mưa không?", "label": "forecast_range"},
+  {"text": "Khí hậu tuần tới thế nào?", "label": "forecast_range"}
+]

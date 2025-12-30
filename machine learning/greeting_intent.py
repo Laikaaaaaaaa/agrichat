@@ -380,6 +380,10 @@ def _markov_generate(chain: Dict[Tuple[str, str], List[str]], max_tokens: int = 
     if not s:
         return None
 
+    # Avoid ending with incomplete conjunctions/verbs
+    if re.search(r"(?i)\b(là|của|và|hoặc|nhưng|thì|mà|bị|được|có|thể|với|cho)$", s.rstrip(".!?")):
+        return None
+
     # Basic quality constraints: length + must contain greeting signal.
     if len(s) < 18:
         return None

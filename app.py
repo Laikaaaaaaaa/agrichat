@@ -110,6 +110,60 @@ def _load_greeting_intent_module():
     return module
 
 
+@lru_cache(maxsize=1)
+def _load_clarify_intent_module():
+    """Load clarify intent module from path (folder name contains a space)."""
+
+    clarify_path = os.path.join(HERE, "machine learning", "clarify_intent.py")
+    if not os.path.exists(clarify_path):
+        raise FileNotFoundError(f"Clarify intent module not found: {clarify_path}")
+
+    spec = importlib.util.spec_from_file_location("clarify_intent_runtime", clarify_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Cannot load clarify intent module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@lru_cache(maxsize=1)
+def _load_complexity_scope_module():
+    """Load complexity/scope router module from path (folder name contains a space)."""
+
+    scope_path = os.path.join(HERE, "machine learning", "complexity_scope.py")
+    if not os.path.exists(scope_path):
+        raise FileNotFoundError(f"Complexity scope module not found: {scope_path}")
+
+    spec = importlib.util.spec_from_file_location("complexity_scope_runtime", scope_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Cannot load complexity scope module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@lru_cache(maxsize=1)
+def _load_domain_guard_module():
+    """Load domain guard module from path (folder name contains a space)."""
+
+    guard_path = os.path.join(HERE, "machine learning", "domain_guard.py")
+    if not os.path.exists(guard_path):
+        raise FileNotFoundError(f"Domain guard module not found: {guard_path}")
+
+    spec = importlib.util.spec_from_file_location("domain_guard_runtime", guard_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Cannot load domain guard module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _try_local_greeting_response(user_message: str):
     """Return a canned greeting reply if message is greeting-only, else None."""
 
@@ -135,6 +189,86 @@ def _try_local_greeting_response(user_message: str):
         if reply_fn is None:
             return None
         return str(reply_fn())
+    except Exception:
+        return None
+
+
+def _try_local_clarify_response(user_message: str):
+    """Return a clarification prompt if message is agriculture-related but too unclear, else None."""
+
+    try:
+        if not isinstance(user_message, str):
+            return None
+
+        msg = user_message.strip()
+        if not msg:
+            return None
+
+        # If the user already wrote a longer/detailed question, pass through to LLM.
+        # (User request: "đủ dài thì chuyển thẳng qua OpenAI")
+        if len(msg) >= 140:
+            return None
+
+        # Avoid intercepting very long, already-detailed messages.
+        if len(msg) > 450:
+            return None
+
+        mod = _load_clarify_intent_module()
+        needs_fn = getattr(mod, "needs_clarification", None)
+        reply_fn = getattr(mod, "generate_clarify_reply", None)
+        if needs_fn is None or reply_fn is None:
+            return None
+
+        if not bool(needs_fn(msg)):
+            return None
+
+        return str(reply_fn(msg))
+    except Exception:
+        return None
+
+
+def _should_route_to_llm_early(user_message: str) -> bool:
+    """Return True if we should skip local clarification and go straight to LLM."""
+
+    try:
+        if not isinstance(user_message, str):
+            return False
+
+        msg = user_message.strip()
+        if not msg:
+            return False
+
+        mod = _load_complexity_scope_module()
+        fn = getattr(mod, "should_route_to_llm", None)
+        if fn is None:
+            return False
+
+        return bool(fn(msg))
+    except Exception:
+        return False
+
+
+def _try_domain_refusal_response(user_message: str):
+    """Return a refusal message if the prompt is outside agriculture/environment."""
+
+    try:
+        if not isinstance(user_message, str):
+            return None
+
+        msg = user_message.strip()
+        if not msg:
+            return None
+
+        mod = _load_domain_guard_module()
+        should_refuse = getattr(mod, "should_refuse", None)
+        reply_fn = getattr(mod, "generate_refusal_reply", None)
+        if should_refuse is None or reply_fn is None:
+            return None
+
+        if not bool(should_refuse(msg)):
+            return None
+
+        return str(reply_fn(msg))
     except Exception:
         return None
 
@@ -1751,11 +1885,34 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                 self.add_to_conversation_history(message, "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾")
                 return "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾"
 
-            # ✅ Greeting-only messages: reply locally (no OpenAI/Gemini)
-            local_greeting = _try_local_greeting_response(message)
-            if local_greeting:
-                self.add_to_conversation_history(message, local_greeting)
-                return local_greeting
+            # ✅ ROUTING PIPELINE (as requested):
+            # 1) Complexity -> if complex: go straight to LLM
+            # 2) Greeting -> reply locally
+            # 3) Domain guard -> if NOT agriculture/environment: refuse locally
+            # 4) Clarify (only for in-domain + not complex)
+
+            route_to_llm = _should_route_to_llm_early(message)
+            if route_to_llm:
+                logging.info(f"🧭 Route-to-LLM (complex/scope): '{message[:120]}'")
+            else:
+                # ✅ Greeting-only messages: reply locally (no OpenAI/Gemini)
+                local_greeting = _try_local_greeting_response(message)
+                if local_greeting:
+                    self.add_to_conversation_history(message, local_greeting)
+                    return local_greeting
+
+                # ✅ Out-of-domain (not agriculture/environment): refuse locally
+                local_refusal = _try_domain_refusal_response(message)
+                if local_refusal:
+                    logging.info(f"🛑 Refused (out-of-domain): '{message[:120]}'")
+                    self.add_to_conversation_history(message, local_refusal)
+                    return local_refusal
+
+                # ✅ Unclear agriculture questions: ask for details locally
+                local_clarify = _try_local_clarify_response(message)
+                if local_clarify:
+                    self.add_to_conversation_history(message, local_clarify)
+                    return local_clarify
             
             # Lấy ngữ cảnh từ lịch sử hội thoại
             conversation_context = self.get_conversation_context()
@@ -1834,9 +1991,10 @@ QUAN TRỌNG: Đây là cuộc hội thoại LIÊN TỤC. Hãy đọc kỹ LỊC
 Hãy trả lời câu hỏi trên, nhớ tham khảo lịch sử nếu có liên quan!"""
             
             # NEW:
-            # - If message is short (text-only): use AgriMind to build header+JSON prompt, then send to LLM.
-            # - If message is long: bypass AgriMind and keep the existing enhanced_prompt flow.
-            if self._should_bypass_agrimind(message):
+            # - If message is complex: go straight to LLM using the existing enhanced_prompt flow.
+            # - Else if message is long: bypass AgriMind and keep the existing enhanced_prompt flow.
+            # - Else: use AgriMind to build header+JSON prompt, then send to LLM.
+            if route_to_llm or self._should_bypass_agrimind(message):
                 response = self.generate_content_with_fallback(enhanced_prompt)
             else:
                 prompt_for_llm = self._build_prompt_via_agrimind(message)

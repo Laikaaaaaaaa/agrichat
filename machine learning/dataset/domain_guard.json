@@ -1,0 +1,134 @@
+[
+  {"text": "nước ao xanh", "label": 0},
+  {"text": "cách xử lý nước ao", "label": 0},
+  {"text": "tôm bỏ ăn là bị gì?", "label": 0},
+  {"text": "pH ao cao xử lý sao", "label": 0},
+  {"text": "lúa bị vàng lá gân xanh", "label": 0},
+  {"text": "cây cam bị rụng quả", "label": 0},
+  {"text": "gà con bị tiêu chảy", "label": 0},
+  {"text": "heo ho khò khè", "label": 0},
+  {"text": "cách bón phân NPK cho sầu riêng", "label": 0},
+  {"text": "phòng trị nấm cho cây ớt", "label": 0},
+  {"text": "xâm nhập mặn ảnh hưởng lúa như thế nào", "label": 0},
+  {"text": "ô nhiễm không khí pm2.5 là gì", "label": 0},
+  {"text": "cách xử lý nước thải chăn nuôi", "label": 0},
+  {"text": "biến đổi khí hậu tác động đến nông nghiệp", "label": 0},
+  {"text": "đất phèn cải tạo ra sao", "label": 0},
+  {"text": "H2S trong ao nuôi có nguy hiểm không", "label": 0},
+  {"text": "giải pháp giảm phát thải khí nhà kính trong trồng lúa", "label": 0},
+  {"text": "rác thải nông nghiệp xử lý sao cho đúng", "label": 0},
+  {"text": "quy trình ủ phân hữu cơ", "label": 0},
+  {"text": "kỹ thuật trồng rau trong nhà lưới", "label": 0},
+  {"text": "aquaculture water quality management", "label": 0},
+  {"text": "livestock farm odor control", "label": 0},
+
+  {"text": "viết code python để đọc file csv", "label": 1},
+  {"text": "sửa lỗi ModuleNotFoundError trong python", "label": 1},
+  {"text": "tối ưu query SQL", "label": 1},
+  {"text": "viết API nodejs express", "label": 1},
+  {"text": "deploy docker lên kubernetes", "label": 1},
+  {"text": "giải thích thuật toán dijkstra", "label": 1},
+
+  {"text": "tư vấn pháp lý hợp đồng thuê đất", "label": 1},
+  {"text": "cách làm đơn kiện", "label": 1},
+
+  {"text": "tôi nên mua cổ phiếu nào", "label": 1},
+  {"text": "bitcoin có tăng không", "label": 1},
+
+  {"text": "đau ngực khó thở nên làm gì", "label": 1},
+  {"text": "uống thuốc gì hết sốt", "label": 1},
+
+  {"text": "review phim mới", "label": 1},
+  {"text": "gợi ý nhạc chill", "label": 1},
+  {"text": "tư vấn tình yêu", "label": 1},
+
+  {"text": "thủ đô của pháp là gì", "label": 1},
+  {"text": "bạn có biết nước mỹ có bao nhiêu bang không", "label": 1},
+
+  {"text": "giải phương trình bậc hai", "label": 1},
+  {"text": "tính diện tích hình tròn", "label": 1},
+
+  {"text": "tên bạn là gì", "label": 1},
+  {"text": "bạn là ai?", "label": 1},
+
+  {"text": "làm sao cài windows", "label": 1},
+  {"text": "laptop bị chậm phải làm sao", "label": 1}
+
+  ,{"text": "nước ao xanh đậm có bọt", "label": 0}
+  ,{"text": "pH sáng 7.5 chiều 8.6 có nguy hiểm không", "label": 0}
+  ,{"text": "kiềm ao thấp 50 xử lý sao", "label": 0}
+  ,{"text": "NO2 1.2ppm xử lý thế nào", "label": 0}
+  ,{"text": "NH3 cao sau khi cho ăn nhiều", "label": 0}
+  ,{"text": "ao có mùi trứng thối buổi sáng", "label": 0}
+  ,{"text": "tảo tàn nước nâu do thiếu oxy", "label": 0}
+  ,{"text": "cách gây màu nước ao", "label": 0}
+  ,{"text": "cách giảm dao động pH do tảo", "label": 0}
+  ,{"text": "xử lý đáy ao đen hôi", "label": 0}
+  ,{"text": "tôm nổi đầu lúc 4–5h sáng", "label": 0}
+  ,{"text": "tôm phân trắng đường ruột rỗng", "label": 0}
+  ,{"text": "tôm mềm vỏ thiếu khoáng", "label": 0}
+  ,{"text": "cá nổi đầu do DO thấp", "label": 0}
+  ,{"text": "cá koi lở loét đỏ thân", "label": 0}
+  ,{"text": "cá rô phi ăn yếu nổi đầu sáng", "label": 0}
+  ,{"text": "cá tra nổi đầu tối", "label": 0}
+  ,{"text": "gà 14 ngày tuổi khò khè chảy mũi", "label": 0}
+  ,{"text": "gà đẻ vỏ trứng mỏng thiếu canxi", "label": 0}
+  ,{"text": "heo con tiêu chảy sau đổi cám", "label": 0}
+  ,{"text": "heo nái sau đẻ bỏ ăn sữa giảm", "label": 0}
+  ,{"text": "chuồng heo mùi amoniac nền ướt", "label": 0}
+  ,{"text": "chuồng gà chất độn ướt mùi hôi", "label": 0}
+  ,{"text": "bò chướng hơi ăn cỏ non", "label": 0}
+  ,{"text": "dê bị ghẻ ngứa rụng lông", "label": 0}
+  ,{"text": "vịt đi phân xanh và bỏ ăn", "label": 0}
+  ,{"text": "lúa bị rầy nâu mật độ cao", "label": 0}
+  ,{"text": "lúa bị đạo ôn lá", "label": 0}
+  ,{"text": "lúa lem lép hạt sau mưa", "label": 0}
+  ,{"text": "cây sầu riêng rụng bông sau mưa", "label": 0}
+  ,{"text": "sầu riêng vàng lá gân xanh pH đất thấp", "label": 0}
+  ,{"text": "cam vàng lá gân xanh thiếu vi lượng", "label": 0}
+  ,{"text": "hồ tiêu chết nhanh thối rễ", "label": 0}
+  ,{"text": "cà phê rụng trái non sau mưa", "label": 0}
+  ,{"text": "dưa leo bị sương mai mặt dưới mốc", "label": 0}
+  ,{"text": "ớt bị thán thư trên trái", "label": 0}
+  ,{"text": "cà chua xoăn lá do bọ phấn", "label": 0}
+  ,{"text": "rau bị bọ nhảy lá thủng li ti", "label": 0}
+  ,{"text": "rau bị rệp trắng mặt dưới lá", "label": 0}
+  ,{"text": "xói mòn đất đồi do mưa lớn", "label": 0}
+  ,{"text": "hạn mặn và xâm nhập mặn ở đồng bằng", "label": 0}
+  ,{"text": "cách giảm phát thải methane trong ruộng lúa", "label": 0}
+  ,{"text": "đánh giá chất lượng nước sông bị ô nhiễm", "label": 0}
+  ,{"text": "xử lý nước thải sinh hoạt và nước thải chăn nuôi", "label": 0}
+  ,{"text": "PM2.5 ảnh hưởng sức khỏe và cách giảm phơi nhiễm", "label": 0}
+  ,{"text": "biện pháp phân loại rác và tái chế", "label": 0}
+  ,{"text": "tác động của phân bón đến ô nhiễm nước ngầm", "label": 0}
+  ,{"text": "cách ủ phân hữu cơ từ phụ phẩm nông nghiệp", "label": 0}
+  ,{"text": "quy trình làm hầm biogas cho chăn nuôi", "label": 0}
+  ,{"text": "phục hồi đất sau canh tác liên tục", "label": 0}
+  ,{"text": "đất phèn đất mặn cải tạo ra sao", "label": 0}
+  ,{"text": "đa dạng sinh học và hệ sinh thái rừng ngập mặn", "label": 0}
+
+  ,{"text": "tư vấn mua điện thoại nào tốt", "label": 1}
+  ,{"text": "cách sửa màn hình điện thoại bị sọc", "label": 1}
+  ,{"text": "cài đặt driver wifi trên windows", "label": 1}
+  ,{"text": "viết app android kotlin", "label": 1}
+  ,{"text": "làm website react nextjs", "label": 1}
+  ,{"text": "hướng dẫn học lập trình python", "label": 1}
+  ,{"text": "cấu hình nginx reverse proxy", "label": 1}
+  ,{"text": "tối ưu dockerfile", "label": 1}
+  ,{"text": "tư vấn mua bảo hiểm", "label": 1}
+  ,{"text": "tính lãi suất vay ngân hàng", "label": 1}
+  ,{"text": "làm sao khai thuế thu nhập cá nhân", "label": 1}
+  ,{"text": "soạn hợp đồng mua bán nhà", "label": 1}
+  ,{"text": "tôi muốn ly hôn cần thủ tục gì", "label": 1}
+  ,{"text": "đau bụng kéo dài có nguy hiểm không", "label": 1}
+  ,{"text": "triệu chứng sốt xuất huyết", "label": 1}
+  ,{"text": "tập gym tăng cơ như thế nào", "label": 1}
+  ,{"text": "cách giảm cân nhanh", "label": 1}
+  ,{"text": "học tiếng anh giao tiếp", "label": 1}
+  ,{"text": "giải bài toán vật lý", "label": 1}
+  ,{"text": "thủ đô của nhật bản là gì", "label": 1}
+  ,{"text": "kể chuyện cười", "label": 1}
+  ,{"text": "xem tử vi hôm nay", "label": 1}
+  ,{"text": "gợi ý tên cho quán cà phê", "label": 1}
+  ,{"text": "review phim hành động hay", "label": 1}
+]

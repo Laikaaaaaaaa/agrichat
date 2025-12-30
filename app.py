@@ -717,30 +717,6 @@ VÍ DỤ: "🐟 **Cá trê** là loài *ăn tạp*, đặc biệt **thích ăn s
 "Xin lỗi, mình là AgriSense AI - chuyên gia nông nghiệp. Mình chỉ hỗ trợ các câu hỏi về nông nghiệp và lĩnh vực liên quan. 🌱"
 """
 
-    @staticmethod
-    def _postprocess_ai_response(text: str) -> str:
-        if not isinstance(text, str):
-            return text
-
-        out = text.strip()
-        if not out:
-            return out
-
-        # Enforce greeting style
-        out = re.sub(r"^\s*(Chào\s+)bà\s+con\b", r"\1bạn", out, flags=re.IGNORECASE)
-        out = re.sub(r"^\s*(chao\s+)ba\s+con\b", r"\1ban", out, flags=re.IGNORECASE)
-
-        # Insert line breaks for common single-line blob patterns
-        out = out.replace(":  - ", ":\n- ")
-        out = out.replace(": - ", ":\n- ")
-        out = re.sub(r"(?<!\n)\s+-\s+", "\n- ", out)
-        out = re.sub(r"\s{2,}(\d+)\.\s+", r"\n\1. ", out)
-
-        # Clean excessive whitespace/newlines
-        out = re.sub(r"\n{3,}", "\n\n", out)
-        out = re.sub(r"[ \t]{2,}", " ", out)
-        return out.strip()
-        
         self.image_analysis_prompt = """
 Bạn là AgriSense AI - Chuyên gia phân tích hình ảnh nông nghiệp/môi trường. 
 
@@ -764,10 +740,12 @@ Bạn là AgriSense AI - Chuyên gia phân tích hình ảnh nông nghiệp/môi
 
 Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và markdown!
 """
-        
+
         # Unsplash API endpoint (free tier)
         self.unsplash_api_url = "https://api.unsplash.com/search/photos"
+
         # WeatherAPI key (support both env var names)
+        # Always define this attribute to avoid AttributeError in production.
         self.weatherapi_key = (
             os.getenv("WEATHER_API_KEY", "").strip()
             or os.getenv("WEATHERAPI_KEY", "").strip()
@@ -796,8 +774,32 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             "country": default_country_code,
             "latitude": default_lat,
             "longitude": default_lon,
-            "tz_id": default_tz
+            "tz_id": default_tz,
         }
+
+    @staticmethod
+    def _postprocess_ai_response(text: str) -> str:
+        if not isinstance(text, str):
+            return text
+
+        out = text.strip()
+        if not out:
+            return out
+
+        # Enforce greeting style
+        out = re.sub(r"^\s*(Chào\s+)bà\s+con\b", r"\1bạn", out, flags=re.IGNORECASE)
+        out = re.sub(r"^\s*(chao\s+)ba\s+con\b", r"\1ban", out, flags=re.IGNORECASE)
+
+        # Insert line breaks for common single-line blob patterns
+        out = out.replace(":  - ", ":\n- ")
+        out = out.replace(": - ", ":\n- ")
+        out = re.sub(r"(?<!\n)\s+-\s+", "\n- ", out)
+        out = re.sub(r"\s{2,}(\d+)\.\s+", r"\n\1. ", out)
+
+        # Clean excessive whitespace/newlines
+        out = re.sub(r"\n{3,}", "\n\n", out)
+        out = re.sub(r"[ \t]{2,}", " ", out)
+        return out.strip()
 
     def _format_weather_markdown(self, weather: dict, title: str) -> str:
         if not isinstance(weather, dict):

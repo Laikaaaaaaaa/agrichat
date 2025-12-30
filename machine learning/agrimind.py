@@ -59,6 +59,14 @@ DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "agrimind_textclf.pkl")
 LOGGER = logging.getLogger("agrimind")
 
 
+def _env_flag(name: str, default: bool = False) -> bool:
+    v = os.environ.get(name)
+    if v is None:
+        return bool(default)
+    v = str(v).strip().lower()
+    return v in {"1", "true", "yes", "y", "on"}
+
+
 def _get_cache_dir() -> str:
     # Heroku slug is read-only; /tmp is writable.
     env = os.environ.get("AGRIMIND_CACHE_DIR")
@@ -115,6 +123,19 @@ def _resolve_model_path(local_model_path: str) -> Optional[str]:
         if os.path.exists(cached_path) and os.path.getsize(cached_path) > 0:
             return cached_path
 
+        # IMPORTANT: downloading a model during a live web request can easily trigger
+        # platform-level timeouts (503). Default to NOT downloading unless explicitly enabled.
+        allow_download = _env_flag("AGRIMIND_ALLOW_MODEL_DOWNLOAD", default=False)
+        if not allow_download:
+            LOGGER.warning(
+                "AGRIMIND_ALLOW_MODEL_DOWNLOAD is disabled; skipping HF download. "
+                "Set AGRIMIND_ALLOW_MODEL_DOWNLOAD=1 to allow downloading on-demand."
+            )
+            if source == "hf":
+                return None
+            # fall back to local in auto mode
+            use_hf = False
+
         token = (os.environ.get("AGRIMIND_HF_TOKEN") or "").strip()
         headers = {"Authorization": f"Bearer {token}"} if token else None
 
@@ -122,7 +143,12 @@ def _resolve_model_path(local_model_path: str) -> Optional[str]:
         url = f"https://huggingface.co/{repo}/resolve/{revision}/{filename}?download=true"
         try:
             LOGGER.warning("Downloading model from Hugging Face: %s -> %s", url, cached_path)
-            _download_file(url, cached_path, headers=headers)
+            try:
+                timeout_s = int(os.environ.get("AGRIMIND_HF_DOWNLOAD_TIMEOUT_S", "20"))
+            except Exception:
+                timeout_s = 20
+            timeout_s = max(5, min(120, int(timeout_s)))
+            _download_file(url, cached_path, timeout_s=timeout_s, headers=headers)
             return cached_path
         except Exception as e:
             LOGGER.warning("Failed to download model from HF (%s): %s", repo, e)

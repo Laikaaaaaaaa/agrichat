@@ -208,7 +208,7 @@
     }
 
     .bot-bubble strong {
-      color: #166534;
+      color: inherit;
       word-spacing: normal !important;
     }
 
@@ -367,7 +367,7 @@
     }
 
     .message-wrapper.bot strong {
-      color: #166534 !important;
+      color: inherit !important;
       font-weight: 600 !important;
     }
 
@@ -1070,9 +1070,7 @@
       result = result.replace(/(^|\n)\*\s+/g, '$1- ');
 
       // Ensure headings start on a new paragraph
-      result = result.replace(/([\.!?])\s+(####?\s)/g, (match, punct, heading) => `${punct}\n\n${heading}`);
-      result = result.replace(/([\.!?])\s+(###\s)/g, (match, punct, heading) => `${punct}\n\n${heading}`);
-      result = result.replace(/([\.!?])\s+(##\s)/g, (match, punct, heading) => `${punct}\n\n${heading}`);
+      result = result.replace(/([\.!?,;:])\s+(#{2,6}\s)/g, (match, punct, heading) => `${punct}\n\n${heading}`);
 
       // Ensure headings not at start have blank line before them
       result = result.replace(/([^\n])\n(##+\s)/g, (match, before, heading) => `${before}\n\n${heading}`);
@@ -3425,7 +3423,11 @@
           if (!updateParts.length) {
             updateParts.push(new Date().toLocaleTimeString());
           }
-          subEl.textContent = `Cập nhật: ${updateParts.join(' · ')}`;
+          const coordParts = [];
+          if (Number.isFinite(data.lat) && Number.isFinite(data.lon)) {
+            coordParts.push(`${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`);
+          }
+          subEl.textContent = `Cập nhật: ${updateParts.join(' · ')}${coordParts.length ? ` · Tọa độ: ${coordParts.join('')}` : ''}`;
           tempEl.textContent = (data.temp !== undefined && data.temp !== null) ? `${data.temp}°C` : '—';
           humEl.textContent = (data.humidity !== undefined && data.humidity !== null) ? `${data.humidity}%` : '—';
           windEl.textContent = (data.wind_kph !== undefined && data.wind_kph !== null) ? `${data.wind_kph} km/h` : (data.wind_m_s !== undefined && data.wind_m_s !== null ? `${data.wind_m_s} m/s` : '—');
@@ -3697,6 +3699,8 @@
             location_country: obj.location_country || obj.country || obj.country_name || null,
             condition: obj.condition || (obj.weather && obj.weather[0]?.description) || obj.description || null,
             icon: obj.icon || (obj.weather && obj.weather[0]?.icon ? `https://openweathermap.org/img/wn/${obj.weather[0].icon}@2x.png` : null),
+            lat: (obj.lat ?? obj.latitude ?? obj.meta?.lat ?? null),
+            lon: (obj.lon ?? obj.longitude ?? obj.meta?.lon ?? null),
             temp: obj.temp ?? (obj.temperature ?? obj.main?.temp ?? null),
             humidity: obj.humidity ?? obj.main?.humidity ?? obj.humidity_percent ?? null,
             wind_kph: obj.wind_kph ?? (obj.wind?.speed ? Math.round(obj.wind.speed * 3.6) : obj.wind_kph ?? null),
@@ -3705,6 +3709,12 @@
             last_updated: obj.last_updated ?? obj.updated_at ?? null,
             source: obj.source || 'unknown'
           };
+
+          // Normalize coord types
+          const latNum = (clone.lat === null || clone.lat === undefined) ? null : Number(clone.lat);
+          const lonNum = (clone.lon === null || clone.lon === undefined) ? null : Number(clone.lon);
+          clone.lat = Number.isFinite(latNum) ? latNum : null;
+          clone.lon = Number.isFinite(lonNum) ? lonNum : null;
 
           const meta = (obj.meta && typeof obj.meta === 'object') ? { ...obj.meta } : {};
           if (!('cached' in meta)) {
@@ -6214,11 +6224,12 @@
         
         const textDiv = document.createElement('div');
         if (sender === 'bot' && window.markdownit) {
+          const normalizedText = normalizeMarkdown(text);
           textDiv.innerHTML = window.markdownit({
             html: true,
             breaks: true,
             linkify: true
-          }).render(text);
+          }).render(normalizedText);
         } else {
           textDiv.textContent = text;
         }

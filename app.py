@@ -2241,6 +2241,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                 detailed_payload["location_country"] = country
             response_payload = {
                 "success": True,
+                "lat": lat,
+                "lon": lon,
                 "city": city,
                 "country": country,
                 **detailed_payload,
@@ -2327,6 +2329,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                     
                     return {
                         "success": True,
+                        "lat": lat,
+                        "lon": lon,
                         "city": city_name,
                         "country": country_name,
                         "condition": condition,
@@ -2377,6 +2381,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                 
                 return {
                     "success": True,
+                    "lat": lat,
+                    "lon": lon,
                     "city": city_name,
                     "country": country_name,
                     "condition": condition,
@@ -2400,6 +2406,8 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
         
         return {
             "success": False,
+            "lat": lat,
+            "lon": lon,
             "city": city_name,
             "country": country_name,
             "location_name": city_name,  # Add location_name even for errors

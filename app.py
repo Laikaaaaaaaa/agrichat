@@ -91,6 +91,53 @@ def _load_agrimind_module():
     spec.loader.exec_module(module)
     return module
 
+
+@lru_cache(maxsize=1)
+def _load_greeting_intent_module():
+    """Load greeting intent module from path (folder name contains a space)."""
+
+    greeting_path = os.path.join(HERE, "machine learning", "greeting_intent.py")
+    if not os.path.exists(greeting_path):
+        raise FileNotFoundError(f"Greeting intent module not found: {greeting_path}")
+
+    spec = importlib.util.spec_from_file_location("greeting_intent_runtime", greeting_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Cannot load greeting intent module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _try_local_greeting_response(user_message: str):
+    """Return a canned greeting reply if message is greeting-only, else None."""
+
+    try:
+        if not isinstance(user_message, str):
+            return None
+
+        msg = user_message.strip()
+        if not msg:
+            return None
+
+        # Avoid false positives on longer messages.
+        if len(msg) > 80:
+            return None
+
+        mod = _load_greeting_intent_module()
+        if getattr(mod, "is_greeting", None) is None:
+            return None
+        if not bool(mod.is_greeting(msg)):
+            return None
+
+        reply_fn = getattr(mod, "generate_greeting_reply", None)
+        if reply_fn is None:
+            return None
+        return str(reply_fn())
+    except Exception:
+        return None
+
 # ============================================================================
 # 🔐 SECURITY: Rate Limiting for Brute Force Protection
 # ============================================================================
@@ -1703,6 +1750,12 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                 logging.info(f"👨‍💼 Creator question detected: '{message}'")
                 self.add_to_conversation_history(message, "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾")
                 return "👨‍💻 **Phạm Nhật Quang** 🚀\n\nĐó là người sáng lập và phát triển AgriSense AI - nền tảng AI nông nghiệp thông minh cho Việt Nam! 🌾"
+
+            # ✅ Greeting-only messages: reply locally (no OpenAI/Gemini)
+            local_greeting = _try_local_greeting_response(message)
+            if local_greeting:
+                self.add_to_conversation_history(message, local_greeting)
+                return local_greeting
             
             # Lấy ngữ cảnh từ lịch sử hội thoại
             conversation_context = self.get_conversation_context()

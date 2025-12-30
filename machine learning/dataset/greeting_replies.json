@@ -33,7 +33,7 @@
   {"text": "Hi! Bạn muốn hỏi về cách phòng bệnh hay trị bệnh?"},
 
   {"text": "Chào bạn! Bạn cần mình giúp gì để vụ này thắng lớn không?"},
-  {"text": "Xin chào bạn ạ. Bạn có thắc mắc gì về quy trình VietGAP hay hữu cơ không?"},
+  {"text": "Xin chào bạn ạ. Bạn có thắc mắc gì không ạ?"},
   {"text": "Hello! Mình sẵn sàng rồi. Bạn muốn bắt đầu từ đâu?"},
   {"text": "Chào bạn 😊 Hôm nay bạn khỏe không? Cần mình giúp gì về công việc nhà nông?"},
   {"text": "Hi bạn! Bạn đang tìm giải pháp cho vấn đề gì? Sâu rầy, nấm bệnh hay dinh dưỡng?"},
@@ -59,9 +59,7 @@
   {"text": "Hi! Mình có thể giúp bạn tra cứu bệnh hại và cách phòng trừ."},
   {"text": "Hello bạn! Bạn muốn hỏi về kỹ thuật mới hay kinh nghiệm truyền thống?"},
   {"text": "Chào bạn! Bạn có câu hỏi nào về giá cả vật tư nông nghiệp không?"},
-  {"text": "Xin chào 😊 Bạn cần mình tư vấn về lịch gieo trồng hay thu hoạch?"},
-  {"text": "Hi bạn! Thời tiết dạo này thất thường, bạn cần lưu ý gì cho cây trồng không?"},
-  {"text": "Chào bạn 👋 Bạn cần mình hỗ trợ chẩn đoán bệnh cho tôm/cá không?"},
+  {"text": "Xin chào 😊 Bạn có cần mình tư vấn về lịch gieo trồng hay thu hoạch?"},
   {"text": "Hello! Bạn muốn tìm hiểu về mô hình nông nghiệp thông minh không?"},
   {"text": "Xin chào 🌿 Bạn cứ đặt câu hỏi, mình sẽ cố gắng giải đáp chính xác nhất."},
 

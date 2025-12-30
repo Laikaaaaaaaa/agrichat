@@ -45,6 +45,19 @@ from image_search_memory import (
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urljoin
 
+
+def _get_client_ip_from_request(req) -> str | None:
+    """Best-effort client IP extraction behind common proxies."""
+
+    try:
+        if req.headers.get('X-Forwarded-For'):
+            return req.headers.get('X-Forwarded-For').split(',')[0].strip()
+        if req.headers.get('X-Real-IP'):
+            return req.headers.get('X-Real-IP').strip()
+        return req.remote_addr
+    except Exception:
+        return None
+
 # Optional imports for RSS parsing - try to import, fallback if not available
 try:
     from bs4 import BeautifulSoup
@@ -758,6 +771,15 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
         default_city = os.getenv("DEFAULT_WEATHER_CITY", "Hồ Chí Minh").strip() or "Hồ Chí Minh"
         default_region = os.getenv("DEFAULT_WEATHER_REGION", default_city).strip() or default_city
         default_country_name = os.getenv("DEFAULT_WEATHER_COUNTRY", "Việt Nam").strip() or "Việt Nam"
+
+        # Caches & TTLs (used by /api/weather and /api/location)
+        # Always define these to avoid AttributeError in production.
+        self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 5400)) or 5400  # 90 min
+        self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300  # 5 min
+        self.nominatim_cache_ttl = self._safe_float(os.getenv("NOMINATIM_CACHE_TTL", 5400)) or 5400  # 90 min
+        self._ip_location_cache = {"timestamp": 0.0, "data": None}
+        self._weather_cache = {"timestamp": 0.0, "payload": None}
+        self._nominatim_cache = {}
         default_country_code = os.getenv("DEFAULT_WEATHER_COUNTRY_CODE", "VN").strip() or "VN"
         default_lat = self._safe_float(os.getenv("DEFAULT_WEATHER_LAT"))
         if default_lat is None:
@@ -1281,11 +1303,27 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
 
         consent = session.get("weather_geo_consent")
 
+        # If user consented but GPS coordinates are unavailable (e.g. WebView restrictions),
+        # allow an IP-based fallback instead of repeatedly asking for permission.
+        geo_method = session.get("weather_geo_method")
+
         # Ask for permission unless we already have consent + coordinates.
         # If user denied before and asks again, we ask again.
         lat = session.get("weather_geo_lat")
         lon = session.get("weather_geo_lon")
-        if consent is not True or lat is None or lon is None:
+        if consent is not True:
+            session["pending_weather_query"] = message
+            return {"type": "html", "response": self._weather_consent_html()}
+
+        if (lat is None or lon is None) and geo_method == "ip":
+            client_ip = _get_client_ip_from_request(request)
+            weather = self.get_weather_info(client_ip=client_ip)
+            return {
+                "type": "text",
+                "response": self._format_weather_markdown(weather, "Thời tiết gần bạn (ước tính theo IP)")
+            }
+
+        if lat is None or lon is None:
             session["pending_weather_query"] = message
             return {"type": "html", "response": self._weather_consent_html()}
 
@@ -1342,13 +1380,6 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             # If AgriMind fails for any reason, fall back to plain question.
             logging.warning(f"⚠️ AgriMind prompt generation failed; fallback to plain question. Error: {e}")
             return q
-
-        self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 5400)) or 5400  # 90 min - sync with frontend weather update
-        self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300  # 5 min - for API rate limiting
-        self.nominatim_cache_ttl = self._safe_float(os.getenv("NOMINATIM_CACHE_TTL", 5400)) or 5400  # 90 min - respect Nominatim rate limits
-        self._ip_location_cache = {"timestamp": 0.0, "data": None}
-        self._weather_cache = {"timestamp": 0.0, "payload": None}
-        self._nominatim_cache = {}  # Dictionary to cache Nominatim results by lat,lon key
 
     # ------------------------------------------------------------------
     # Utility helpers
@@ -6760,13 +6791,30 @@ def set_location():
             return jsonify({"success": True, "type": "text", "response": text})
 
         # consent True
+        # If lat/lon are missing (common when geolocation fails in WebView), fall back to IP-based location.
+        lat_raw = data.get('lat', None)
+        lon_raw = data.get('lon', None)
+        if lat_raw is None or lon_raw is None:
+            session['weather_geo_consent'] = True
+            session['weather_geo_method'] = 'ip'
+            session.pop('weather_geo_lat', None)
+            session.pop('weather_geo_lon', None)
+
+            client_ip = _get_client_ip_from_request(request)
+            weather_data = api.get_weather_info(client_ip=client_ip)
+            title = "Thời tiết gần bạn (ước tính theo IP)"
+            text = api._format_weather_markdown(weather_data, title)
+            session.pop('pending_weather_query', None)
+            return jsonify({"success": True, "type": "text", "response": text})
+
         try:
-            lat = float(data.get('lat'))
-            lon = float(data.get('lon'))
+            lat = float(lat_raw)
+            lon = float(lon_raw)
         except Exception:
             return jsonify({"success": False, "error": "Missing or invalid lat/lon"}), 400
 
         session['weather_geo_consent'] = True
+        session['weather_geo_method'] = 'gps'
         session['weather_geo_lat'] = lat
         session['weather_geo_lon'] = lon
 

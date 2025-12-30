@@ -29,6 +29,7 @@
 
   <script type="module">
     import { CameraManager } from './js/cameraManager.js';
+    import { getUserLocationWithRetry } from './js/userLocation.js';
     
     // Initialize camera system when DOM is ready
     document.addEventListener('DOMContentLoaded', async () => {
@@ -40,6 +41,9 @@
         console.error('❌ Failed to initialize camera:', error);
       }
     });
+
+    // Expose location helper to non-module scripts
+    window.getUserLocationWithRetry = getUserLocationWithRetry;
   </script>
   <style>
     /* WebView Optimization */
@@ -7123,6 +7127,8 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
       const wrapper = triggerEl ? triggerEl.closest('.message-wrapper') : null;
       const messageId = wrapper?.dataset?.messageId || bubble?.dataset?.messageId || null;
 
+      const originalHtml = bubble ? bubble.innerHTML : null;
+
       const setBubbleHtml = (html) => {
         if (bubble) bubble.innerHTML = html;
       };
@@ -7202,71 +7208,72 @@ Hãy trả lời cụ thể, chi tiết và thực tế!`;
         return;
       }
 
-      if (!navigator.geolocation) {
-        const resp = await fetch('/api/location', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ consent: false })
-        });
-        const result = await resp.json();
-        const text = result?.response || '⚠️ Trình duyệt không hỗ trợ định vị. Mình dùng mặc định Hà Nội & TP.HCM.';
-        await typewriterIntoBubble(text);
-        if (messageId && window.chatHistoryManager?.updateMessage) {
-          window.chatHistoryManager.updateMessage(messageId, text, 'text');
+      // New location getter (separate file): window.getUserLocationWithRetry
+      if (typeof window.getUserLocationWithRetry !== 'function') {
+        // Restore original bubble content so user can retry
+        if (bubble && originalHtml) {
+          bubble.innerHTML = originalHtml;
         }
+        await window.appendMessageWithTypewriter('bot', '❌ Lỗi: chưa load được module lấy vị trí.');
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const lat = pos?.coords?.latitude;
-            const lon = pos?.coords?.longitude;
+      let loc;
+      try {
+        loc = await window.getUserLocationWithRetry(2);
+      } catch (e) {
+        console.warn('⚠️ getUserLocationWithRetry failed:', e);
 
-            const resp = await fetch('/api/location', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ consent: true, lat, lon })
-            });
-            const result = await resp.json();
-            const text = (result?.response) || '❌ Mình chưa lấy được thời tiết theo vị trí.';
-            await typewriterIntoBubble(text);
-            if (messageId && window.chatHistoryManager?.updateMessage) {
-              window.chatHistoryManager.updateMessage(messageId, text, 'text');
-            }
-          } catch (e) {
-            console.error('❌ Error posting /api/location:', e);
-            const text = '❌ Lỗi khi gửi vị trí lên server.';
-            await typewriterIntoBubble(text);
-            if (messageId && window.chatHistoryManager?.updateMessage) {
-              window.chatHistoryManager.updateMessage(messageId, text, 'text');
-            }
-          }
-        },
-        async (err) => {
-          console.warn('⚠️ Geolocation denied/unavailable:', err);
-          // If user denies in browser prompt, fall back to default Hanoi + HCM
+        // If GPS fails, fall back to IP-based lookup (still respects consent=true).
+        try {
           const resp = await fetch('/api/location', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ consent: false })
+            body: JSON.stringify({ consent: true })
           });
           const result = await resp.json();
-          const text = result?.response || '⚠️ Không lấy được vị trí. Mình dùng mặc định Hà Nội & TP.HCM.';
+          const text = (result?.response) || '❌ Mình chưa lấy được thời tiết theo vị trí.';
           await typewriterIntoBubble(text);
           if (messageId && window.chatHistoryManager?.updateMessage) {
             window.chatHistoryManager.updateMessage(messageId, text, 'text');
           }
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
+          return;
+        } catch (fallbackErr) {
+          // Restore original consent bubble so user can retry
+          if (bubble && originalHtml) {
+            bubble.innerHTML = originalHtml;
+          }
+          const reason = e?.message || 'GEOLOCATION_FAILED';
+          const detail = e?.details ? JSON.stringify(e.details, null, 0) : '';
+          const text = `❌ Không lấy được vị trí hiện tại (${reason}).\n\n💡 Gợi ý:\n- Bật quyền Location cho trang này\n- Bật GPS (nếu dùng điện thoại)\n- Đảm bảo truy cập bằng HTTPS\n\n${detail ? 'Chi tiết: ' + detail : ''}`;
+          await window.appendMessageWithTypewriter('bot', text);
+          console.error('❌ IP fallback /api/location failed:', fallbackErr);
+          return;
         }
-      );
+      }
+
+      try {
+        const resp = await fetch('/api/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ consent: true, lat: loc.lat, lon: loc.lon })
+        });
+        const result = await resp.json();
+        const text = (result?.response) || '❌ Mình chưa lấy được thời tiết theo vị trí.';
+        await typewriterIntoBubble(text);
+        if (messageId && window.chatHistoryManager?.updateMessage) {
+          window.chatHistoryManager.updateMessage(messageId, text, 'text');
+        }
+      } catch (e) {
+        console.error('❌ Error posting /api/location:', e);
+        const text = '❌ Lỗi khi gửi vị trí lên server.';
+        await typewriterIntoBubble(text);
+        if (messageId && window.chatHistoryManager?.updateMessage) {
+          window.chatHistoryManager.updateMessage(messageId, text, 'text');
+        }
+      }
     } catch (error) {
       console.error('❌ handleLocationConsent error:', error);
       if (triggerEl) {

@@ -1,0 +1,7 @@
+# Prevent large local model artifacts from being bundled into the Heroku slug
+machine learning/model/
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
+logs/

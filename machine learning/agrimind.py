@@ -23,6 +23,7 @@ import pickle
 import random
 import re
 import sys
+import tempfile
 import time
 import unicodedata
 from dataclasses import dataclass
@@ -36,8 +37,103 @@ DEFAULT_DATASET_PATH = os.path.join(HERE, "dataset", "dataset.json")
 DEFAULT_MODEL_DIR = os.path.join(HERE, "model")
 DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "agrimind_textclf.pkl")
 
+# Optional: host the (potentially large) sklearn pickle on Hugging Face Hub.
+# Recommended for Heroku: DO NOT bundle the model in the slug. Instead, download
+# on-demand from Hugging Face and cache in /tmp.
+#
+# Env vars:
+# - AGRIMIND_MODEL_SOURCE=auto|hf|local   (default: auto)
+#     * auto: prefer HF if AGRIMIND_HF_REPO is set; else use local if exists
+#     * hf: always use HF (ignore local file)
+#     * local: only use local file (ignore HF)
+# - AGRIMIND_HF_REPO=Coffee2307/agrimind-1
+# - AGRIMIND_HF_FILENAME=agrimind_textclf.pkl
+# - AGRIMIND_HF_REVISION=main (or a tag/commit)
+# - AGRIMIND_HF_TOKEN=hf_... (optional; required for private repos)
+#
+# Note: even when "using HF", the file must still be downloaded to run locally.
+# This code caches it in a writable directory so the download doesn't repeat every request.
+
+
 
 LOGGER = logging.getLogger("agrimind")
+
+
+def _get_cache_dir() -> str:
+    # Heroku slug is read-only; /tmp is writable.
+    env = os.environ.get("AGRIMIND_CACHE_DIR")
+    if env and env.strip():
+        return os.path.abspath(env)
+    tmpdir = os.environ.get("TMPDIR")
+    if tmpdir and tmpdir.strip():
+        return os.path.abspath(tmpdir)
+    return os.path.abspath(tempfile.gettempdir())
+
+
+def _download_file(url: str, dest_path: str, timeout_s: int = 60, headers: Optional[Dict[str, str]] = None) -> None:
+    import requests
+
+    os.makedirs(os.path.dirname(os.path.abspath(dest_path)), exist_ok=True)
+    tmp_path = dest_path + ".part"
+
+    with requests.get(url, stream=True, timeout=timeout_s, headers=headers) as r:
+        r.raise_for_status()
+        with open(tmp_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    f.write(chunk)
+
+    os.replace(tmp_path, dest_path)
+
+
+def _resolve_model_path(local_model_path: str) -> Optional[str]:
+    """Return a usable local path for the sklearn pickle.
+
+    Priority depends on AGRIMIND_MODEL_SOURCE:
+    - local: local only
+    - hf: HF only
+    - auto: HF if configured, else local
+    """
+
+    source = (os.environ.get("AGRIMIND_MODEL_SOURCE") or "auto").strip().lower()
+    if source not in {"auto", "hf", "local"}:
+        source = "auto"
+
+    repo = (os.environ.get("AGRIMIND_HF_REPO") or "").strip()
+    use_hf = bool(repo) and source in {"auto", "hf"}
+    use_local = source in {"auto", "local"}
+
+    if use_hf:
+        filename = (os.environ.get("AGRIMIND_HF_FILENAME") or "agrimind_textclf.pkl").strip()
+        if not filename:
+            return None
+
+        revision = (os.environ.get("AGRIMIND_HF_REVISION") or "main").strip() or "main"
+
+        cache_dir = os.path.join(_get_cache_dir(), "agrimind", "models", repo.replace("/", "__"), revision)
+        cached_path = os.path.join(cache_dir, filename)
+        if os.path.exists(cached_path) and os.path.getsize(cached_path) > 0:
+            return cached_path
+
+        token = (os.environ.get("AGRIMIND_HF_TOKEN") or "").strip()
+        headers = {"Authorization": f"Bearer {token}"} if token else None
+
+        # Hugging Face direct resolve URL.
+        url = f"https://huggingface.co/{repo}/resolve/{revision}/{filename}?download=true"
+        try:
+            LOGGER.warning("Downloading model from Hugging Face: %s -> %s", url, cached_path)
+            _download_file(url, cached_path, headers=headers)
+            return cached_path
+        except Exception as e:
+            LOGGER.warning("Failed to download model from HF (%s): %s", repo, e)
+            if source == "hf":
+                return None
+            # fall back to local in auto mode
+
+    if use_local and local_model_path and os.path.exists(local_model_path):
+        return local_model_path
+
+    return None
 
 
 def _normalize(text: str) -> str:
@@ -146,11 +242,13 @@ def _build_lexicons(entries: List[KBEntry]) -> Dict[str, Any]:
     }
 
     specie_aliases = {
+        # Note: "lợn" and "lớn" both normalize to "lon"; handle "lon" with extra context rules.
         "heo": ["heo", "lon"],
         "ga": ["ga", "ga ta", "ga cong nghiep"],
         "bo": ["bo", "bo sua", "bo thit"],
         "tom": ["tom", "tom the", "tom su"],
         "lua": ["lua", "ruong lua"],
+        "tằm": ["tam", "tam to", "tam to", "tam tua"],
         # disambiguation: don't let 'bắp' map to 'ngô' when user means cabbage
         "bắp cải": ["bap cai", "cai bap"],
         "ngô": ["ngo", "bap ngo", "bap my", "corn", "maize", "bap"],
@@ -267,6 +365,18 @@ def _has_term(text_norm: str, term: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(term_norm)}(?!\w)", text_norm) is not None
 
 
+def _has_pig_lon_with_context(text_norm: str) -> bool:
+    """Return True if "lon" likely means pig (lợn), not "lớn".
+
+    Because we strip accents, "lớn" (big) and "lợn" (pig) both become "lon".
+    We therefore require a small context word near "lon" to treat it as pig.
+    """
+
+    # Examples we want to match: "con lon", "dan lon", "nuoi lon", "chuong lon".
+    # Examples we must avoid: "mua lon", "qua lon", "rat lon".
+    return re.search(r"(?<!\w)(con|dan|nuoi|chuong)\s+lon(?!\w)", text_norm) is not None
+
+
 def _extract_symptoms(text_norm: str, symptom_list: List[str]) -> List[str]:
     found: List[str] = []
     symptom_lex = {_normalize(s) for s in symptom_list if s}
@@ -274,9 +384,17 @@ def _extract_symptoms(text_norm: str, symptom_list: List[str]) -> List[str]:
         s_norm = _normalize(s)
         if not s_norm:
             continue
-        # allow partial match (symptoms are often phrases)
-        if s_norm in text_norm:
-            found.append(s)
+        # Avoid spurious matches for very short symptoms (e.g. "ho" appears inside many words)
+        if len(s_norm) < 3:
+            continue
+
+        # Use boundary-safe match for single-token symptoms; allow substring for multiword phrases.
+        if " " in s_norm:
+            if s_norm in text_norm:
+                found.append(s)
+        else:
+            if _has_term(text_norm, s_norm):
+                found.append(s)
 
     # Extra VN-friendly symptom patterns (context understanding)
     # These help when the dataset doesn't contain an exact phrase, or users write variants.
@@ -342,9 +460,10 @@ def _infer_domain_hint(q_norm: str) -> Optional[str]:
 def _try_ml_predict_entry_id(question: str, model_path: str = DEFAULT_MODEL_PATH) -> Optional[Dict[str, Any]]:
     """Try to predict a KB entry id from free-text question using a trained sklearn model."""
     try:
-        if not model_path or not os.path.exists(model_path):
+        resolved = _resolve_model_path(model_path)
+        if not resolved or not os.path.exists(resolved):
             return None
-        with open(model_path, "rb") as f:
+        with open(resolved, "rb") as f:
             model = pickle.load(f)
 
         classes = model.get("classes") or []
@@ -388,7 +507,13 @@ def extract_entities(question: str, entries: List[KBEntry], lex: Dict[str, Any])
     specie: Optional[str] = None
     for canonical, aliases in lex.get("specie_aliases", {}).items():
         for alias in aliases:
-            if _has_term(q_norm, alias):
+            alias_norm = _normalize(alias)
+            if canonical == "heo" and alias_norm == "lon":
+                hit = _has_pig_lon_with_context(q_norm)
+            else:
+                hit = _has_term(q_norm, alias)
+
+            if hit:
                 # map back to canonical specie label present in dataset when possible
                 for s in lex["species"]:
                     if _normalize(s) == canonical:
@@ -921,6 +1046,28 @@ def cli_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def cli_model_info(args: argparse.Namespace) -> int:
+    resolved = _resolve_model_path(DEFAULT_MODEL_PATH)
+    print(
+        json.dumps(
+            {
+                "default_model_path": os.path.abspath(DEFAULT_MODEL_PATH),
+                "resolved_model_path": os.path.abspath(resolved) if resolved else None,
+                "exists": bool(resolved and os.path.exists(resolved)),
+                "model_source": (os.environ.get("AGRIMIND_MODEL_SOURCE") or "auto").strip() or "auto",
+                "hf_repo": (os.environ.get("AGRIMIND_HF_REPO") or "").strip() or None,
+                "hf_filename": (os.environ.get("AGRIMIND_HF_FILENAME") or "").strip() or None,
+                "hf_revision": (os.environ.get("AGRIMIND_HF_REVISION") or "main").strip() or "main",
+                "hf_token_set": bool((os.environ.get("AGRIMIND_HF_TOKEN") or "").strip()),
+                "cache_dir": _get_cache_dir(),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
+
+
 @lru_cache(maxsize=1024)
 def _cached_extract(question: str, dataset_path: str) -> Dict[str, Any]:
     entries, lex, index = _get_resources(dataset_path)
@@ -1056,6 +1203,9 @@ def build_argparser() -> argparse.ArgumentParser:
     p_eval.add_argument("--seed", type=int, default=42)
     p_eval.add_argument("--test-size", type=float, default=0.2)
     p_eval.set_defaults(func=cli_eval)
+
+    p_info = sub.add_parser("model-info", help="Show where the ML model is loaded from (local vs Hugging Face)")
+    p_info.set_defaults(func=cli_model_info)
 
     return p
 

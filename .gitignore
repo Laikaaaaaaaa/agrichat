@@ -57,4 +57,9 @@ logs/
 tmp/
 temp/
 
+# Large ML artifacts (keep out of git/Heroku slug)
+machine learning/model/
+machine learning/model/**
+*.pkl
+
 *.db

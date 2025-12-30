@@ -5,6 +5,8 @@ import json
 import copy
 import re
 import unicodedata
+import importlib.util
+import sys
 import requests
 import time
 import random
@@ -17,7 +19,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, make_response, redirect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from functools import wraps
+from functools import wraps, lru_cache
 from cryptography.fernet import Fernet
 from image_search import ImageSearchEngine  # Import engine tìm kiếm ảnh mới
 from modes import ModeManager  # Import mode manager
@@ -66,6 +68,28 @@ logging.basicConfig(
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(HERE, 'templates')  # 📁 Template directory for HTML files
 HTML_FILE = os.path.join(TEMPLATES_DIR, 'index.html')
+
+
+@lru_cache(maxsize=1)
+def _load_agrimind_module():
+    """Load AgriMind module from path (folder name contains a space).
+
+    We avoid a regular import because the directory is `machine learning/`.
+    """
+
+    agrimind_path = os.path.join(HERE, "machine learning", "agrimind.py")
+    if not os.path.exists(agrimind_path):
+        raise FileNotFoundError(f"AgriMind not found: {agrimind_path}")
+
+    spec = importlib.util.spec_from_file_location("agrimind_runtime", agrimind_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("Cannot load AgriMind module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    # Required: dataclasses inspects sys.modules[cls.__module__] during decoration.
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 # ============================================================================
 # 🔐 SECURITY: Rate Limiting for Brute Force Protection
@@ -519,6 +543,45 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             "longitude": default_lon,
             "tz_id": default_tz
         }
+
+    def _get_long_text_threshold(self) -> int:
+        try:
+            v = int(os.environ.get("AGRIMIND_LONG_TEXT_CHARS", "900"))
+            return max(200, v)
+        except Exception:
+            return 900
+
+    def _should_bypass_agrimind(self, userquestion: str) -> bool:
+        q = str(userquestion or "").strip()
+        if not q:
+            return True
+        return len(q) >= self._get_long_text_threshold()
+
+    def _build_prompt_via_agrimind(self, userquestion: str) -> str:
+        """Use AgriMind to produce the header + JSON prompt for OpenAI."""
+
+        q = str(userquestion or "").strip()
+        if not q:
+            return ""
+        try:
+            agrimind = _load_agrimind_module()
+
+            # Reuse AgriMind's own cached pipeline so we match KB + safety rules consistently.
+            dataset_path = getattr(agrimind, "DEFAULT_DATASET_PATH", None)
+            if not dataset_path:
+                raise RuntimeError("AgriMind DEFAULT_DATASET_PATH missing")
+
+            result = agrimind._cached_extract(q, dataset_path)
+            extracted = result.get("extracted") or {}
+
+            entry_raw = result.get("matched")
+            entry = agrimind.KBEntry(**entry_raw) if entry_raw else None
+
+            return agrimind.generate_preview_prompt(q, extracted, entry)
+        except Exception as e:
+            # If AgriMind fails for any reason, fall back to plain question.
+            logging.warning(f"⚠️ AgriMind prompt generation failed; fallback to plain question. Error: {e}")
+            return q
 
         self.ip_cache_ttl = self._safe_float(os.getenv("IP_LOOKUP_CACHE_TTL", 5400)) or 5400  # 90 min - sync with frontend weather update
         self.weather_cache_ttl = self._safe_float(os.getenv("WEATHER_CACHE_TTL", 300)) or 300  # 5 min - for API rate limiting
@@ -1483,50 +1546,16 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
             raise ValueError("Chưa cấu hình OPENAI_API_KEY")
 
         url = "https://api.openai.com/v1/chat/completions"
-        system_prompt = """Bạn là AgriSense AI - Chuyên gia tư vấn nông nghiệp thông minh của Việt Nam.
-
-PHONG CÁCH TRẢ LỜI - BÁT BUỘC:
-🎨 Sử dụng EMOJI phù hợp THƯỜNG XUYÊN (ít nhất 2-3 emoji mỗi câu trả lời):
-   🌱 Cây trồng | 🐟 Cá/thủy sản | 🐄 Gia súc | 🐔 Gia cầm | 🚜 Máy móc
-   ☀️ Thời tiết | 🌧️ Mưa | 💧 Nước | 🌾 Lúa | 🌽 Ngô | 🥬 Rau
-   ⚠️ Cảnh báo | ✅ Đúng | ❌ Sai | 💡 Gợi ý | 📊 Số liệu
-   
-📝 Sử dụng MARKDOWN để làm nổi bật:
-   - **In đậm** cho từ khóa quan trọng, tên loài, số liệu
-   - *In nghiêng* cho thuật ngữ chuyên môn, tên khoa học
-   - Kết hợp cả hai: ***Cực kỳ quan trọng***
-   
-VÍ DỤ PHONG CÁCH MẪU:
-❌ Tệ: "Cá trê là loài cá ăn tạp, thích ăn sâu bọ và phù du."
-✅ Tốt: "🐟 **Cá trê** là loài *ăn tạp*, đặc biệt **thích ăn sâu bọ** 🐛 và phù du! Chúng có thể tiêu thụ **5-10% trọng lượng cơ thể** mỗi ngày! 💪"
-
-PHẠM VI TRẢ LỜI:
-✅ Nông nghiệp & Chăn nuôi:
-   - Cây trồng, vật nuôi, kỹ thuật canh tác, chăn nuôi gia súc, gia cầm
-   - THỦY SẢN: Nuôi trồng thủy sản, cá, tôm, các loài cá nước ngọt/nước mặn Việt Nam
-   
-✅ Địa lý & Khí hậu: Địa hình, khí hậu, thổ nhưỡng, vùng miền Việt Nam
-✅ Thời tiết: Dự báo, mùa vụ, thiên tai
-✅ Môi trường: Đất, nước, sinh thái nông nghiệp
-✅ Kinh tế nông nghiệp: Giá cả, thị trường, xuất khẩu
-✅ Công nghệ nông nghiệp: Máy móc, IoT, AI
-✅ Sức khỏe sinh vật: Bệnh cây trồng, vật nuôi, thủy sản
-
-XỬ LÝ NGỮ CẢNH & FOLLOW-UP:
-1. ĐỌC KỸ LỊCH SỬ HỘI THOẠI nếu có
-2. Nếu người dùng yêu cầu "thêm thông tin", "chi tiết hơn":
-   - ĐỪNG hỏi lại họ muốn biết gì!
-   - Phân tích câu trả lời trước, tìm chủ đề chính
-   - Cung cấp thêm: Chi tiết kỹ thuật, số liệu, ví dụ thực tế
-3. Nếu người dùng nói "nó", "cái đó" → Tìm trong lịch sử
-4. Luôn kết nối với ngữ cảnh trước đó nếu có liên quan
-
-KHI NHẬN CÂU HỎI NGOÀI PHẠM VI:
-Từ chối nếu HOÀN TOÀN không liên quan nông nghiệp."""
+        # NOTE: For text chat we do NOT send a fixed system prompt anymore.
+        # The caller should provide a fully-prepared prompt (via AgriMind or a fixed template).
+        system_prompt = None
 
         # Handle image analysis (content is a list with text and PIL Image)
         if isinstance(content, list):
             logging.info("🖼️ Image analysis request detected for OpenAI")
+
+            # Keep a dedicated system prompt for vision requests.
+            system_prompt = self.image_analysis_prompt
             
             # Extract components
             prompt_text = ""
@@ -1572,7 +1601,6 @@ Từ chối nếu HOÀN TOÀN không liên quan nông nghiệp."""
             payload = {
                 "model": self.openai_model,
                 "messages": [
-                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": content}
                 ],
                 "temperature": self.openai_temperature,
@@ -1729,8 +1757,14 @@ QUAN TRỌNG: Đây là cuộc hội thoại LIÊN TỤC. Hãy đọc kỹ LỊC
 
 Hãy trả lời câu hỏi trên, nhớ tham khảo lịch sử nếu có liên quan!"""
             
-            # Generate AI response với ngữ cảnh
-            response = self.generate_content_with_fallback(enhanced_prompt)
+            # NEW:
+            # - If message is short (text-only): use AgriMind to build header+JSON prompt, then send to LLM.
+            # - If message is long: bypass AgriMind and keep the existing enhanced_prompt flow.
+            if self._should_bypass_agrimind(message):
+                response = self.generate_content_with_fallback(enhanced_prompt)
+            else:
+                prompt_for_llm = self._build_prompt_via_agrimind(message)
+                response = self.generate_content_with_fallback(prompt_for_llm)
             ai_response = response.text
             
             # Lưu cuộc hội thoại vào trí nhớ
@@ -4034,8 +4068,11 @@ Yêu cầu:
 
 Trả lời bằng tiếng Việt.'''
                 
+                # If message is long, keep the existing flow. If short, use AgriMind to build prompt first.
+                prompt_for_llm = enhanced_prompt if self._should_bypass_agrimind(message) else self._build_prompt_via_agrimind(message)
+
                 # Generate phân tích với đầy đủ format
-                response = self.generate_content_with_fallback(enhanced_prompt, stream=True)
+                response = self.generate_content_with_fallback(prompt_for_llm, stream=True)
                 
                 # Tích lũy toàn bộ phản hồi
                 full_response = ""

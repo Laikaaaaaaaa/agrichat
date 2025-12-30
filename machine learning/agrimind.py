@@ -824,24 +824,77 @@ YÊU CẦU TRẢ LỜI:
 
 
 def generate_preview_prompt(question: str, extracted: Dict[str, Any], entry: Optional[KBEntry]) -> str:
-    """Generate a human-reviewable prompt (input) in the exact style the user requested."""
+    """Generate a human-reviewable prompt (input) in the exact style the user requested.
+
+    Format:
+    - Header
+    - JSON payload
+    - Final one-line instruction
+    """
+
+    specie = extracted.get("specie") or (entry.specie if entry else None)
 
     # Enrich missing fields from KB match (avoid null/empty in preview when we have a match)
     disease = extracted.get("disease")
     if not disease and entry:
         disease = entry.disease
 
-    symptoms = extracted.get("symptoms") or []
+    # Heuristic fallback: if we still don't have a disease, try to extract a short phrase from question.
+    q_norm = _normalize(question)
+    if not disease:
+        if "chet nhanh" in q_norm:
+            disease = "chết nhanh"
+        elif re.search(r"(?<!\w)chet(?!\w)", q_norm):
+            disease = "chết"
+
+    symptoms: List[str] = list(extracted.get("symptoms") or [])
+
+    # If extraction is uncertain, borrow a short list of typical symptoms from the KB match.
     if (not symptoms) and entry:
-        # Use a short list of typical symptoms when extraction is uncertain
-        symptoms = list(entry.symptoms[:6])
+        symptoms.extend(list(entry.symptoms[:6]))
+
+    # Add simple symptom candidates from comma-separated user text (VN users often list symptoms with commas).
+    # We keep this conservative: only add phrases that look like symptoms and aren't just the specie name.
+    specie_norm = _normalize(str(specie or ""))
+    for part in re.split(r"[\n,;]+", question):
+        p = str(part).strip()
+        if not p:
+            continue
+
+        p_norm = _normalize(p)
+        if not p_norm:
+            continue
+
+        # Remove specie prefix if the user wrote it in the same chunk (e.g. "cá basa chết nhanh").
+        if specie_norm and (p_norm == specie_norm or p_norm.startswith(specie_norm + " ")):
+            p = p[len(str(specie or "")) :].strip(" -–:,.\t")
+            p_norm = _normalize(p)
+            if not p_norm:
+                continue
+
+        # Avoid adding very generic fragments.
+        if len(p_norm) < 3:
+            continue
+
+        # Keep chunks that likely represent symptoms (contain common VN symptom words)
+        if any(w in p_norm for w in ["chet", "vang", "bat thuong", "phan", "non", "tieu chay", "dom", "loet", "sung", "do", "xuat huyet", "gan", "tuy"]):
+            symptoms.append(p)
+
+    # Dedup symptoms while preserving order
+    dedup_symptoms: List[str] = []
+    seen = set()
+    for s in symptoms:
+        key = _normalize(s)
+        if key and key not in seen:
+            seen.add(key)
+            dedup_symptoms.append(s)
 
     payload: Dict[str, Any] = {
         "question": question,
-        "specie": extracted.get("specie") or (entry.specie if entry else None),
+        "specie": specie,
         "season": extracted.get("season"),
         "disease": disease,
-        "symptoms": symptoms,
+        "symptoms": dedup_symptoms,
         "causes": list(entry.causes) if entry else [],
         "advice": list(entry.advice) if entry else [],
     }
@@ -852,9 +905,9 @@ def generate_preview_prompt(question: str, extracted: Dict[str, Any], entry: Opt
         "bao gồm emoji, nêu triệu chứng, nguyên nhân, và khuyến nghị hành động.\n"
     )
 
+    instruction = "Hãy xuất ra văn bản dạng thân thiện, dễ đọc cho người nông dân"
     json_block = json.dumps(payload, ensure_ascii=False, indent=2)
 
-    instruction = "Hãy xuất ra văn bản dạng thân thiện, dễ đọc cho người nông dân"
     return f"{header}\n{json_block}\n\n{instruction}".strip()
 
 

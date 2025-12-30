@@ -526,6 +526,22 @@
             this.selectedConversationId = null;
             this.init();
         }
+
+        isUserAuthenticated() {
+            return window.__isAuthenticated === true;
+        }
+
+        getHistoryStorageKey() {
+            if (!this.isUserAuthenticated()) {
+                return null;
+            }
+            const user = window.__authUser || null;
+            const identifier = (user && (user.username_slug || user.id || user.email)) ? String(user.username_slug || user.id || user.email) : null;
+            if (!identifier) {
+                return null;
+            }
+            return `agrisense_chat_history_user:${identifier}`;
+        }
         
         init() {
             this.loadConversations();
@@ -548,7 +564,13 @@
         
         loadConversations() {
             try {
-                const stored = localStorage.getItem('agrisense_chat_history');
+                const storageKey = this.getHistoryStorageKey();
+                if (!storageKey) {
+                    this.conversations = [];
+                    return;
+                }
+
+                const stored = localStorage.getItem(storageKey);
                 this.conversations = stored ? JSON.parse(stored) : [];
                 
                 // Cập nhật tên cho các cuộc hội thoại cũ chưa có tên đúng
@@ -631,7 +653,10 @@
                 
                 // Lưu lại nếu có cập nhật
                 if (updated) {
-                    localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+                    const storageKey = this.getHistoryStorageKey();
+                    if (storageKey) {
+                        localStorage.setItem(storageKey, JSON.stringify(this.conversations));
+                    }
                     console.log('✅ Saved updated conversation titles');
                 }
                 
@@ -822,7 +847,10 @@
             if (!confirm('Bạn có chắc chắn muốn xóa cuộc hội thoại này?')) return;
             
             this.conversations = this.conversations.filter(c => c.id !== conversationId);
-            localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+            const storageKey = this.getHistoryStorageKey();
+            if (storageKey) {
+                localStorage.setItem(storageKey, JSON.stringify(this.conversations));
+            }
             
             if (this.selectedConversationId === conversationId) {
                 this.selectedConversationId = null;
@@ -843,8 +871,11 @@
         
         clearAllConversations() {
             if (!confirm('Bạn có chắc chắn muốn xóa TẤT CẢ lịch sử hội thoại?')) return;
-            
-            localStorage.removeItem('agrisense_chat_history');
+
+            const storageKey = this.getHistoryStorageKey();
+            if (storageKey) {
+                localStorage.removeItem(storageKey);
+            }
             this.conversations = [];
             this.selectedConversationId = null;
             
@@ -922,7 +953,10 @@
             });
             
             if (updated > 0) {
-                localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+                const storageKey = this.getHistoryStorageKey();
+                if (storageKey) {
+                    localStorage.setItem(storageKey, JSON.stringify(this.conversations));
+                }
                 this.renderConversationList();
                 alert(`✅ Đã cập nhật ${updated} tên cuộc hội thoại!`);
                 console.log(`🎉 Updated ${updated} conversation titles`);
@@ -1050,13 +1084,21 @@
             }
 
             console.log('✅ User authenticated:', data.user.username);
+
+            // Mark auth globally so history storage is user-scoped
+            window.__isAuthenticated = true;
+            window.__authUser = data.user;
+            localStorage.setItem('agrisense_user_logged_in', 'true');
+
+            // Purge legacy guest key so it never shows after login
+            localStorage.removeItem('agrisense_chat_history');
         } catch (error) {
             // On any unexpected error, be safe and redirect to login
             window.location.href = '/login';
             return;
         }
         
-        // Load chat history normally on first page load (for both logged-in and guest)
+        // Load chat history normally on first page load (logged-in only)
         console.log('🔄 Loading chat history...');
         window.chatHistoryManager = new ChatHistoryManager();
 

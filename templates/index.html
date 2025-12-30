@@ -402,6 +402,10 @@
         // ✅ Kiểm tra nếu đang tiếp tục cuộc hội thoại từ history page
         const conversationIdToContinue = localStorage.getItem('agrisense_continue_conversation_id');
         if (conversationIdToContinue) {
+          // If auth/user history not ready yet, defer handling (don't clear the flag)
+          if (!this.isUserAuthenticated() || !this.getHistoryStorageKey()) {
+            return;
+          }
           console.log('🔄 Found conversation to continue:', conversationIdToContinue);
           console.log('📋 Looking in', this.conversations.length, 'conversations');
           
@@ -426,20 +430,19 @@
       }
 
       loadConversations() {
-        // ✅ Chỉ load permanent history nếu đã login
         const isAuthenticated = this.isUserAuthenticated();
-        console.log('📥 loadConversations: isAuthenticated =', isAuthenticated);
-        
-        if (isAuthenticated) {
-          // ✅ Đã login: Load permanent history
-          const stored = localStorage.getItem('agrisense_chat_history');
-          this.conversations = stored ? JSON.parse(stored) : [];
-          console.log('✅ Loaded', this.conversations.length, 'permanent conversations (user is logged in)');
-        } else {
-          // ✅ Chưa login: Không load history, sẽ khôi phục từ session sau
+        const storageKey = this.getHistoryStorageKey();
+        console.log('📥 loadConversations: isAuthenticated =', isAuthenticated, 'storageKey =', storageKey);
+
+        if (!isAuthenticated || !storageKey) {
           this.conversations = [];
-          console.log('⏭️ Skipped loading permanent history (user not logged in)');
+          console.log('⏭️ Skipped loading history (user not logged in)');
+          return;
         }
+
+        const stored = localStorage.getItem(storageKey);
+        this.conversations = stored ? JSON.parse(stored) : [];
+        console.log('✅ Loaded', this.conversations.length, 'conversations for user');
       }
 
       // 💾 Lưu session chat hiện tại (không cần auth, giữ lại khi reload)
@@ -449,19 +452,23 @@
         }
 
         try {
-          // Lưu current session conversation vào localStorage
+          // Only keep ephemeral session in-memory; avoid persisting guest chat
+          if (!this.isUserAuthenticated()) {
+            return;
+          }
           localStorage.setItem('agrisense_current_session', JSON.stringify(this.currentConversation));
-          console.log('💾 Session chat hiện tại đã lưu (không cần auth)');
         } catch (e) {
           console.error('❌ Lỗi lưu session:', e);
         }
       }
 
       saveConversations() {
-        // ✅ LUÔN lưu localStorage (dù đã đăng nhập hay chưa)
-        // Kiểm tra xem user đã đăng nhập để quyết định có sync database không
+        // ✅ Only persist when authenticated
         const isAuthenticated = this.isUserAuthenticated();
-        console.log('🔐 Checking authentication:', isAuthenticated);
+        const storageKey = this.getHistoryStorageKey();
+        if (!isAuthenticated || !storageKey) {
+          return;
+        }
         
         // ✅ LỌC BỎ CONVERSATIONS KHÔNG CÓ TIN NHẮN
         this.conversations = this.conversations.filter(conv => {
@@ -495,26 +502,22 @@
         });
         
         try {
-          // ✅ LUÔN lưu localStorage
-          localStorage.setItem('agrisense_chat_history', JSON.stringify(conversationsToSave));
-          console.log(`✅ Đã lưu ${conversationsToSave.length} conversations vào localStorage`);
-          
-          // ✅ Nếu đã đăng nhập, sync ngay lên database (không chờ)
-          if (isAuthenticated) {
-            // Sync to database but don't wait for it (non-blocking)
-            this.syncToDatabase(conversationsToSave).then(() => {
-              console.log('✅ Database sync completed successfully');
-            }).catch(err => {
-              console.warn('⚠️ Database sync error (non-blocking):', err.message);
-            });
-          }
+          localStorage.setItem(storageKey, JSON.stringify(conversationsToSave));
+          console.log(`✅ Đã lưu ${conversationsToSave.length} conversations vào localStorage (${storageKey})`);
+
+          // Sync to database but don't wait for it (non-blocking)
+          this.syncToDatabase(conversationsToSave).then(() => {
+            console.log('✅ Database sync completed successfully');
+          }).catch(err => {
+            console.warn('⚠️ Database sync error (non-blocking):', err.message);
+          });
         } catch (e) {
           console.error('❌ Lỗi lưu localStorage:', e);
           // Nếu vẫn lỗi, xóa hết và chỉ giữ conversation hiện tại
           if (e.name === 'QuotaExceededError') {
             console.warn('💾 Xóa toàn bộ lịch sử cũ...');
             this.conversations = this.currentConversation ? [this.currentConversation] : [];
-            localStorage.setItem('agrisense_chat_history', JSON.stringify(this.conversations));
+            localStorage.setItem(storageKey, JSON.stringify(this.conversations));
           }
         }
         
@@ -575,6 +578,10 @@
           
           // ❌ SECURITY: Nếu chưa login và có link conversation → redirect về trang chủ
           if (!isAuthenticated) {
+            // If auth check hasn't completed yet, defer handling to after /api/auth/profile resolves
+            if (window.__authChecked !== true) {
+              return false;
+            }
             console.warn('🚫 User not authenticated, redirecting to home page');
             window.location.href = window.location.pathname;  // Redirect to clean URL
             return false;
@@ -739,8 +746,11 @@
           messages: []
         };
 
-        this.conversations.unshift(this.currentConversation);
-        this.saveConversations();
+        // Only persist conversations list when logged in
+        if (this.isUserAuthenticated()) {
+          this.conversations.unshift(this.currentConversation);
+          this.saveConversations();
+        }
         
         // 💾 Luôn lưu session mới (không cần auth)
         this.saveCurrentSession();
@@ -791,10 +801,9 @@
         }
 
         this.saveConversations();
-        console.log('💾 Conversations saved to localStorage');
         console.log('💬 Added message to conversation:', message.id);
 
-        // 💾 Luôn lưu session hiện tại (không cần auth)
+        // Keep session only for authenticated users
         this.saveCurrentSession();
 
         return message;
@@ -809,16 +818,23 @@
       }
 
       isUserAuthenticated() {
-        // Kiểm tra xem user có session/token đăng nhập không
-        // Nếu có element user-section, user đã đăng nhập
-        const userSection = document.getElementById('user-section');
-        if (userSection && userSection.style.opacity !== '0') {
+        if (window.__isAuthenticated === true) {
           return true;
         }
-        
-        // Check alternative: xem có login redirect được set không
         const isLoggedIn = localStorage.getItem('agrisense_user_logged_in');
         return isLoggedIn === 'true';
+      }
+
+      getHistoryStorageKey() {
+        if (!this.isUserAuthenticated()) {
+          return null;
+        }
+        const user = window.__authUser || null;
+        const identifier = (user && (user.username_slug || user.id || user.email)) ? String(user.username_slug || user.id || user.email) : null;
+        if (!identifier) {
+          return null;
+        }
+        return `agrisense_chat_history_user:${identifier}`;
       }
 
       // ✅ Migrate temp session to permanent history when user logs in
@@ -948,24 +964,6 @@
     }
     // Initialize chat history manager
     window.chatHistoryManager = new ChatHistoryManager();
-
-    // ✅ Migrate temp session to permanent history when user logs in
-    if (window.chatHistoryManager.isUserAuthenticated()) {
-      console.log('✅ User is logged in, attempting to migrate temp session...');
-      const migrated = window.chatHistoryManager.migrateSessionToHistory();
-      if (migrated) {
-        console.log('✅ Migrated temp session to permanent history');
-      }
-      
-      // ✅ Trigger sync to database when user logs in
-      console.log('🔄 Syncing localStorage conversations to database...');
-      const conversationToSync = window.chatHistoryManager.conversations;
-      if (conversationToSync && conversationToSync.length > 0) {
-        window.chatHistoryManager.syncToDatabase(conversationToSync).catch(err => {
-          console.warn('⚠️ Sync failed (non-critical):', err.message);
-        });
-      }
-    }
 
     // 🆕 Always start fresh on each visit (do not auto-show old conversation)
     // Keep the ability to continue a specific conversation via History -> Continue (agrisense_continue_conversation_id)
@@ -4447,10 +4445,22 @@
           if (data.success && data.user) {
             // Check if this is a NEW login (was not logged in before)
             const wasLoggedIn = isUserLoggedIn;
+            const hadAuthFlag = localStorage.getItem('agrisense_user_logged_in') === 'true';
             
             // User is logged in
             isUserLoggedIn = true;
             currentUserData = data.user; // Store user data
+            window.__isAuthenticated = true;
+            window.__authUser = data.user;
+            localStorage.setItem('agrisense_user_logged_in', 'true');
+
+            // ✅ Always purge legacy guest history keys so it never shows after login
+            localStorage.removeItem('agrisense_chat_history');
+            if (!hadAuthFlag) {
+              localStorage.removeItem('agrisense_current_session');
+              localStorage.removeItem('agrisense_continue_conversation_id');
+            }
+
             const userName = data.user.name || data.user.email.split('@')[0];
             const userAvatar = document.querySelector('#user-avatar .w-10');
             const userNameEl = document.getElementById('user-name');
@@ -4472,21 +4482,38 @@
             userNameEl.textContent = userName;
             userStatusEl.textContent = data.user.email;
             
-            // ✅ NEW: If just logged in (wasn't logged in before), start new conversation
-            if (!wasLoggedIn && window.chatHistoryManager) {
-              console.log('✅ User just logged in! Starting new conversation...');
-              window.chatHistoryManager.startNewConversation();
+            if (window.chatHistoryManager) {
+              const hadUrlConversation = !!new URLSearchParams(window.location.search).get('c');
+
+              // Now that auth is known, reload user-scoped history
+              window.chatHistoryManager.loadConversations();
+              window.chatHistoryManager.checkContinueConversation();
+              window.chatHistoryManager.restoreFromURL();
+
+              // ✅ If just logged in (wasn't logged in before) and not continuing a conversation, start a fresh one
+              if (!wasLoggedIn && !hadUrlConversation && !window.chatHistoryManager.currentConversation) {
+                console.log('✅ User just logged in! Starting new conversation...');
+                window.chatHistoryManager.currentConversation = null;
+                window.chatHistoryManager.startNewConversation();
+              }
             }
           } else {
             isUserLoggedIn = false;
             currentUserData = null;
+            window.__isAuthenticated = false;
+            window.__authUser = null;
+            localStorage.removeItem('agrisense_user_logged_in');
           }
         } catch (error) {
           // User not logged in, keep default state
           isUserLoggedIn = false;
           currentUserData = null;
+          window.__isAuthenticated = false;
+          window.__authUser = null;
+          localStorage.removeItem('agrisense_user_logged_in');
           console.log('User not logged in');
         } finally {
+          window.__authChecked = true;
           // Show user section after loading (prevent flashing)
           const userSection = document.getElementById('user-section');
           if (userSection) {

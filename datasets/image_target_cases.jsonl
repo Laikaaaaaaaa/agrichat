@@ -1,0 +1,42 @@
+{"text":"tìm ảnh con bò","label":"animal_cow","canonical_query":"con bò"}
+{"text":"cho tôi ảnh con bò","label":"animal_cow","canonical_query":"con bò"}
+{"text":"ảnh con bò","label":"animal_cow","canonical_query":"con bò"}
+{"text":"cho xem hình bò","label":"animal_cow","canonical_query":"con bò"}
+{"text":"hình ảnh bò sữa","label":"animal_cow","canonical_query":"bò sữa"}
+{"text":"tìm ảnh bò sữa","label":"animal_cow","canonical_query":"bò sữa"}
+{"text":"cho tôi hình con vịt","label":"animal_duck","canonical_query":"con vịt"}
+{"text":"ảnh con vịt","label":"animal_duck","canonical_query":"con vịt"}
+{"text":"tìm ảnh vịt con","label":"animal_duck","canonical_query":"vịt con"}
+{"text":"cho tôi ảnh đàn vịt","label":"animal_duck","canonical_query":"đàn vịt"}
+{"text":"tìm ảnh con gà","label":"animal_chicken","canonical_query":"con gà"}
+{"text":"ảnh gà con","label":"animal_chicken","canonical_query":"gà con"}
+{"text":"cho tôi ảnh heo","label":"animal_pig","canonical_query":"con heo"}
+{"text":"tìm hình con lợn","label":"animal_pig","canonical_query":"con lợn"}
+{"text":"tìm ảnh con trâu","label":"animal_buffalo","canonical_query":"con trâu"}
+{"text":"hình ảnh con trâu cày ruộng","label":"animal_buffalo","canonical_query":"trâu cày ruộng"}
+{"text":"cho tôi ảnh tôm","label":"animal_shrimp","canonical_query":"con tôm"}
+{"text":"tìm ảnh cá","label":"animal_fish","canonical_query":"con cá"}
+{"text":"cho tôi ảnh cá chép","label":"animal_fish","canonical_query":"cá chép"}
+{"text":"tìm ảnh cây lúa","label":"plant_rice","canonical_query":"cây lúa"}
+{"text":"ảnh ruộng lúa","label":"plant_rice","canonical_query":"ruộng lúa"}
+{"text":"cho tôi ảnh lúa chín","label":"plant_rice","canonical_query":"lúa chín"}
+{"text":"tìm hình bông lúa","label":"plant_rice","canonical_query":"bông lúa"}
+{"text":"cho tôi ảnh hạt gạo","label":"plant_rice","canonical_query":"hạt gạo"}
+{"text":"tìm ảnh cây ngô","label":"plant_corn","canonical_query":"cây ngô"}
+{"text":"ảnh bắp ngô","label":"plant_corn","canonical_query":"bắp ngô"}
+{"text":"cho tôi ảnh cà chua","label":"plant_tomato","canonical_query":"cà chua"}
+{"text":"ảnh cây cà chua","label":"plant_tomato","canonical_query":"cây cà chua"}
+{"text":"tìm ảnh rau xà lách","label":"plant_lettuce","canonical_query":"rau xà lách"}
+{"text":"ảnh vườn rau","label":"plant_vegetable_garden","canonical_query":"vườn rau"}
+{"text":"tìm ảnh máy cày","label":"equipment_tractor","canonical_query":"máy cày"}
+{"text":"ảnh máy kéo nông nghiệp","label":"equipment_tractor","canonical_query":"máy kéo nông nghiệp"}
+{"text":"tìm ảnh phân bón","label":"agri_fertilizer","canonical_query":"phân bón"}
+{"text":"cho tôi hình thuốc trừ sâu","label":"agri_pesticide","canonical_query":"thuốc trừ sâu"}
+{"text":"tìm ảnh bệnh đạo ôn lúa","label":"rice_disease","canonical_query":"bệnh đạo ôn lúa"}
+{"text":"ảnh sâu cuốn lá lúa","label":"rice_pest","canonical_query":"sâu cuốn lá lúa"}
+{"text":"tìm ảnh ốc bươu vàng","label":"rice_pest","canonical_query":"ốc bươu vàng"}
+
+{"text":"bò ăn gì","label":"not_image","canonical_query":""}
+{"text":"cách trồng lúa","label":"not_image","canonical_query":""}
+{"text":"hôm nay thời tiết thế nào","label":"not_image","canonical_query":""}
+{"text":"giải thích bệnh đạo ôn lúa","label":"not_image","canonical_query":""}

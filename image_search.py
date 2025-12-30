@@ -71,6 +71,136 @@ class ImageSearchEngine:
             'chó': ['Dogs', 'Canis lupus familiaris', 'Domestic dogs', 'Dog breeds'],
             'cá': ['Fish', 'Aquaculture', 'Fish farming'],
             'tôm': ['Shrimp', 'Penaeus', 'Shrimp farming'],
+
+            # Thuỷ sản phổ biến (theo loài)
+            'cá tra': ['Pangasius', 'Catfish', 'Aquaculture'],
+            'ca tra': ['Pangasius', 'Catfish', 'Aquaculture'],
+            'cá basa': ['Pangasius', 'Catfish', 'Aquaculture'],
+            'ca basa': ['Pangasius', 'Catfish', 'Aquaculture'],
+            'cá rô phi': ['Tilapia', 'Tilapia farming', 'Aquaculture'],
+            'ca ro phi': ['Tilapia', 'Tilapia farming', 'Aquaculture'],
+            'cá lóc': ['Snakehead fish', 'Channa', 'Aquaculture'],
+            'ca loc': ['Snakehead fish', 'Channa', 'Aquaculture'],
+            'cá chép': ['Common carp', 'Cyprinus carpio', 'Aquaculture'],
+            'ca chep': ['Common carp', 'Cyprinus carpio', 'Aquaculture'],
+            'tôm thẻ': ['Whiteleg shrimp', 'Litopenaeus vannamei', 'Shrimp farming'],
+            'tom the': ['Whiteleg shrimp', 'Litopenaeus vannamei', 'Shrimp farming'],
+            'tôm sú': ['Giant tiger prawn', 'Penaeus monodon', 'Shrimp farming'],
+            'tom su': ['Giant tiger prawn', 'Penaeus monodon', 'Shrimp farming'],
+
+            # Bổ sung động vật & thuỷ sản
+            'lợn': ['Pigs', 'Sus', 'Swine', 'Domestic pigs'],
+            'trâu': ['Water buffalo', 'Bubalus bubalis', 'Buffalo farming'],
+            'ngựa': ['Horses', 'Equus ferus caballus'],
+            'thỏ': ['Rabbits', 'Rabbit farming'],
+            'chim cút': ['Quails', 'Coturnix japonica', 'Quail farming'],
+            'ong mật': ['Honey bees', 'Apiculture', 'Beekeeping'],
+            'nuôi ong': ['Beekeeping', 'Apiculture'],
+            'cua': ['Crabs', 'Crab farming', 'Scylla serrata'],
+            'ốc': ['Snails', 'Freshwater snails', 'Golden apple snail'],
+            'nghêu': ['Clams', 'Clam farming', 'Meretrix'],
+            'hàu': ['Oysters', 'Oyster farming'],
+            'rong biển': ['Seaweed', 'Seaweed farming'],
+
+            # Trái cây phổ biến (bổ sung)
+            'sầu riêng': ['Durian', 'Durio', 'Tropical fruits'],
+            'thanh long': ['Dragon fruit', 'Pitaya', 'Hylocereus'],
+            'mít': ['Jackfruit', 'Artocarpus heterophyllus'],
+            'bưởi': ['Pomelo', 'Citrus maxima'],
+            'ổi': ['Guava', 'Psidium guajava'],
+            'vải': ['Lychee', 'Litchi chinensis'],
+            'nhãn': ['Longan', 'Dimocarpus longan'],
+            'chôm chôm': ['Rambutan', 'Nephelium lappaceum'],
+            'măng cụt': ['Mangosteen', 'Garcinia mangostana'],
+            'dứa': ['Pineapple', 'Ananas comosus'],
+            'thơm': ['Pineapple', 'Ananas comosus'],
+            'khóm': ['Pineapple', 'Ananas comosus'],
+            'dưa hấu': ['Watermelon', 'Citrullus lanatus'],
+            'dưa lưới': ['Melon', 'Cantaloupe'],
+
+            # Cây công nghiệp (bổ sung)
+            'cà phê': ['Coffee', 'Coffea', 'Coffee plantation'],
+            'chè': ['Tea', 'Camellia sinensis', 'Tea plantation'],
+            'trà': ['Tea', 'Camellia sinensis'],
+            'hồ tiêu': ['Black pepper', 'Piper nigrum'],
+            'tiêu': ['Black pepper', 'Piper nigrum'],
+            'điều': ['Cashew', 'Anacardium occidentale'],
+            'cao su': ['Rubber tree', 'Hevea brasiliensis'],
+
+            # Rau củ (bổ sung)
+            'xà lách': ['Lettuce', 'Lactuca sativa'],
+            'cải thảo': ['Napa cabbage', 'Chinese cabbage'],
+            'cải xanh': ['Mustard greens', 'Brassica juncea'],
+            'cải ngọt': ['Choy sum', 'Chinese flowering cabbage'],
+            'cải bó xôi': ['Spinach', 'Spinacia oleracea'],
+            'rau dền': ['Amaranth', 'Leafy vegetable'],
+            'mồng tơi': ['Malabar spinach', 'Basella alba'],
+            'rau ngót': ['Katuk', 'Sauropus androgynus'],
+            'bông cải': ['Broccoli', 'Cauliflower'],
+            'súp lơ': ['Cauliflower', 'Broccoli'],
+            'bí đỏ': ['Pumpkin', 'Squash'],
+            'bí xanh': ['Winter melon', 'Benincasa hispida'],
+            'bí ngòi': ['Zucchini', 'Courgette'],
+            'mướp': ['Luffa', 'Sponge gourd'],
+            'khổ qua': ['Bitter melon', 'Momordica charantia'],
+            'mướp đắng': ['Bitter melon', 'Momordica charantia'],
+            'đậu bắp': ['Okra', 'Abelmoschus esculentus'],
+            'đậu que': ['Green beans', 'String beans'],
+            'đậu hà lan': ['Peas', 'Pisum sativum'],
+            'đậu nành': ['Soybean', 'Glycine max'],
+            'đậu tương': ['Soybean', 'Glycine max'],
+            'đậu phộng': ['Peanuts', 'Groundnuts', 'Arachis hypogaea'],
+            'lạc': ['Peanuts', 'Groundnuts', 'Arachis hypogaea'],
+            'vừng': ['Sesame', 'Sesamum indicum'],
+            'mè': ['Sesame', 'Sesamum indicum'],
+            'củ cải': ['Radishes', 'Raphanus sativus'],
+            'củ dền': ['Beetroots', 'Beta vulgaris'],
+            'khoai mì': ['Cassava', 'Manioc', 'Tapioca'],
+            'sắn': ['Cassava', 'Manioc', 'Tapioca'],
+            'khoai môn': ['Taro', 'Colocasia esculenta'],
+            'sả': ['Lemongrass', 'Cymbopogon'],
+            'gừng': ['Ginger', 'Zingiber officinale'],
+            'nghệ': ['Turmeric', 'Curcuma longa'],
+
+            # Sâu bệnh & dinh dưỡng (bổ sung)
+            'rầy nâu': ['Brown planthopper', 'Rice pest'],
+            'sâu cuốn lá': ['Leaf folder', 'Rice pest'],
+            'sâu đục thân': ['Stem borer', 'Rice pest'],
+            'bọ trĩ': ['Thrips', 'Crop pest'],
+            'nhện đỏ': ['Spider mites', 'Crop pest'],
+            'rệp sáp': ['Mealybugs', 'Crop pest'],
+            'sâu keo mùa thu': ['Fall armyworm', 'Maize pest'],
+            'ruồi vàng': ['Fruit fly', 'Bactrocera'],
+            'đạo ôn': ['Rice blast', 'Magnaporthe oryzae'],
+            'khô vằn': ['Sheath blight', 'Rice disease'],
+            'bạc lá': ['Bacterial leaf blight', 'Rice disease'],
+            'thán thư': ['Anthracnose', 'Plant disease'],
+            'phấn trắng': ['Powdery mildew', 'Plant disease'],
+            'sương mai': ['Downy mildew', 'Plant disease'],
+
+            # Vật tư/công nghệ canh tác (bổ sung)
+            'phân hữu cơ': ['Organic fertilizer', 'Compost'],
+            'phân chuồng': ['Manure', 'Farmyard manure'],
+            'phân trùn quế': ['Vermicompost', 'Worm castings'],
+            'vôi nông nghiệp': ['Agricultural lime', 'Soil amendment'],
+            'ure': ['Urea fertilizer', 'Nitrogen fertilizer'],
+            'dap': ['DAP fertilizer', 'Diammonium phosphate'],
+            'kali': ['Potassium fertilizer', 'Potash'],
+            'npk': ['NPK fertilizer', 'Compound fertilizer'],
+            'thuốc trừ cỏ': ['Herbicides', 'Weed control'],
+            'thuốc trừ nấm': ['Fungicides', 'Crop protection'],
+            'thuốc diệt ốc': ['Molluscicides', 'Snail control'],
+            'thủy canh': ['Hydroponics', 'Soilless cultivation'],
+            'khí canh': ['Aeroponics', 'Soilless cultivation'],
+            'aquaponics': ['Aquaponics', 'Recirculating system'],
+            'ipm': ['Integrated pest management', 'IPM'],
+            'vietgap': ['VietGAP', 'Good Agricultural Practices'],
+            'globalgap': ['GlobalGAP', 'Good Agricultural Practices'],
+            'nhà lưới': ['Net house', 'Protected cultivation'],
+            'tưới nhỏ giọt': ['Drip irrigation', 'Irrigation system'],
+            'tưới phun': ['Sprinkler irrigation', 'Irrigation system'],
+            'đất phèn': ['Acid sulfate soil', 'Soil'],
+            'đất mặn': ['Saline soil', 'Soil'],
             
             # Máy móc nông nghiệp  
             'máy kéo': ['Tractors', 'Agricultural machinery', 'Farm equipment'],
@@ -202,6 +332,9 @@ class ImageSearchEngine:
             'gà': ['chicken', 'poultry'],
             'bò': ['cow', 'cattle'],
             'heo': ['pig', 'swine'],
+            'lợn': ['pig', 'swine'],
+            'con lợn': ['pig', 'swine'],
+            'con lon': ['pig', 'swine'],
             'cừu': ['sheep', 'lamb'],
             'dê': ['goat', 'capra'],
             'vịt': ['duck', 'waterfowl'],
@@ -210,6 +343,133 @@ class ImageSearchEngine:
             'con chó': ['dog', 'domestic dog'],
             'cá': ['fish', 'aquaculture'],
             'tôm': ['shrimp', 'aquaculture'],
+
+            # Thuỷ sản phổ biến (theo loài) - hỗ trợ có/không dấu
+            'cá tra': ['pangasius', 'catfish'],
+            'ca tra': ['pangasius', 'catfish'],
+            'cá basa': ['pangasius', 'catfish'],
+            'ca basa': ['pangasius', 'catfish'],
+            'cá rô phi': ['tilapia', 'aquaculture'],
+            'ca ro phi': ['tilapia', 'aquaculture'],
+            'cá lóc': ['snakehead fish', 'channa'],
+            'ca loc': ['snakehead fish', 'channa'],
+            'cá chép': ['common carp', 'carp'],
+            'ca chep': ['common carp', 'carp'],
+            'tôm thẻ': ['whiteleg shrimp', 'vannamei shrimp'],
+            'tom the': ['whiteleg shrimp', 'vannamei shrimp'],
+            'tôm sú': ['giant tiger prawn', 'prawn'],
+            'tom su': ['giant tiger prawn', 'prawn'],
+
+            # Bổ sung động vật & thuỷ sản
+            'trâu': ['water buffalo', 'buffalo'],
+            'ngựa': ['horse', 'horses'],
+            'thỏ': ['rabbit', 'rabbits'],
+            'chim cút': ['quail', 'quails'],
+            'ong mật': ['honey bee', 'beekeeping'],
+            'nuôi ong': ['beekeeping', 'apiculture'],
+            'cua': ['crab', 'crabs'],
+            'ốc': ['snail', 'snails'],
+            'nghêu': ['clam', 'clams'],
+            'hàu': ['oyster', 'oysters'],
+            'rong biển': ['seaweed', 'algae'],
+
+            # Trái cây phổ biến
+            'sầu riêng': ['durian', 'tropical fruit'],
+            'thanh long': ['dragon fruit', 'pitaya'],
+            'mít': ['jackfruit', 'tropical fruit'],
+            'bưởi': ['pomelo', 'citrus'],
+            'ổi': ['guava', 'tropical fruit'],
+            'vải': ['lychee', 'tropical fruit'],
+            'nhãn': ['longan', 'tropical fruit'],
+            'chôm chôm': ['rambutan', 'tropical fruit'],
+            'măng cụt': ['mangosteen', 'tropical fruit'],
+            'dứa': ['pineapple', 'tropical fruit'],
+            'thơm': ['pineapple', 'tropical fruit'],
+            'khóm': ['pineapple', 'tropical fruit'],
+            'dưa hấu': ['watermelon', 'melon'],
+            'dưa lưới': ['cantaloupe', 'melon'],
+
+            # Cây công nghiệp
+            'cà phê': ['coffee', 'coffee plantation'],
+            'chè': ['tea', 'tea plantation'],
+            'trà': ['tea', 'tea leaves'],
+            'hồ tiêu': ['black pepper', 'pepper vine'],
+            'tiêu': ['black pepper', 'pepper'],
+            'điều': ['cashew', 'cashew nut'],
+            'cao su': ['rubber tree', 'latex'],
+
+            # Rau củ/gia vị
+            'xà lách': ['lettuce', 'leafy vegetable'],
+            'cải thảo': ['napa cabbage', 'chinese cabbage'],
+            'cải xanh': ['mustard greens', 'leafy vegetable'],
+            'cải ngọt': ['choy sum', 'leafy vegetable'],
+            'cải bó xôi': ['spinach', 'leafy vegetable'],
+            'rau dền': ['amaranth', 'leafy vegetable'],
+            'mồng tơi': ['malabar spinach', 'leafy vegetable'],
+            'rau ngót': ['katuk', 'leafy vegetable'],
+            'bông cải': ['broccoli', 'cauliflower'],
+            'súp lơ': ['cauliflower', 'broccoli'],
+            'bí đỏ': ['pumpkin', 'squash'],
+            'bí xanh': ['winter melon', 'gourd'],
+            'bí ngòi': ['zucchini', 'courgette'],
+            'mướp': ['luffa', 'gourd'],
+            'khổ qua': ['bitter melon', 'gourd'],
+            'mướp đắng': ['bitter melon', 'gourd'],
+            'đậu bắp': ['okra', 'vegetable'],
+            'đậu que': ['green beans', 'string beans'],
+            'đậu hà lan': ['peas', 'green peas'],
+            'đậu nành': ['soybean', 'soya bean'],
+            'đậu tương': ['soybean', 'soya bean'],
+            'đậu phộng': ['peanut', 'groundnut'],
+            'lạc': ['peanut', 'groundnut'],
+            'vừng': ['sesame', 'sesame seeds'],
+            'mè': ['sesame', 'sesame seeds'],
+            'củ cải': ['radish', 'root vegetable'],
+            'củ dền': ['beetroot', 'root vegetable'],
+            'khoai mì': ['cassava', 'tapioca'],
+            'sắn': ['cassava', 'tapioca'],
+            'khoai môn': ['taro', 'root crop'],
+            'sả': ['lemongrass', 'herb'],
+            'gừng': ['ginger', 'spice'],
+            'nghệ': ['turmeric', 'spice'],
+
+            # Sâu bệnh phổ biến
+            'rầy nâu': ['brown planthopper', 'rice pest'],
+            'sâu cuốn lá': ['leaf folder', 'rice pest'],
+            'sâu đục thân': ['stem borer', 'rice pest'],
+            'bọ trĩ': ['thrips', 'crop pest'],
+            'nhện đỏ': ['spider mites', 'crop pest'],
+            'rệp sáp': ['mealybugs', 'crop pest'],
+            'sâu keo mùa thu': ['fall armyworm', 'maize pest'],
+            'ruồi vàng': ['fruit fly', 'bactrocera'],
+            'đạo ôn': ['rice blast', 'plant disease'],
+            'khô vằn': ['sheath blight', 'rice disease'],
+            'bạc lá': ['bacterial leaf blight', 'rice disease'],
+            'thán thư': ['anthracnose', 'plant disease'],
+            'phấn trắng': ['powdery mildew', 'plant disease'],
+            'sương mai': ['downy mildew', 'plant disease'],
+
+            # Vật tư/công nghệ
+            'phân hữu cơ': ['organic fertilizer', 'compost'],
+            'phân chuồng': ['manure', 'fertilizer'],
+            'phân trùn quế': ['vermicompost', 'worm castings'],
+            'vôi nông nghiệp': ['agricultural lime', 'soil amendment'],
+            'ure': ['urea fertilizer', 'nitrogen fertilizer'],
+            'dap': ['dap fertilizer', 'diammonium phosphate'],
+            'kali': ['potassium fertilizer', 'potash'],
+            'npk': ['npk fertilizer', 'compound fertilizer'],
+            'thuốc trừ cỏ': ['herbicide', 'weed killer'],
+            'thuốc trừ nấm': ['fungicide', 'crop protection'],
+            'thuốc diệt ốc': ['molluscicide', 'snail control'],
+            'thủy canh': ['hydroponics', 'soilless cultivation'],
+            'khí canh': ['aeroponics', 'soilless cultivation'],
+            'aquaponics': ['aquaponics', 'recirculating system'],
+            'ipm': ['integrated pest management', 'ipm'],
+            'vietgap': ['vietgap', 'good agricultural practices'],
+            'globalgap': ['globalgap', 'good agricultural practices'],
+            'nhà lưới': ['net house', 'protected cultivation'],
+            'tưới nhỏ giọt': ['drip irrigation', 'irrigation'],
+            'tưới phun': ['sprinkler irrigation', 'irrigation'],
 
             # Máy móc nông nghiệp
             'máy kéo': ['tractor', 'farm machinery'],
@@ -322,7 +582,12 @@ class ImageSearchEngine:
 
         # Thu thập từ translation map (khớp từng phần)
         for viet_term, english_terms in self.translation_map.items():
-            if viet_term in base_query:
+            normalized_term = self.normalize_text(viet_term)
+            if (viet_term in base_query) or (
+                normalized_term
+                and len(normalized_term) >= 4
+                and f" {normalized_term} " in f" {normalized_query} "
+            ):
                 for eng in english_terms:
                     normalized_eng = self.normalize_text(eng)
                     if normalized_eng:
@@ -481,22 +746,39 @@ class ImageSearchEngine:
         print(f"🌐 Google Images search cho: {query}")
         
         try:
-            # Translate Vietnamese to English for better results  
+            # Try original query first (supports Unicode Vietnamese), then translated query
             english_query = self.translate_to_english(query)
             print(f"🌍 English query: {english_query}")
-            
-            # Primary: Sử dụng Google Custom Search API
-            images = self.search_google_direct(english_query, max_results)
+
+            queries_to_try = []
+            if query and query.strip():
+                queries_to_try.append(query.strip())
+            if english_query and english_query.strip() and english_query.strip().lower() != (query or '').strip().lower():
+                queries_to_try.append(english_query.strip())
+
+            images = []
+            for q in queries_to_try:
+                images.extend(self.search_google_direct(q, max_results))
+                if len(images) >= max_results:
+                    break
             
             if len(images) == 0:
                 print("⚠️ Google Custom Search failed, trying SerpAPI fallback...")
                 # Fallback to SerpAPI (demo key)
-                images = self.search_with_serpapi(english_query, max_results)
+                fallback_q = english_query.strip() if english_query else (query.strip() if query else '')
+                images = self.search_with_serpapi(fallback_q, max_results)
                 
             if len(images) == 0:
                 print("⚠️ Both Google APIs failed, using enhanced Wikimedia search...")
                 # Enhanced fallback: Multiple Wikimedia searches
-                wikimedia_queries = [english_query, query, f"{english_query} farming", f"{query} nông nghiệp"]
+                wikimedia_queries = []
+                if english_query:
+                    wikimedia_queries.append(english_query)
+                if query:
+                    wikimedia_queries.append(query)
+                # Only add farming/agriculture variants if the query is actually agriculture-related
+                if english_query and any(k in (english_query.lower()) for k in ["farm", "agric", "crop", "rice", "corn", "wheat"]):
+                    wikimedia_queries.append(f"{english_query} farming")
                 for wq in wikimedia_queries:
                     wm_images = self.search_wikimedia_commons(wq, 2)
                     images.extend(wm_images)
@@ -575,26 +857,44 @@ class ImageSearchEngine:
     
     def translate_to_english(self, query):
         """Dịch từ tiếng Việt sang tiếng Anh"""
-        query_lower = query.lower().strip()
+        query_lower = (query or '').lower().strip()
+        if not query_lower:
+            return ''
 
+        normalized = self.normalize_text(query)
+
+        # 1) Exact matches (with or without diacritics)
         if query_lower in self.translation_map:
             terms = self.translation_map[query_lower]
             return ' '.join(dict.fromkeys(terms[:2]))
+        if normalized in self.translation_map:
+            terms = self.translation_map[normalized]
+            return ' '.join(dict.fromkeys(terms[:2]))
 
+        # 2) Substring matches (with or without diacritics)
+        best_match = None  # (match_len, english_terms)
         for viet_term, english_terms in self.translation_map.items():
-            if viet_term in query_lower:
-                return ' '.join(dict.fromkeys(english_terms[:2]))
+            norm_term = self.normalize_text(viet_term)
+            matched = viet_term and (
+                (viet_term in query_lower)
+                or (norm_term and len(norm_term) >= 4 and normalized and f" {norm_term} " in f" {normalized} ")
+            )
+            if not matched:
+                continue
 
-        # Nếu query đã là tiếng Anh (không dấu) thì giữ nguyên
+            match_len = len(viet_term)
+            if not best_match or match_len > best_match[0]:
+                best_match = (match_len, english_terms)
+
+        if best_match:
+            return ' '.join(dict.fromkeys(best_match[1][:2]))
+
+        # 3) If already English-ish, keep as-is
         if query_lower.isascii():
             return query_lower
 
-        normalized = self.normalize_text(query)
-        if normalized and normalized != query_lower:
-            return normalized
-
-        # Cuối cùng, bổ sung từ khóa nông nghiệp để tăng độ liên quan
-        return f"{query} agriculture"
+        # 4) Otherwise: keep the original query (do NOT strip diacritics to avoid bad queries like "con lon")
+        return query.strip()
     
     def search_google_direct(self, query, max_results):
         """
@@ -1192,7 +1492,7 @@ class ImageSearchEngine:
             return 'gà'
         elif any(word in query_lower for word in ['bò', 'cow', 'cattle']):
             return 'bò'
-        elif any(word in query_lower for word in ['heo', 'pig', 'swine']):
+        elif any(word in query_lower for word in ['heo', 'lợn', 'con lon', 'pig', 'swine']):
             return 'heo'
         elif any(word in query_lower for word in ['cừu', 'sheep']):
             return 'cừu'
@@ -1204,8 +1504,22 @@ class ImageSearchEngine:
             return 'ngỗng'
         elif any(word in query_lower for word in ['chó', 'dog', 'canine', 'puppy']):
             return 'chó'
+        elif any(word in query_lower for word in ['cá tra', 'ca tra']):
+            return 'cá tra'
+        elif any(word in query_lower for word in ['cá basa', 'ca basa']):
+            return 'cá basa'
+        elif any(word in query_lower for word in ['cá rô phi', 'ca ro phi']):
+            return 'cá rô phi'
+        elif any(word in query_lower for word in ['cá lóc', 'ca loc']):
+            return 'cá lóc'
+        elif any(word in query_lower for word in ['cá chép', 'ca chep']):
+            return 'cá chép'
         elif any(word in query_lower for word in ['cá', 'fish']):
             return 'cá'
+        elif any(word in query_lower for word in ['tôm thẻ', 'tom the']):
+            return 'tôm thẻ'
+        elif any(word in query_lower for word in ['tôm sú', 'tom su']):
+            return 'tôm sú'
         elif any(word in query_lower for word in ['tôm', 'shrimp']):
             return 'tôm'
             
@@ -1279,8 +1593,18 @@ class ImageSearchEngine:
         elif any(word in query_lower for word in ['nông nghiệp thông minh', 'smart farming']):
             return 'nông nghiệp thông minh'
             
-        else:
-            return 'nông nghiệp'
+        # Fallback: match any known category_mapping key (hỗ trợ không dấu)
+        normalized_query = self.normalize_text(query_lower)
+        for key in self.category_mapping.keys():
+            norm_key = self.normalize_text(key)
+            if key in query_lower or (
+                norm_key
+                and len(norm_key) >= 4
+                and f" {norm_key} " in f" {normalized_query} "
+            ):
+                return key
+
+        return 'nông nghiệp'
     
     def validate_url(self, url):
         """Validate URL hoạt động"""
@@ -1400,15 +1724,37 @@ class ImageSearchEngine:
         """
         expanded = [original_query]  # Luôn giữ query gốc
         
-        # Thêm từ category mapping
+        # Thêm từ category mapping (hỗ trợ không dấu)
         query_lower = original_query.lower()
+        normalized_query = self.normalize_text(original_query)
+        best_match = None  # (match_len, categories)
         for key, categories in self.category_mapping.items():
-            if key in query_lower or query_lower in key:
-                expanded.extend(categories[:2])  # Chỉ lấy 2 category đầu
-                break
+            norm_key = self.normalize_text(key)
+            matched = (
+                (key in query_lower)
+                or (
+                    norm_key
+                    and len(norm_key) >= 4
+                    and f" {norm_key} " in f" {normalized_query} "
+                )
+            )
+            if not matched:
+                continue
+
+            match_len = len(key)
+            if not best_match or match_len > best_match[0]:
+                best_match = (match_len, categories)
+
+        if best_match:
+            expanded.extend(best_match[1][:2])  # Chỉ lấy 2 category đầu
         
-        # Thêm từ khóa nông nghiệp chung nếu chưa có
-        if 'nông nghiệp' not in query_lower and 'agriculture' not in ' '.join(expanded).lower():
+        # Thêm từ khóa nông nghiệp chung (CHỈ khi query là chủ đề chung)
+        category = self.get_category(original_query)
+        is_general_agri = (category in {None, '', 'nông nghiệp'}) or any(
+            kw in query_lower
+            for kw in ['nông nghiệp', 'canh tác', 'trồng trọt', 'chăn nuôi', 'trang trại', 'ruộng', 'vườn', 'farm', 'agri', 'crop']
+        )
+        if is_general_agri and 'agriculture' not in ' '.join(expanded).lower():
             expanded.append(f"{original_query} agriculture")
             expanded.append(f"{original_query} farming")
         

@@ -1,0 +1,36 @@
+{
+  "labels": [
+    {"label": "animal_cow", "canonical_query": "con bò", "synonyms": ["bò", "con bò", "bò sữa", "bò thịt", "đàn bò"]},
+    {"label": "animal_duck", "canonical_query": "con vịt", "synonyms": ["vịt", "con vịt", "vịt con", "đàn vịt"]},
+    {"label": "animal_chicken", "canonical_query": "con gà", "synonyms": ["gà", "con gà", "gà con", "đàn gà"]},
+    {"label": "animal_pig", "canonical_query": "con heo", "synonyms": ["heo", "con heo", "lợn", "con lợn", "heo rừng"]},
+    {"label": "animal_buffalo", "canonical_query": "con trâu", "synonyms": ["trâu", "con trâu", "trâu cày ruộng"]},
+    {"label": "animal_shrimp", "canonical_query": "con tôm", "synonyms": ["tôm", "con tôm", "tôm sú", "tôm thẻ"]},
+    {"label": "animal_fish", "canonical_query": "con cá", "synonyms": ["cá", "con cá", "cá chép", "cá rô", "cá trê"]},
+
+    {"label": "plant_rice", "canonical_query": "cây lúa", "synonyms": ["lúa", "cây lúa", "ruộng lúa", "bông lúa", "lúa chín", "hạt gạo"]},
+    {"label": "plant_corn", "canonical_query": "cây ngô", "synonyms": ["ngô", "cây ngô", "bắp ngô", "hạt ngô"]},
+    {"label": "plant_tomato", "canonical_query": "cà chua", "synonyms": ["cà chua", "cây cà chua", "quả cà chua"]},
+    {"label": "plant_lettuce", "canonical_query": "rau xà lách", "synonyms": ["xà lách", "rau xà lách", "salad"]},
+    {"label": "plant_vegetable_garden", "canonical_query": "vườn rau", "synonyms": ["vườn rau", "luống rau", "vườn trồng rau"]},
+
+    {"label": "equipment_tractor", "canonical_query": "máy cày", "synonyms": ["máy cày", "máy kéo", "máy kéo nông nghiệp", "tractor"]},
+    {"label": "agri_fertilizer", "canonical_query": "phân bón", "synonyms": ["phân bón", "phân hữu cơ", "phân NPK"]},
+    {"label": "agri_pesticide", "canonical_query": "thuốc trừ sâu", "synonyms": ["thuốc trừ sâu", "thuốc BVTV", "thuốc bảo vệ thực vật"]},
+
+    {"label": "rice_disease", "canonical_query": "bệnh đạo ôn lúa", "synonyms": ["bệnh đạo ôn lúa", "đạo ôn lúa", "cháy lá lúa"]},
+    {"label": "rice_pest", "canonical_query": "ốc bươu vàng", "synonyms": ["ốc bươu vàng", "sâu cuốn lá lúa", "rầy nâu"]}
+  ],
+  "actions": [
+    "tìm", "tìm giúp", "tìm cho tôi", "kiếm", "cho tôi", "gửi", "đưa", "hiển thị", "show", "search", "find"
+  ],
+  "objects": [
+    "ảnh", "hình", "hình ảnh", "photo", "image", "picture"
+  ],
+  "suffixes": [
+    "đi", "với", "nha", "nhé", "ạ", "được không", "cho mình xem", "coi thử"
+  ],
+  "negatives": [
+    "cách trồng lúa", "bò ăn gì", "giải thích bệnh đạo ôn", "hôm nay thời tiết thế nào", "tư vấn bón phân cho lúa"
+  ]
+}

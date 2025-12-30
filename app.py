@@ -7000,7 +7000,7 @@ def chat():
         if is_image_request:
             logging.info("🖼️ Image search request detected")
 
-            # Sử dụng image_request_handler để trích xuất query
+            # Sử dụng image_request_handler để trích xuất query (rule-based)
             clean_query = image_handler.extract_query(message)
             
             logging.info(f"🎯 Search query: {clean_query}")

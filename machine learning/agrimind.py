@@ -54,6 +54,14 @@ DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "agrimind_textclf.pkl")
 # Note: even when "using HF", the file must still be downloaded to run locally.
 # This code caches it in a writable directory so the download doesn't repeat every request.
 
+# Optional: call a remote inference API instead of loading/downloading the pickle.
+# This is the most reliable option for hosted web apps that may time out on cold starts.
+#
+# Env vars:
+# - AGRIMIND_REMOTE_ML_URL=https://...   (your own endpoint; e.g. a HF Space/FastAPI endpoint)
+# - AGRIMIND_REMOTE_ML_TOKEN=...         (optional; keep in hosting secrets, never commit)
+# - AGRIMIND_REMOTE_ML_TIMEOUT_S=3       (optional)
+
 
 
 LOGGER = logging.getLogger("agrimind")
@@ -486,6 +494,12 @@ def _infer_domain_hint(q_norm: str) -> Optional[str]:
 def _try_ml_predict_entry_id(question: str, model_path: str = DEFAULT_MODEL_PATH) -> Optional[Dict[str, Any]]:
     """Try to predict a KB entry id from free-text question using a trained sklearn model."""
     try:
+        remote_url = (os.environ.get("AGRIMIND_REMOTE_ML_URL") or "").strip()
+        if remote_url:
+            remote = _try_remote_ml_predict_entry_id(question, remote_url)
+            if remote:
+                return remote
+
         resolved = _resolve_model_path(model_path)
         if not resolved or not os.path.exists(resolved):
             return None
@@ -520,6 +534,55 @@ def _try_ml_predict_entry_id(question: str, model_path: str = DEFAULT_MODEL_PATH
 
         pred = clf.predict(X)[0]
         return {"id": str(pred), "prob": None, "type": str(model.get("type") or "unknown")}
+    except Exception:
+        return None
+
+
+def _try_remote_ml_predict_entry_id(question: str, url: str) -> Optional[Dict[str, Any]]:
+    """Call a remote ML endpoint to predict KB id.
+
+    Expected request JSON:
+      {"text": "..."}
+
+    Expected response JSON (minimal):
+      {"id": "kb_...", "prob": 0.72, "type": "remote"}
+    """
+
+    if not question or not url:
+        return None
+
+    try:
+        import requests
+
+        token = (os.environ.get("AGRIMIND_REMOTE_ML_TOKEN") or "").strip()
+        try:
+            timeout_s = float(os.environ.get("AGRIMIND_REMOTE_ML_TIMEOUT_S", "3"))
+        except Exception:
+            timeout_s = 3.0
+        timeout_s = max(1.0, min(20.0, timeout_s))
+
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        resp = requests.post(
+            url,
+            headers=headers,
+            json={"text": question},
+            timeout=timeout_s,
+        )
+        resp.raise_for_status()
+        data = resp.json() if resp.content else {}
+
+        pred_id = data.get("id")
+        if not pred_id:
+            return None
+
+        return {
+            "id": str(pred_id),
+            "prob": float(data["prob"]) if data.get("prob") is not None else None,
+            "type": str(data.get("type") or "remote"),
+        }
     except Exception:
         return None
 

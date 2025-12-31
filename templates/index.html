@@ -2150,12 +2150,17 @@
         right: 0 !important;
         bottom: calc(var(--keyboard-inset, 0px) + env(safe-area-inset-bottom)) !important;
         background: transparent !important;
-        padding: 0 !important;
+        padding: 0.75rem 1rem !important;
         border-top: 0 !important;
         z-index: 100 !important;
         margin: 0 !important;
         flex-shrink: 0 !important;
         box-shadow: none !important;
+      }
+
+      /* ChatGPT-like: buttons stay bottom-aligned as input grows */
+      .chat-controls .composer-row {
+        align-items: flex-end !important;
       }
       
       #chat-box {
@@ -2175,6 +2180,33 @@
       #message-input {
         min-height: 48px !important;
         font-size: 16px !important; /* Prevents zoom on iOS */
+        max-height: 160px !important;
+        overflow-y: hidden;
+        transition: height 140ms ease, border-radius 140ms ease;
+      }
+
+      /* Slightly less "pill" when multiline, closer to ChatGPT */
+      #message-input.is-multiline {
+        border-radius: 14px !important;
+      }
+
+      /* Smooth hide/show mic button like ChatGPT */
+      #voice-input-btn {
+        transition: opacity 180ms ease, transform 180ms ease, width 180ms ease, margin 180ms ease, padding 180ms ease, border-width 180ms ease;
+        will-change: opacity, transform, width;
+      }
+      #voice-input-btn.voice-hidden {
+        opacity: 0 !important;
+        transform: scale(0.9) !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        /* Cancel the flex gap so the send button slides left */
+        margin-left: -0.5rem !important;
+        margin-right: -0.5rem !important;
+        padding: 0 !important;
+        border-width: 0 !important;
+        pointer-events: none !important;
+        overflow: hidden !important;
       }
     }
 
@@ -4060,7 +4092,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 rounded-full border border-gray-200 bg-transparent p-2 md:p-0 md:rounded-none md:border-0 md:bg-transparent">
+        <div class="composer-row flex items-center gap-2 rounded-2xl border border-gray-200 bg-transparent p-2 md:p-0 md:rounded-none md:border-0 md:bg-transparent">
           
           <button id="camera-btn" type="button" class="flex-shrink-0 border-2 border-green-600 text-green-600 rounded-full w-11 h-11 p-0 md:w-auto md:h-auto md:rounded-xl md:px-4 md:py-3 hover:border-green-700 hover:text-green-700 transition-colors active:scale-95 flex items-center justify-center">
             
@@ -4107,13 +4139,13 @@
           </div>
 
           <div class="flex-1 min-w-0">
-            <input
+            <textarea
               id="message-input"
-              type="text"
+              rows="1"
               placeholder="Nhập câu hỏi..."
               spellcheck="false"
-              class="w-full h-11 md:h-full border-0 bg-transparent rounded-full md:rounded-xl px-3 md:px-4 py-0 md:py-3 shadow-none md:shadow-sm focus:ring-0 md:focus:ring-2 md:focus:ring-green-400 focus:border-0 md:focus:border-green-500 text-base outline-none transition-all md:border md:border-green-200"
-            />
+              class="w-full min-h-11 md:h-full border-0 bg-transparent rounded-xl md:rounded-xl px-3 md:px-4 py-2.5 md:py-3 shadow-none md:shadow-sm focus:ring-0 md:focus:ring-2 md:focus:ring-green-400 focus:border-0 md:focus:border-green-500 text-base outline-none transition-all md:border md:border-green-200 resize-none"
+            ></textarea>
           </div>
 
           <button id="voice-input-btn" class="flex-shrink-0 border-2 border-green-500 text-green-500 rounded-full w-11 h-11 p-0 md:w-auto md:h-auto md:rounded-xl md:px-4 md:py-3 shadow-sm hover:bg-green-50 active:scale-95 transition-all flex items-center justify-center" title="Nhập bằng giọng nói">
@@ -4830,6 +4862,107 @@
           sendMessage();
         }
       });
+
+      // Paste image support: treat clipboard images like uploaded images
+      input.addEventListener('paste', (e) => {
+        try {
+          const dt = e.clipboardData;
+          const items = dt && dt.items ? Array.from(dt.items) : [];
+          if (!items.length) return;
+
+          const imageItem = items.find((it) => it && typeof it.type === 'string' && it.type.startsWith('image/'));
+          if (!imageItem || typeof imageItem.getAsFile !== 'function') return;
+
+          const pastedFile = imageItem.getAsFile();
+          if (!pastedFile) return;
+
+          console.log('📋🖼️ Pasted image detected:', { type: pastedFile.type, size: pastedFile.size });
+
+          // Route through the same pipeline as normal uploads
+          handleImageUpload({
+            target: {
+              files: [pastedFile],
+              value: ''
+            }
+          });
+
+          if (window._updateComposerUI) window._updateComposerUI();
+        } catch (err) {
+          console.warn('⚠️ Paste image handling failed:', err);
+        }
+      });
+
+      // Mobile: auto-grow textarea + hide mic when typing (ChatGPT-like)
+      const root = document.documentElement;
+      const controls = document.querySelector('.chat-controls');
+      const voiceBtn = document.getElementById('voice-input-btn');
+
+      function isMobileViewport() {
+        try {
+          return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+        } catch (e) {
+          return window.innerWidth <= 768;
+        }
+      }
+
+      function updateComposerHeightVar() {
+        try {
+          if (!controls) return;
+          const h = controls.getBoundingClientRect().height;
+          if (h && Number.isFinite(h)) {
+            root.style.setProperty('--composer-h', `${Math.round(h)}px`);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      function autoResizeTextarea(textarea) {
+        if (!textarea || textarea.tagName !== 'TEXTAREA') return;
+        if (!isMobileViewport()) {
+          textarea.style.height = '';
+          textarea.style.overflowY = '';
+          textarea.classList.remove('is-multiline');
+          return;
+        }
+        const minPx = 48;
+        const maxPx = 160; // compact; scroll after this
+
+        const rawValue = (textarea.value || '');
+        if (rawValue.length === 0) {
+          textarea.style.height = `${minPx}px`;
+          textarea.style.overflowY = 'hidden';
+          textarea.classList.remove('is-multiline');
+          return;
+        }
+
+        // Reset first so scrollHeight reflects full content
+        textarea.style.height = '0px';
+        const scroll = textarea.scrollHeight || minPx;
+        const next = Math.max(minPx, Math.min(maxPx, scroll));
+        textarea.style.height = `${next}px`;
+
+        // When exceeding max, allow internal scroll (ChatGPT-like)
+        textarea.style.overflowY = scroll > maxPx ? 'auto' : 'hidden';
+        textarea.classList.toggle('is-multiline', next > (minPx + 6));
+      }
+
+      function updateComposerUI() {
+        if (!input) return;
+        const hasText = (input.value || '').trim().length > 0;
+        if (voiceBtn) {
+          voiceBtn.classList.toggle('voice-hidden', hasText && isMobileViewport());
+        }
+        autoResizeTextarea(input);
+        updateComposerHeightVar();
+      }
+
+      // Expose for voice transcription + sendMessage
+      window._updateComposerUI = updateComposerUI;
+
+      input.addEventListener('input', updateComposerUI);
+      window.addEventListener('resize', updateComposerUI, { passive: true });
+      updateComposerUI();
     } else {
       console.error('❌ Input element not found!');
     }
@@ -6696,7 +6829,12 @@
         // Only clean text when recognized speech ends (in onend handler)
         if (displayText !== lastMobileVoiceDisplay) {
           messageInput.value = displayText;
-          messageInput.scrollLeft = messageInput.scrollWidth;
+          try {
+            messageInput.scrollTop = messageInput.scrollHeight;
+          } catch (e) {
+            // ignore
+          }
+          if (window._updateComposerUI) window._updateComposerUI();
           lastMobileVoiceDisplay = displayText;
           console.log('📝 Updated display (interim):', displayText);
         } else {
@@ -6755,6 +6893,7 @@
             const cleanedFinal = removeWordRepetition(finalTranscript.trim());
             console.log('✅ Kết quả nhận dạng final (cleaned):', cleanedFinal);
             messageInput.value = cleanedFinal;
+            if (window._updateComposerUI) window._updateComposerUI();
             messageInput.focus();
             // ✅ Reset state after using it
             finalTranscript = '';
@@ -6852,6 +6991,7 @@
     messageInput.value = '';
     messageInput.placeholder = "Nhập câu hỏi của bạn..."; // Reset placeholder
     window.botCurrentMessage = '';
+    if (window._updateComposerUI) window._updateComposerUI();
     
     try {
       // Store image data before clearing if exists

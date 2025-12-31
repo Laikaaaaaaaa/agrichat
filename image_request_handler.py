@@ -118,6 +118,13 @@ class ImageRequestHandler:
             'tìm ảnh', 'tim anh', 'xem ảnh', 'xem anh', 'xem hình', 'xem hinh',
             'coi ảnh', 'coi anh', 'coi hình', 'coi hinh',
             'show', 'image', 'picture', 'photo',
+            # Direct requests (very strong, low ambiguity)
+            'cho tôi ảnh', 'cho toi anh', 'cho tui anh', 'cho mình ảnh', 'cho minh anh',
+            'cho tôi hình', 'cho toi hinh', 'cho tui hinh', 'cho mình hình', 'cho minh hinh',
+            'cho xem ảnh', 'cho xem hình', 'cho tôi xem ảnh', 'cho tôi xem hình',
+            'muốn xem ảnh', 'muon xem anh', 'muốn xem hình', 'muon xem hinh',
+            'cần ảnh', 'can anh', 'cần hình', 'can hinh',
+            'xin ảnh', 'xin hình', 'cho xin ảnh', 'cho xin hình',
             'cho ảnh', 'cho anh', 'cho hình', 'cho hinh',
             'lấy ảnh', 'lay anh', 'lấy hình', 'lay hinh',
             'gửi ảnh', 'gui anh', 'gửi hình', 'gui hinh',
@@ -133,6 +140,16 @@ class ImageRequestHandler:
                message_lower.endswith(f' {keyword}'):
                 logging.debug(f"🖼️ Found strong image keyword '{keyword}' in message")
                 return True
+
+        # STEP 1B: Regex for common Vietnamese request phrasing (handles extra leading words)
+        # Examples: "tôi bảo cho tôi ảnh cây đậu nành", "làm ơn cho mình xem hình ..."
+        request_pattern = re.compile(
+            r"\b(cho|gui|gửi|lay|lấy|tim|tìm|kiem|kiếm|hien thi|hiển thị|xem|coi)\b"
+            r"(?:\s+\w+){0,4}?\s+\b(anh|ảnh|hinh|hình|hinh anh|hình ảnh|image|photo|picture)\b",
+            re.IGNORECASE,
+        )
+        if request_pattern.search(message_lower):
+            return True
         
         # STEP 2: Livestock/statistics keywords (require explicit context)
         livestock_keywords = [
@@ -205,6 +222,8 @@ class ImageRequestHandler:
         stop_words = [
             'của', 'cho', 'về', 'với', 'trong', 'tôi', 'mình', 'bạn', 'đi',
             'nha', 'ạ', 'nhé', 'được', 'là', 'và', 'hay', 'hoặc', 'thì',
+            'bảo', 'bao', 'nói', 'noi', 'giúp', 'giup', 'làm', 'lam', 'ơn', 'on',
+            'vui', 'lòng', 'long', 'please',
             'va', 'hay', 'hoac', 'toi', 'ban', 'duoc',  # No diacritics
         ]
         

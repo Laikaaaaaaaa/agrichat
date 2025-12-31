@@ -74,18 +74,11 @@ class ImageSearchEngine:
 
             # Thuỷ sản phổ biến (theo loài)
             'cá tra': ['Pangasius', 'Catfish', 'Aquaculture'],
-            'ca tra': ['Pangasius', 'Catfish', 'Aquaculture'],
-            'cá basa': ['Pangasius', 'Catfish', 'Aquaculture'],
             'ca basa': ['Pangasius', 'Catfish', 'Aquaculture'],
-            'cá rô phi': ['Tilapia', 'Tilapia farming', 'Aquaculture'],
             'ca ro phi': ['Tilapia', 'Tilapia farming', 'Aquaculture'],
-            'cá lóc': ['Snakehead fish', 'Channa', 'Aquaculture'],
             'ca loc': ['Snakehead fish', 'Channa', 'Aquaculture'],
-            'cá chép': ['Common carp', 'Cyprinus carpio', 'Aquaculture'],
             'ca chep': ['Common carp', 'Cyprinus carpio', 'Aquaculture'],
             'tôm thẻ': ['Whiteleg shrimp', 'Litopenaeus vannamei', 'Shrimp farming'],
-            'tom the': ['Whiteleg shrimp', 'Litopenaeus vannamei', 'Shrimp farming'],
-            'tôm sú': ['Giant tiger prawn', 'Penaeus monodon', 'Shrimp farming'],
             'tom su': ['Giant tiger prawn', 'Penaeus monodon', 'Shrimp farming'],
 
             # Bổ sung động vật & thuỷ sản

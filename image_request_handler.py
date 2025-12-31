@@ -26,6 +26,8 @@ class ImageRequestHandler:
             'cho tôi ảnh', 'cho tôi hình', 'đưa tôi ảnh', 'đưa tôi hình',
             'muốn xem ảnh', 'muốn xem hình', 'cần ảnh', 'cần hình',
             'tim anh', 'tim hinh', 'cho toi anh', 'cho toi hinh',  # No diacritics
+            # Bare tokens (support short prompts like: "ảnh đậu phộng", "hinh ca tra")
+            'anh', 'hinh', 'hình',
         ]
         
         # Từ khóa nông nghiệp + gia súc
@@ -65,24 +67,41 @@ class ImageRequestHandler:
         """
         if not message or not isinstance(message, str):
             return False
+
+        message_lower = message.lower().strip()
+
+        # Hard-negative veto: learning/understanding intent should never be treated as image search
+        learning_keywords = [
+            'tìm hiểu', 'tim hieu', 'học', 'hoc', 'học tập', 'hoc tap',
+            'hiểu biết', 'hieu biet', 'tìm tòi', 'tim toi', 'khám phá', 'kham pha',
+            'tìm kiếm thông tin', 'tim kiem thong tin', 'giải đáp', 'giai dap',
+            'giải thích', 'giai thich', 'thảo luận', 'thao luan', 'bàn luận', 'ban luan'
+        ]
+        if any(kw in message_lower for kw in learning_keywords):
+            return False
+
+        # Prefer strong rule-based positives first to avoid context conflicts
+        if self._rule_based_detection(message):
+            return True
         
-        # STEP 1: Sử dụng ML Classifier (chính xác hơn)
+        # STEP 1: Use ML only for ambiguous cases that still include clear visual indicators
         if use_ml:
             try:
-                is_request, confidence = image_classifier.predict(message)
-                logging.info(f"🤖 ML prediction: {is_request} (confidence: {confidence:.2%}) for: '{message}'")
-                # ⚠️ INCREASED threshold to 0.85 to reduce false positives significantly
-                if confidence > 0.85:
-                    return is_request
-                else:
-                    logging.info(f"⚠️ Confidence {confidence:.2%} below threshold 85%, falling back to rule-based")
+                visual_indicators = [
+                    'ảnh', 'hình', 'hình ảnh', 'hinh', 'hinh anh',
+                    'image', 'photo', 'picture', 'chart', 'graph', 'biểu đồ', 'bieu do'
+                ]
+                if any(tok in message_lower for tok in visual_indicators):
+                    is_request, confidence = image_classifier.predict(message)
+                    logging.info(f"🤖 ML prediction: {is_request} (confidence: {confidence:.2%}) for: '{message}'")
+
+                    # Medium threshold; rule-based already handled strong positives
+                    if is_request and confidence >= 0.65:
+                        return True
             except Exception as e:
                 logging.warning(f"⚠️ ML prediction failed: {e}, falling back to rule-based")
-        
-        # STEP 2: Fallback - Rule-based detection
-        result = self._rule_based_detection(message)
-        logging.info(f"📋 Rule-based detection result: {result} for: '{message}'")
-        return result
+
+        return False
     
     def _rule_based_detection(self, message: str) -> bool:
         """
@@ -111,6 +130,33 @@ class ImageRequestHandler:
             if keyword in message_lower:
                 logging.debug(f"🚫 Rejected message with learning intent keyword '{keyword}': '{message}'")
                 return False
+
+        # STEP 0C: Bare visual prefix (handles: "ảnh đậu phộng", "hình cây lúa", "image corn")
+        # Safeguard for "anh" (no-diacritics) which can be a pronoun: "anh ơi", "anh giúp em"...
+        bare_prefix = re.match(
+            r"^(anh|ảnh|hinh anh|hình ảnh|hinh|hình|image|photo|picture)\b[\s:,-]+(.+)$",
+            message_lower,
+        )
+        if bare_prefix:
+            lead = (bare_prefix.group(1) or '').strip()
+            rest = (bare_prefix.group(2) or '').strip()
+
+            # Reject ultra-short / empty
+            if not rest:
+                return False
+
+            if lead == 'anh':
+                first = rest.split()[0] if rest.split() else ''
+                pronoun_followers = {
+                    'oi', 'ơi', 'a', 'ạ', 'nhe', 'nhé', 'nha', 'nhà', 'ne', 'nè', 'ha',
+                    'em', 'chi', 'chị', 'chu', 'chú', 'bac', 'bác', 'ban', 'bạn',
+                    'toi', 'tôi', 'minh', 'mình', 'giup', 'giúp', 'hoi', 'hỏi',
+                    'cho', 'xin', 'lam', 'làm', 'noi', 'nói'
+                }
+                if first in pronoun_followers:
+                    return False
+
+            return True
         
         # STEP 1: Hard keywords - but must be strong indicators
         # Require keyword to start the message or follow specific patterns

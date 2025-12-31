@@ -363,6 +363,103 @@ def _try_domain_refusal_response(user_message: str):
     except Exception:
         return None
 
+
+def _should_skip_domain_guard_due_to_context(user_message: str, conversation_history: list) -> bool:
+    """Return True if the message is a short follow-up and recent context is in-domain.
+
+    Goal: reduce false out-of-domain refusals for messages like:
+    - "thế còn...?" / "vậy sao" / "còn nếu" / "nó là gì" / "ok rồi tiếp" / "giúp với"
+    when the conversation is already about agriculture/environment.
+    """
+
+    try:
+        if not isinstance(user_message, str):
+            return False
+
+        msg = user_message.strip()
+        if not msg:
+            return False
+
+        if not conversation_history:
+            return False
+
+        # Keep conservative: only short messages.
+        if len(msg) > 80:
+            return False
+
+        msg_norm = msg.lower().strip()
+
+        followup_signals = [
+            "the con",
+            "the thi",
+            "vay sao",
+            "vay thi",
+            "con neu",
+            "neu vay",
+            "no",
+            "cai do",
+            "cai nay",
+            "nhu vay",
+            "giong vay",
+            "tiep",
+            "tiep theo",
+            "roi sao",
+            "ok",
+            "oke",
+            "okay",
+            "duoc",
+            "da",
+            "vang",
+            "giup",
+            "help",
+            "ho tro",
+            "tu van",
+            "cho hoi",
+        ]
+
+        if not any(s in msg_norm for s in followup_signals):
+            return False
+
+        # If the message contains obvious OOD cues, do not skip.
+        ood_cues = [
+            "python",
+            "javascript",
+            "java",
+            "sql",
+            "docker",
+            "kubernetes",
+            "react",
+            "windows",
+            "bitcoin",
+            "co phieu",
+            "chung khoan",
+            "chứng khoán",
+            "trading",
+            "stock market",
+            "machine learning",
+            "thu do",
+        ]
+        if any(cue in msg_norm for cue in ood_cues):
+            return False
+
+        # Use the last 1–2 exchanges to decide if the ongoing topic is in-domain.
+        last_items = conversation_history[-2:] if len(conversation_history) >= 2 else conversation_history[-1:]
+        joined = "\n".join(
+            [str(x.get("user_message") or "") + "\n" + str(x.get("ai_response") or "") for x in last_items if isinstance(x, dict)]
+        )
+        if not joined.strip():
+            return False
+
+        mod = _load_domain_guard_module()
+        is_in_domain_fn = getattr(mod, "is_in_domain", None)
+        if is_in_domain_fn is None:
+            return False
+
+        # If recent context is agriculture/environment, skip refusal.
+        return bool(is_in_domain_fn(joined))
+    except Exception:
+        return False
+
 # ============================================================================
 # 🔐 SECURITY: Rate Limiting for Brute Force Protection
 # ============================================================================
@@ -3069,11 +3166,12 @@ Trả lời bằng tiếng Việt, cụ thể, sinh động với emoji và mark
                     return local_greeting
 
                 # ✅ Out-of-domain (not agriculture/environment): refuse locally
-                local_refusal = _try_domain_refusal_response(message)
-                if local_refusal:
-                    logging.info(f"🛑 Refused (out-of-domain): '{message[:120]}'")
-                    self.add_to_conversation_history(message, local_refusal)
-                    return local_refusal
+                if not _should_skip_domain_guard_due_to_context(message, self.conversation_history):
+                    local_refusal = _try_domain_refusal_response(message)
+                    if local_refusal:
+                        logging.info(f"🛑 Refused (out-of-domain): '{message[:120]}'")
+                        self.add_to_conversation_history(message, local_refusal)
+                        return local_refusal
 
                 # ✅ Unclear agriculture questions: ask for details locally
                 local_clarify = _try_local_clarify_response(message)
@@ -6632,16 +6730,105 @@ def mark_all_notifications_read():
 
 # ==================== MAIN APP ROUTES ====================
 
+def _get_public_base_url() -> str:
+    """Public base URL for building canonical/OG/sitemap URLs.
+
+    Set `PUBLIC_BASE_URL` in production (recommended) to avoid proxy/cdn issues.
+    Falls back to request.url_root.
+    """
+
+    try:
+        env = (os.environ.get("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+        if env:
+            return env
+    except Exception:
+        pass
+
+    try:
+        return (request.url_root or "").rstrip("/")
+    except Exception:
+        return ""
+
+
+def _abs_url(path: str) -> str:
+    base = _get_public_base_url()
+    if not base:
+        return path
+    if not path:
+        return base
+    if path.startswith("http://") or path.startswith("https://"):
+        return path
+    if not path.startswith("/"):
+        path = "/" + path
+    return base + path
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    base = _get_public_base_url()
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /api/",
+        "Disallow: /templates/",
+    ]
+    if base:
+        lines.append(f"Sitemap: {base}/sitemap.xml")
+    content = "\n".join(lines) + "\n"
+    resp = make_response(content)
+    resp.mimetype = "text/plain"
+    return resp
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    base = _get_public_base_url()
+    today = datetime.utcnow().date().isoformat()
+
+    # Only include public, indexable pages.
+    paths = [
+        "/",
+        "/news",
+        "/forum",
+        "/map_vietnam",
+        "/rate",
+    ]
+
+    urlset = []
+    for p in paths:
+        loc = (base + p) if base else p
+        urlset.append(
+            f"<url><loc>{loc}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>"
+        )
+
+    xml = (
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">"
+        + "".join(urlset)
+        + "</urlset>"
+    )
+    resp = make_response(xml)
+    resp.mimetype = "application/xml"
+    return resp
+
 @app.route('/')
 def index():
     """Trang chủ"""
-    return send_from_directory(TEMPLATES_DIR, 'index.html')
+    return render_template(
+        'index.html',
+        canonical_url=_abs_url('/'),
+        og_image_url=_abs_url('/static/logo/logo.png'),
+    )
 
 
 @app.route('/news')
 def news():
     """Trang tin tức nông nghiệp"""
-    return send_from_directory(TEMPLATES_DIR, 'news.html')
+    return render_template(
+        'news.html',
+        canonical_url=_abs_url('/news'),
+        og_image_url=_abs_url('/static/logo/logo.png'),
+    )
 
 
 @app.route('/api/classify-article', methods=['POST'])
@@ -6802,13 +6989,21 @@ def history():
 @app.route('/forum')
 def forum():
     """Trang diễn đàn nông nghiệp"""
-    return send_from_directory(TEMPLATES_DIR, 'forum.html')
+    return render_template(
+        'forum.html',
+        canonical_url=_abs_url('/forum'),
+        og_image_url=_abs_url('/static/logo/logo.png'),
+    )
 
 
 @app.route('/rate')
 def rate():
     """Trang đánh giá trang web"""
-    return send_from_directory(TEMPLATES_DIR, 'rate.html')
+    return render_template(
+        'rate.html',
+        canonical_url=_abs_url('/rate'),
+        og_image_url=_abs_url('/static/logo/logo.png'),
+    )
 
 
 
@@ -6816,7 +7011,11 @@ def rate():
 @app.route('/map_vietnam')
 def map_vietnam():
     """Trang bản đồ Việt Nam"""
-    return send_from_directory(TEMPLATES_DIR, 'map_vietnam.html')
+    return render_template(
+        'map_vietnam.html',
+        canonical_url=_abs_url('/map_vietnam'),
+        og_image_url=_abs_url('/static/logo/logo.png'),
+    )
 
 
 @app.route('/static/<path:filename>')
@@ -6842,6 +7041,15 @@ def template_files(filename):
 def html_files(filename):
     """Serve HTML files directly"""
     if filename.endswith('.html'):
+        canonical_redirects = {
+            "index.html": "/",
+            "news.html": "/news",
+            "forum.html": "/forum",
+            "rate.html": "/rate",
+            "map_vietnam.html": "/map_vietnam",
+        }
+        if filename in canonical_redirects:
+            return redirect(canonical_redirects[filename], code=301)
         # Protect private pages that should require authentication
         if filename in {'history.html'} and 'user_id' not in session:
             return redirect('/login')

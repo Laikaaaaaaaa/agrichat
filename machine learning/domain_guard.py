@@ -275,6 +275,95 @@ _SMALLTALK_TOKENS = {
 }
 
 
+_GENERIC_HELP_PHRASES = {
+    "giup",
+    "giup voi",
+    "giup minh",
+    "giup toi",
+    "can giup",
+    "can ho tro",
+    "ho tro",
+    "support",
+    "help",
+    "pls help",
+    "plz help",
+    "tu van",
+    "tu van giup",
+    "cho hoi",
+    "cho minh hoi",
+    "minh hoi",
+    "hoi chut",
+    "hoi cai",
+    "cau gi giup",
+}
+
+
+_GENERIC_HELP_EXCLUDE_PHRASES = {
+    # common school/homework/general OOD phrases (keep phrase-based to avoid VN accent collisions)
+    "giai toan",
+    "lam van",
+    "viet van",
+    "lam bai",
+    "bai tap",
+    "tieng anh",
+    "vat ly",
+    "hoa hoc",
+    "homework",
+    "essay",
+}
+
+
+_GENERIC_HELP_EXCLUDE_TOKENS = {
+    # keep token exclusions very conservative
+    "code",
+    "lap",
+    "trinh",
+}
+
+
+def _is_generic_help_request(text_norm: str) -> bool:
+    """Return True for vague generic "help me" asks.
+
+    Product requirement:
+    - Do NOT refuse these.
+    - Let the app ask a clarification like "Bạn cần giúp gì về nông nghiệp?".
+    """
+
+    if not text_norm:
+        return False
+
+    t = text_norm.strip()
+    if not t:
+        return False
+
+    if len(t) > 90:
+        return False
+
+    toks = _tokenize(t)
+    if not toks:
+        return False
+
+    # Avoid turning obvious OOD requests into "clarify".
+    if any(p in t for p in _GENERIC_HELP_EXCLUDE_PHRASES):
+        return False
+    if any(tok in _GENERIC_HELP_EXCLUDE_TOKENS for tok in toks):
+        return False
+
+    # Phrase match first.
+    if any(p in t for p in _GENERIC_HELP_PHRASES):
+        return True
+
+    # Token-based fallback.
+    if any(tok in {"giup", "help", "support"} for tok in toks):
+        return True
+
+    # "hỗ trợ" -> "ho tro"
+    if "ho" in toks and "tro" in toks:
+        return True
+
+    return False
+
+
 def _is_smalltalk_only(text_norm: str) -> bool:
     """Return True for short greeting/thanks/bye messages.
 
@@ -364,6 +453,10 @@ def should_refuse_rule(text: str) -> bool:
     # Strong out-of-domain keywords: refuse.
     if any(kw in norm for kw in _OOD_KEYWORDS):
         return True
+
+    # Vague generic "help me" requests: do NOT refuse; downstream can ask clarification.
+    if _is_generic_help_request(norm):
+        return False
 
     # Otherwise: if it looks like a normal question/request but has no domain hint, refuse.
     # (This matches the user's requirement: outside agriculture/environment => refuse.)
@@ -465,6 +558,10 @@ def should_refuse(text: str) -> bool:
 
     # Never refuse greetings/thanks/bye.
     if _is_smalltalk_only(norm):
+        return False
+
+    # Never refuse vague generic help requests; steer to clarification instead.
+    if _is_generic_help_request(norm):
         return False
 
     # Rule-first: high confidence.

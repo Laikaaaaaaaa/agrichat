@@ -15,6 +15,7 @@ from sklearn.svm import LinearSVC
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import StandardScaler
+from sklearn.calibration import CalibratedClassifierCV
 
 
 class DiacriticsNormalizer:
@@ -47,7 +48,7 @@ class ImageIntentClassifier:
         self.model_path = model_path or os.path.join(
             os.path.dirname(__file__), 
             'models', 
-            'image_intent_classifier_v2.pkl'
+            'image_intent_classifier_v3.pkl'
         )
         self.model = None
         self.vectorizer = None
@@ -62,13 +63,11 @@ class ImageIntentClassifier:
     
     def _preprocess_text(self, text: str) -> str:
         """
-        Tiền xử lý text: lowercase, normalize diacritics
+        Tiền xử lý text: lowercase (preserve diacritics to avoid 'ảnh' -> 'anh' ambiguity)
         """
         if not text:
             return text
         text = text.lower().strip()
-        # Normalize Vietnamese diacritics
-        text = self.normalizer.normalize(text)
         return text
     
     def _init_ensemble_model(self):
@@ -218,7 +217,11 @@ class ImageIntentClassifier:
                 ('svm', Pipeline([
                     ('features', feature_union),
                     ('scaler', StandardScaler(with_mean=False)),
-                    ('clf', LinearSVC(max_iter=2000, C=1.0, class_weight='balanced', random_state=42))
+                    ('clf', CalibratedClassifierCV(
+                        estimator=LinearSVC(max_iter=2000, C=1.0, class_weight='balanced', random_state=42),
+                        method='sigmoid',
+                        cv=3,
+                    ))
                 ]))
             ],
             voting='soft',
@@ -251,6 +254,14 @@ class ImageIntentClassifier:
                 self.model = pickle.load(f)
             self.trained = True
             logging.info(f"📂 Ensemble model loaded from {self.model_path}")
+
+            # Validate predict_proba works; otherwise retrain.
+            try:
+                sample = self._preprocess_text("tìm ảnh con bò")
+                _ = self.model.predict_proba([sample])[0]
+            except Exception as e:
+                logging.warning(f"⚠️ Loaded model is not usable for predict_proba: {e}. Retraining...")
+                self._init_ensemble_model()
         except Exception as e:
             logging.warning(f"⚠️ Could not load model: {e}, retraining...")
             self._init_ensemble_model()

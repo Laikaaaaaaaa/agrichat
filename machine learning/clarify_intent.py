@@ -163,6 +163,84 @@ _DETAIL_HINT_TOKENS = {
 }
 
 
+_GENERIC_HELP_PHRASES = {
+    "giup",
+    "giup voi",
+    "giup minh",
+    "giup toi",
+    "can giup",
+    "can ho tro",
+    "ho tro",
+    "support",
+    "help",
+    "pls help",
+    "plz help",
+    "tu van",
+    "tu van giup",
+    "cho hoi",
+    "cho minh hoi",
+    "minh hoi",
+    "hoi chut",
+    "hoi cai",
+    "cau gi giup",
+}
+
+
+_GENERIC_HELP_EXCLUDE_PHRASES = {
+    "giai toan",
+    "lam van",
+    "viet van",
+    "lam bai",
+    "bai tap",
+    "tieng anh",
+    "vat ly",
+    "hoa hoc",
+    "homework",
+    "essay",
+}
+
+
+_GENERIC_HELP_EXCLUDE_TOKENS = {
+    "code",
+    "lap",
+    "trinh",
+}
+
+
+def _is_generic_help_request(text_norm: str) -> bool:
+    if not text_norm:
+        return False
+
+    t = text_norm.strip()
+    if not t:
+        return False
+
+    if len(t) > 90:
+        return False
+
+    toks = _tokenize(t)
+    if not toks:
+        return False
+
+    # Avoid hijacking obvious school/homework/general OOD tasks.
+    if any(p in t for p in _GENERIC_HELP_EXCLUDE_PHRASES):
+        return False
+    if any(tok in _GENERIC_HELP_EXCLUDE_TOKENS for tok in toks):
+        return False
+
+    if any(p in t for p in _GENERIC_HELP_PHRASES):
+        return True
+
+    if any(tok in {"giup", "help", "support"} for tok in toks):
+        return True
+
+    # "hỗ trợ" -> "ho tro"
+    if "ho" in toks and "tro" in toks:
+        return True
+
+    return False
+
+
 def _looks_like_question(text_norm: str) -> bool:
     if not text_norm:
         return False
@@ -206,6 +284,11 @@ def needs_clarification_rule(text: str) -> bool:
 
     norm = _normalize(msg)
     tokens = _tokenize(norm)
+
+    # Vague generic "help me" messages: steer user into agriculture scope.
+    # Example: "cậu gì giúp tớ" / "giúp mình" / "help".
+    if _is_generic_help_request(norm):
+        return True
 
     # If it doesn't look like a question/request, don't intercept.
     if not _looks_like_question(norm):
@@ -331,6 +414,16 @@ def needs_clarification(text: str) -> bool:
 
     if needs_clarification_rule(text):
         return True
+
+    # Only allow ML fallback when the message is likely in-domain OR it's a generic help ask.
+    # This prevents OOD prompts (coding, trivia, homework) from being misrouted into clarification.
+    try:
+        norm = _normalize(str(text))
+        tokens = _tokenize(norm)
+        if not _has_agri_hint(tokens) and not _is_generic_help_request(norm):
+            return False
+    except Exception:
+        return False
 
     proba = _predict_proba_unclear_ml(text)
     if proba is None:
@@ -548,6 +641,9 @@ def generate_clarify_reply(user_text: Optional[str] = None) -> str:
     """
 
     text = user_text or ""
+    norm = _normalize(text)
+    if _is_generic_help_request(norm):
+        return "Bạn cần giúp gì về nông nghiệp?"
     domain = _detect_domain(text)
     topic = _detect_topic(domain, text)
 

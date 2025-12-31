@@ -131,4 +131,44 @@
   ,{"text": "xem tử vi hôm nay", "label": 1}
   ,{"text": "gợi ý tên cho quán cà phê", "label": 1}
   ,{"text": "review phim hành động hay", "label": 1}
+  ,{"text": "giải toán giúp tôi", "label": 1}
+  ,{"text": "làm văn giúp tôi được không", "label": 1}
+
+  ,{"text": "cậu gì giúp tớ", "label": 0}
+  ,{"text": "cau gi giup to", "label": 0}
+  ,{"text": "giúp", "label": 0}
+  ,{"text": "giúp với", "label": 0}
+  ,{"text": "giúp mình", "label": 0}
+  ,{"text": "giúp mình với", "label": 0}
+  ,{"text": "giúp tôi", "label": 0}
+  ,{"text": "giúp tui", "label": 0}
+  ,{"text": "cứu", "label": 0}
+  ,{"text": "cứu tui", "label": 0}
+  ,{"text": "help", "label": 0}
+  ,{"text": "help me", "label": 0}
+  ,{"text": "pls help", "label": 0}
+  ,{"text": "plz help", "label": 0}
+  ,{"text": "support", "label": 0}
+  ,{"text": "hỗ trợ", "label": 0}
+  ,{"text": "ho tro", "label": 0}
+  ,{"text": "tư vấn", "label": 0}
+  ,{"text": "tu van", "label": 0}
+  ,{"text": "tư vấn giúp", "label": 0}
+  ,{"text": "tu van giup", "label": 0}
+  ,{"text": "mình cần tư vấn", "label": 0}
+  ,{"text": "minh can tu van", "label": 0}
+  ,{"text": "cho mình hỏi", "label": 0}
+  ,{"text": "cho minh hoi", "label": 0}
+  ,{"text": "cho hỏi", "label": 0}
+  ,{"text": "cho hoi", "label": 0}
+  ,{"text": "mình hỏi chút", "label": 0}
+  ,{"text": "minh hoi chut", "label": 0}
+  ,{"text": "hỏi cái", "label": 0}
+  ,{"text": "hoi cai", "label": 0}
+  ,{"text": "nhờ bạn", "label": 0}
+  ,{"text": "nho ban", "label": 0}
+  ,{"text": "ad ơi giúp em", "label": 0}
+  ,{"text": "admin oi giup em", "label": 0}
+  ,{"text": "alo giúp với", "label": 0}
+  ,{"text": "alo giup voi", "label": 0}
 ]

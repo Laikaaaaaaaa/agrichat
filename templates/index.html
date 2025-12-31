@@ -4929,15 +4929,15 @@
         const maxPx = 160; // compact; scroll after this
 
         const rawValue = (textarea.value || '');
-        if (rawValue.length === 0) {
+        if (rawValue.trim().length === 0) {
           textarea.style.height = `${minPx}px`;
           textarea.style.overflowY = 'hidden';
           textarea.classList.remove('is-multiline');
           return;
         }
 
-        // Reset first so scrollHeight reflects full content
-        textarea.style.height = '0px';
+        // Reset first so scrollHeight reflects current content (including shrink on delete)
+        textarea.style.height = 'auto';
         const scroll = textarea.scrollHeight || minPx;
         const next = Math.max(minPx, Math.min(maxPx, scroll));
         textarea.style.height = `${next}px`;

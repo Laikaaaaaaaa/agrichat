@@ -6811,6 +6811,26 @@ def sitemap_xml():
     resp.mimetype = "application/xml"
     return resp
 
+
+@app.route('/google<path:rest>')
+def google_site_verification(rest):
+    """Serve Google Search Console verification file at site root.
+
+    Google expects: https://<domain>/googleXXXXXXXXXXXX.html
+    We keep the file under static/seo/ in the repo.
+    """
+
+    filename = f"google{rest}"
+    if not filename.endswith('.html'):
+        return make_response('Not found', 404)
+
+    seo_dir = os.path.join(HERE, 'static', 'seo')
+    file_path = os.path.join(seo_dir, filename)
+    if not os.path.isfile(file_path):
+        return make_response('Not found', 404)
+
+    return send_from_directory(seo_dir, filename)
+
 @app.route('/')
 def index():
     """Trang chủ"""

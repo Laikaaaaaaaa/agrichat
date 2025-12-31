@@ -6764,6 +6764,7 @@ def _abs_url(path: str) -> str:
 
 
 @app.route('/robots.txt')
+@limiter.exempt
 def robots_txt():
     base = _get_public_base_url()
     lines = [
@@ -6781,6 +6782,7 @@ def robots_txt():
 
 
 @app.route('/sitemap.xml')
+@limiter.exempt
 def sitemap_xml():
     base = _get_public_base_url()
     today = datetime.utcnow().date().isoformat()
@@ -6813,6 +6815,7 @@ def sitemap_xml():
 
 
 @app.route('/google<path:rest>')
+@limiter.exempt
 def google_site_verification(rest):
     """Serve Google Search Console verification file at site root.
 

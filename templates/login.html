@@ -252,7 +252,7 @@
       let loopDetected = false;
       
       // List of protected pages that redirect to login
-      const protectedPages = ['profile.html', 'history.html', 'forum.html', 'rate.html', 'news.html', 'index.html'];
+      const protectedPages = ['profile.html', 'history.html', 'forum.html', 'rate.html', 'news.html', '/profile', '/history', '/forum', '/rate', '/news'];
       
       // Check if previous page was a protected page
       try {
@@ -281,7 +281,7 @@
       if (loopDetected) {
         // Go to home instead of back
         console.log('🔄 Redirect loop detected, going to home');
-        window.location.href = 'index.html';
+        window.location.href = '/';
       } else {
         // Normal back button behavior
         console.log('✅ No loop detected, going back normally');

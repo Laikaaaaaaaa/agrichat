@@ -993,7 +993,7 @@
       if (redirectCount > 2) {
         sessionStorage.removeItem('login_redirect_count');
         console.log('🔄 Redirect loop detected, going to home');
-        window.location.href = 'index.html';
+                window.location.href = '/';
       } else {
         console.log('✅ No loop detected, going back');
         window.history.back();
@@ -1001,7 +1001,7 @@
     }
 
     function goBack() {
-        window.location.href = 'index.html';
+                window.location.href = '/';
     }
 
     // ===== Mobile Sidebar Toggle Functions =====
@@ -1062,7 +1062,7 @@
             // Store the conversation ID to be continued
             localStorage.setItem('agrisense_continue_conversation_id', chatHistoryManager.selectedConversationId);
             // Go back to chat
-            window.location.href = 'index.html';
+            window.location.href = '/';
         }
     }
 

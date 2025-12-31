@@ -13,7 +13,8 @@
   <title>AgriSense AI - Nông nghiệp thông minh</title>
 
   <meta name="description" content="AgriSense AI hỗ trợ nông nghiệp thông minh: tư vấn cây trồng, vật nuôi, chất lượng nước ao nuôi, thời tiết và kiến thức canh tác." />
-  <meta name="robots" content="index,follow" />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="googlebot" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <link rel="canonical" href="{{ canonical_url }}" />
 
   <meta property="og:site_name" content="AgriSense AI" />
@@ -1573,11 +1574,11 @@
           weatherInfo.style.opacity = '1';
           
           // Navigate to Vietnam weather map page
-          window.location.href = 'map_vietnam.html';
+          window.location.href = '/map_vietnam';
         }, 200);
       } else {
         // Direct navigation if element not found
-        window.location.href = 'map.html';
+        window.location.href = '/map_vietnam';
       }
     };
   </script>
@@ -2965,6 +2966,7 @@
 </head>
 <body class="bg-green-50 font-sans text-gray-700">
   
+  <!--googleoff: all-->
   <div id="forum-notification" data-nosnippet class="fixed top-24 left-1/2 transform -translate-x-1/2 z-40 bg-green-600 text-white rounded-lg shadow-lg px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-4 animate-slide-down" style="display: none; max-width: 600px; width: 90%;">
     <div class="flex items-center gap-3 flex-1">
       <p class="text-sm md:text-base font-medium">Chia sẻ kinh nghiệm hoặc câu hỏi của bạn lên diễn đàn</p>
@@ -2978,6 +2980,7 @@
       </button>
     </div>
   </div>
+  <!--googleon: all-->
   <script>
     /**
      * Forum notification - Hiển thị một lần duy nhất (không lặp lại khi reload)
@@ -3075,10 +3078,12 @@
       
       <span class="text-sm md:text-base text-gray-600 hidden md:block">Chuyên gia tư vấn nông nghiệp thông minh</span>
       
-      <div class="flex items-center gap-4">
-        <span id="connection-status" class="text-sm text-green-500">Đang kết nối...</span>
-        <span id="clock" class="text-sm text-gray-600"></span>
+      <!--googleoff: all-->
+      <div class="flex items-center gap-4" data-nosnippet>
+        <span id="connection-status" class="text-sm text-green-500" data-nosnippet>Đang kết nối...</span>
+        <span id="clock" class="text-sm text-gray-600" data-nosnippet></span>
       </div>
+      <!--googleon: all-->
     </div>
   </header>
 
@@ -3997,25 +4002,25 @@
         </div>
         <ul class="space-y-1 md:space-y-2 text-sm md:text-base text-gray-600">
           <li>
-            <a href="news.html?category=agriculture&type=Tin%20t%E1%BB%A9c%20n%C3%B4ng%20nghi%E1%BB%87p" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+            <a href="/news?category=agriculture&type=Tin%20t%E1%BB%A9c%20n%C3%B4ng%20nghi%E1%BB%87p" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
               <i class="fas fa-newspaper text-xs text-green-600"></i>
               Tin tức nông nghiệp
             </a>
           </li>
           <li>
-            <a href="news.html?category=technology&type=Xu%20h%C6%B0%E1%BB%9Bng%20c%C3%B4ng%20ngh%E1%BB%87" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+            <a href="/news?category=technology&type=Xu%20h%C6%B0%E1%BB%9Bng%20c%C3%B4ng%20ngh%E1%BB%87" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
               <i class="fas fa-microchip text-xs text-blue-600"></i>
               Xu hướng công nghệ
             </a>
           </li>
           <li>
-            <a href="news.html?category=research&type=Nghi%C3%AAn%20c%E1%BB%A9u%20khoa%20h%E1%BB%8Dc" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+            <a href="/news?category=research&type=Nghi%C3%AAn%20c%E1%BB%A9u%20khoa%20h%E1%BB%8Dc" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
               <i class="fas fa-flask text-xs text-purple-600"></i>
               Nghiên cứu khoa học
             </a>
           </li>
           <li>
-            <a href="news.html?category=practical&type=Kinh%20nghi%E1%BB%87m%20th%E1%BB%B1c%20t%E1%BA%BF" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
+            <a href="/news?category=practical&type=Kinh%20nghi%E1%BB%87m%20th%E1%BB%B1c%20t%E1%BA%BF" class="news-link flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-green-50 hover:text-green-600">
               <i class="fas fa-hands-helping text-xs text-orange-600"></i>
               Kinh nghiệm thực tế
             </a>
